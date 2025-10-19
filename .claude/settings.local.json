@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install --save-dev @types/react @types/react-dom vite @vitejs/plugin-react)",
       "Bash(npm install react-router-dom)",
-      "Bash(mkdir -p \"c:\\Users\\power\\Visual-Analytics-for-Yelp-Business-Performance\\frontend\\src\\components\\layout\")"
+      "Bash(mkdir -p \"c:\\Users\\power\\Visual-Analytics-for-Yelp-Business-Performance\\frontend\\src\\components\\layout\")",
+      "Bash(npm install @reduxjs/toolkit react-redux)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)"
     ],
     "deny": [],
     "ask": []

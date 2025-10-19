@@ -1,4 +1,6 @@
-import React, { useState, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { toggleSidebar } from '../../store/slices/uiSlice';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
@@ -17,10 +19,11 @@ const Layout: React.FC<LayoutProps> = ({
   subtitle,
   showSidebar = true
 }) => {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const dispatch = useAppDispatch();
+  const isSidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
 
   const handleToggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
+    dispatch(toggleSidebar());
   };
 
   return (
