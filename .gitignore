@@ -107,6 +107,11 @@ build/
 data/raw/
 data/processed/
 
+# Mock database - JSON files
+backend/data/
+!backend/data/.gitkeep
+!backend/data/README.md
+
 # Temporary files
 *.tmp
 *.temp
