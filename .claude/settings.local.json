@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install --save-dev @types/react @types/react-dom vite @vitejs/plugin-react)"
+      "Bash(npm install --save-dev @types/react @types/react-dom vite @vitejs/plugin-react)",
+      "Bash(npm install react-router-dom)"
     ],
     "deny": [],
     "ask": []
