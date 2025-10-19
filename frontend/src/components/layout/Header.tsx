@@ -9,14 +9,6 @@ const Header: React.FC = () => {
         <Link to="/" className="header-logo">
           <h1>Restaurants Analytics</h1>
         </Link>
-        <nav className="header-nav">
-          <Link to="/dashboard" className="nav-link">Dashboard</Link>
-          <Link to="/analytics" className="nav-link">Analytics</Link>
-        </nav>
-        <div className="header-actions">
-          <button className="header-button">Settings</button>
-          <button className="header-button">Profile</button>
-        </div>
       </div>
     </header>
   );
