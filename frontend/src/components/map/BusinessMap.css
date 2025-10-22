@@ -174,3 +174,29 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
   background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
 }
+
+.filters-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  background: #1e1e2f;
+  border-radius: 8px;
+  margin: 10px auto;
+  width: fit-content;
+  color: white;
+}
+
+.filters-container select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: #2b2b3c;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+.filters-container select:focus {
+  outline: none;
+  border-color: #007bff;
+}
