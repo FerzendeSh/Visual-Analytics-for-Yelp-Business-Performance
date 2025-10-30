@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Map, { Marker, Popup, MapRef } from 'react-map-gl/maplibre';
 import Supercluster from 'supercluster';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -42,6 +42,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [viewport, setViewport] = useState({ ...initialViewState });
+  const previousCityRef = useRef<string>("");
 
   //Filtered businesses based on dropdowns
   const filteredBusinesses = useMemo(() => {
@@ -50,7 +51,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       const categoryMatch = selectedCategory
         ? b.categories?.toLowerCase().includes(selectedCategory.toLowerCase())
         : true;
-      const ratingMatch = selectedRating ? b.stars = selectedRating : true;
+      const ratingMatch = selectedRating ? b.stars == selectedRating : true;
       const statusMatch = selectedStatus !== null ? b.is_open === selectedStatus : true;
 
       return cityMatch && categoryMatch && ratingMatch && statusMatch;
@@ -90,6 +91,36 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     );
   }, [supercluster, viewport]);
 
+  useEffect(() => {
+    const previousCity = previousCityRef.current;
+    if (selectedCity !== "") {
+      const cityBusinesses = businesses.filter(b => b.city === selectedCity);
+      if (cityBusinesses.length > 0) {
+
+        const lats = cityBusinesses.map(b => b.latitude).filter(lat => !isNaN(lat));
+        const lngs = cityBusinesses.map(b => b.longitude).filter(lng => !isNaN(lng));
+        
+        if (lats.length > 0 && lngs.length > 0) {
+          const avgLat = lats.reduce((a, b) => a + b) / lats.length;
+          const avgLng = lngs.reduce((a, b) => a + b) / lngs.length;
+          
+          mapRef.current?.flyTo({
+            center: [avgLng, avgLat],
+            zoom: 11,
+            duration: 700,
+          });
+        }
+      }
+    } else if (selectedCity === "" && previousCity !== "") {
+      mapRef.current?.flyTo({
+        center: [initialViewState.longitude, initialViewState.latitude],
+        zoom: initialViewState.zoom,
+        duration: 700,
+      });
+    }    
+    previousCityRef.current = selectedCity;
+  }, [selectedCity, businesses, initialViewState]);
+
   const totalBusinesses = filteredBusinesses.length;
 
   return (
@@ -111,7 +142,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
               b.categories ? b.categories.split(",").map((c) => c.trim()) : []
             )
           )]
-            .slice(0, 20)
+            .slice(0, 200)
             .map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
