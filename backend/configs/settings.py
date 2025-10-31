@@ -1,33 +1,72 @@
 """
 Application configuration settings.
 """
-import os
 from pathlib import Path
+from typing import List
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
 
-# Base directory of the backend
+# Load environment variables from .env file
+# Look for .env in the project root (parent of backend directory)
 BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+ENV_FILE = PROJECT_ROOT / ".env"
 
-# Data directory for JSON mock database
-DATA_DIR = BASE_DIR / "data"
+load_dotenv(ENV_FILE)
 
-# JSON file paths
-BUSINESSES_JSON = DATA_DIR / "subset_businesses.json"
-PHOTOS_JSON = DATA_DIR / "subset_photos.json"
-REVIEWS_JSON = DATA_DIR / "reviews_with_sentiment.json"
-SUMMARY_JSON = DATA_DIR / "subset_summary.json"
 
-# API Configuration
-API_V1_PREFIX = "/api/v1"
-PROJECT_NAME = "Yelp Business Analytics API"
-VERSION = "1.0.0"
+class Settings(BaseSettings):
+    """
+    Application settings loaded from environment variables.
+    Uses pydantic-settings for validation and type safety.
+    """
 
-# CORS Configuration
-ALLOWED_ORIGINS = [
-    "http://localhost:8080",
-    "http://localhost:3000",
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:3000",
-]
+    # API Configuration
+    PROJECT_NAME: str = "Yelp Business Analytics API"
+    VERSION: str = "1.0.0"
+    API_V1_PREFIX: str = "/api/v1"
+    DEBUG: bool = True
+    ENVIRONMENT: str = "development"
 
-# Database mode (for future migration)
-USE_JSON_DATABASE = True  # Set to False when migrating to real database
+    # Database Configuration
+    DATABASE_URL: str = "postgresql+asyncpg://yelp_user:yelp_password@localhost:5432/yelp_analytics"
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+
+    # PostgreSQL Connection Details (used by Docker Compose)
+    POSTGRES_DB: str = "yelp_analytics"
+    POSTGRES_USER: str = "yelp_user"
+    POSTGRES_PASSWORD: str = "yelp_password"
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+
+    # CORS Configuration
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080"
+
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        """Parse ALLOWED_ORIGINS string into a list."""
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+
+    @property
+    def database_url_sync(self) -> str:
+        """Get synchronous database URL (for Alembic migrations)."""
+        return self.DATABASE_URL.replace("+asyncpg", "")
+
+
+# Instantiate settings singleton
+settings = Settings()
+
+# Export commonly used settings for convenience
+PROJECT_NAME = settings.PROJECT_NAME
+VERSION = settings.VERSION
+ALLOWED_ORIGINS = settings.allowed_origins_list
+API_V1_PREFIX = settings.API_V1_PREFIX
