@@ -93,6 +93,8 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
 
   useEffect(() => {
     const previousCity = previousCityRef.current;
+
+    if (previousCity === selectedCity) return;
     if (selectedCity !== "") {
       const cityBusinesses = businesses.filter(b => b.city === selectedCity);
       if (cityBusinesses.length > 0) {
@@ -162,14 +164,20 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
           ))}
         </select>
 
-        <select
-          value={selectedStatus ?? ""}
-          onChange={(e) => setSelectedStatus(Number(e.target.value) || null)}
-        >
-          <option value="">Status</option>
-          <option value="1">Open</option>
-          <option value="0">Closed</option>
-        </select>
+        <div className="status-toggle-group">
+          <button
+            className={`status-toggle-btn ${selectedStatus === 1 ? 'active' : ''}`}
+            onClick={() => setSelectedStatus(selectedStatus === 1 ? null : 1)}
+          >
+            Open
+          </button>
+          <button
+            className={`status-toggle-btn ${selectedStatus === 0 ? 'active' : ''}`}
+            onClick={() => setSelectedStatus(selectedStatus === 0 ? null : 0)}
+          >
+            Closed
+          </button>
+        </div>
       </div>
 
       <Map

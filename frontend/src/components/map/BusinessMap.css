@@ -18,7 +18,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50% 50% 50% 0;
-  background: #667eea;
+  background: #127017;
   position: relative;
   transform: rotate(-45deg);
   display: flex;
@@ -34,7 +34,7 @@
 }
 
 .marker-pin.closed {
-  background: #e53e3e;
+  background: #771f1f;
 }
 
 .marker-pin.closed:hover {
@@ -82,7 +82,7 @@
 }
 
 .popup-rating strong {
-  color: #667eea;
+  color: #091c89;
   font-weight: 600;
 }
 
@@ -91,7 +91,7 @@
 }
 
 .status-open {
-  color: #38a169;
+  color: #0c6f3a;
   font-weight: 600;
 }
 
@@ -103,9 +103,9 @@
 .popup-categories {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #09043a8d;
   font-size: 11px;
-  color: #718096;
+  color: #030303;
   font-style: italic;
 }
 
@@ -156,7 +156,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #687096 0%, #210551 100%);
   color: white;
   border-radius: 50%;
   font-weight: bold;
@@ -172,7 +172,7 @@
 .cluster-marker:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
+  background: linear-gradient(135deg, #191e38 0%, #06146d 100%);
 }
 
 .filters-container {
@@ -199,4 +199,44 @@
 .filters-container select:focus {
   outline: none;
   border-color: #007bff;
+}
+
+.status-toggle-group {
+  display: flex;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.status-toggle-btn {
+  padding: 10px 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-toggle-btn:last-child {
+  border-right: none;
+}
+
+.status-toggle-btn:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.status-toggle-btn.active {
+  background: linear-gradient(135deg, #021147 0%, #031a20 100%);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(11, 3, 82, 0.4);
+}
+
+.status-toggle-btn:active {
+  transform: scale(0.98);
 }
