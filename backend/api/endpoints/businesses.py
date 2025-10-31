@@ -1,21 +1,32 @@
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Path, status
 
 from configs.settings import BUSINESSES_JSON
 from repositories.json_repository import BusinessRepository
 from schemas.business_dto import BusinessDTO
 
-business_repo = BusinessRepository(BUSINESSES_JSON)
+repository = BusinessRepository(BUSINESSES_JSON)
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/businesses",
+    tags=["businesses"],
+    responses={404: {"description": "Not found"}}
+)
 
-@router.get("/businesses/{business_id}", response_model=BusinessDTO)
-async def get_business(business_id: str):
-    if business_id == "":
-        raise HTTPException(status_code=400, detail="business not found")
+@router.get("/{business_id}", response_model=BusinessDTO)
+def get_business(
+    business_id: str = Path(..., min_length=1, description="Unique business identifier")
+):
+    """
+    Get a single business by ID.
 
-    business = business_repo.get_by_business_id(business_id)
+    Returns detailed business information including location, ratings, hours, and attributes.
+    """
+    business = repository.get_by_business_id(business_id)
 
     if not business:
-        raise HTTPException(status_code=404, detail="Business not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Business not found"
+        )
 
     return business
