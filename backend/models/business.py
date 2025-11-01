@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from sqlalchemy import String, Float, Integer, JSON, Index
+from sqlalchemy import String, Float, Integer, JSON, Index, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
-from backend.models.base import Base
+from models.base import Base
 
 if TYPE_CHECKING:
-    from backend.models.photo import Photo
+    from models.photo import Photo
 
 
 class Business(Base):
@@ -32,9 +32,9 @@ class Business(Base):
     photo_count: Mapped[float] = mapped_column(Float, default=0.0)
 
     # Categories and metadata
-    categories: Mapped[str] = mapped_column(String(500))
-    attributes: Mapped[dict] = mapped_column(JSON)
-    hours: Mapped[dict] = mapped_column(JSON)
+    categories: Mapped[str] = mapped_column(Text)
+    attributes: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    hours: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     # Relationships - one business has many photos
     photos: Mapped[List["Photo"]] = relationship(

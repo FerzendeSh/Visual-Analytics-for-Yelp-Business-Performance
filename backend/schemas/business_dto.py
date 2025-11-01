@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -12,8 +13,8 @@ class BusinessDTO(BaseModel):
     review_count: int = Field(..., description="Total number of reviews")
     stars: float = Field(..., ge=0, le=5, description="Average star rating (0-5)")
     is_open: int = Field(..., description="Whether business is open (1) or closed (0)")
-    attributes: dict[str, str] = Field(..., description="Business attributes (parking, WiFi, etc.)")
-    hours: dict[str, str] = Field(..., description="Business operating hours by day")
+    attributes: Optional[dict[str, str]] = Field(None, description="Business attributes (parking, WiFi, etc.)")
+    hours: Optional[dict[str, str]] = Field(None, description="Business operating hours by day")
     photo_count: float = Field(..., description="Total number of photos")
 
     class Config:
