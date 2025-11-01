@@ -8,14 +8,11 @@ from sqlalchemy import pool
 
 from alembic import context
 
-# Import the Alembic Config object
 config = context.config
 
-# Interpret the config file for Python logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import settings and models
 import sys
 from pathlib import Path
 
@@ -26,11 +23,9 @@ sys.path.insert(0, str(backend_dir))
 from configs.settings import settings
 from models.base import Base
 
-# Import all models so they're registered with Base.metadata
 from models.business import Business
 from models.photo import Photo
 
-# Set target metadata for autogenerate support
 target_metadata = Base.metadata
 
 # Set the database URL from settings (use sync URL for migrations)
