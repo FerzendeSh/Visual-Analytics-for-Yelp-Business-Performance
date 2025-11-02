@@ -1,0 +1,242 @@
+.business-map-container {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.marker {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marker-pin {
+  width: 32px;
+  height: 32px;
+  border-radius: 50% 50% 50% 0;
+  background: #127017;
+  position: relative;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.marker-pin:hover {
+  transform: rotate(-45deg) scale(1.15);
+  background: #5568d3;
+}
+
+.marker-pin.closed {
+  background: #771f1f;
+}
+
+.marker-pin.closed:hover {
+  background: #c53030;
+}
+
+.marker-star {
+  transform: rotate(45deg);
+  font-size: 11px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.business-popup {
+  min-width: 200px;
+  max-width: 300px;
+  padding: 4px;
+}
+
+.business-popup h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  line-height: 1.3;
+}
+
+.popup-details {
+  font-size: 13px;
+  color: #4a5568;
+}
+
+.popup-details p {
+  margin: 4px 0;
+}
+
+.popup-location {
+  color: #718096;
+  font-size: 12px;
+}
+
+.popup-rating {
+  margin: 6px 0;
+}
+
+.popup-rating strong {
+  color: #091c89;
+  font-weight: 600;
+}
+
+.popup-status {
+  margin: 6px 0;
+}
+
+.status-open {
+  color: #0c6f3a;
+  font-weight: 600;
+}
+
+.status-closed {
+  color: #e53e3e;
+  font-weight: 600;
+}
+
+.popup-categories {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #09043a8d;
+  font-size: 11px;
+  color: #030303;
+  font-style: italic;
+}
+
+.map-info {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 13px;
+  color: #4a5568;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* MapLibre GL controls styling */
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+}
+
+.maplibregl-ctrl-bottom-right {
+  bottom: 10px;
+  right: 10px;
+}
+
+/* Popup styling override */
+.maplibregl-popup-content {
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.maplibregl-popup-close-button {
+  font-size: 18px;
+  padding: 4px 8px;
+  color: #718096;
+}
+
+.maplibregl-popup-close-button:hover {
+  background-color: #f7fafc;
+  color: #2d3748;
+}
+
+/* Cluster marker styles */
+.cluster-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #687096 0%, #210551 100%);
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-width: 30px;
+  min-height: 30px;
+}
+
+.cluster-marker:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #191e38 0%, #06146d 100%);
+}
+
+.filters-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  background: #1e1e2f;
+  border-radius: 8px;
+  margin: 10px auto;
+  width: fit-content;
+  color: white;
+}
+
+.filters-container select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: #2b2b3c;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+.filters-container select:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.status-toggle-group {
+  display: flex;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.status-toggle-btn {
+  padding: 10px 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-toggle-btn:last-child {
+  border-right: none;
+}
+
+.status-toggle-btn:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.status-toggle-btn.active {
+  background: linear-gradient(135deg, #021147 0%, #031a20 100%);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(11, 3, 82, 0.4);
+}
+
+.status-toggle-btn:active {
+  transform: scale(0.98);
+}

@@ -1,0 +1,55 @@
+.main-content {
+  margin-top: 64px;
+  margin-left: 240px;
+  min-height: calc(100vh - 64px);
+  background-color: #0f1419;
+  transition: margin-left 0.3s ease;
+  padding: 2rem;
+}
+
+.main-content.sidebar-collapsed {
+  margin-left: 64px;
+}
+
+.main-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.main-title {
+  font-size: 2rem;
+  color: white;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.main-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.main-body {
+  color: white;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .main-content.sidebar-collapsed {
+    margin-left: 0;
+  }
+
+  .main-title {
+    font-size: 1.5rem;
+  }
+
+  .main-subtitle {
+    font-size: 0.9rem;
+  }
+}
