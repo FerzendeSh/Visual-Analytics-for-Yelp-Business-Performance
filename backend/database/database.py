@@ -13,7 +13,6 @@ import logging
 
 from configs.settings import settings
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
 # Create async engine with connection pooling
@@ -70,12 +69,11 @@ async def init_db() -> None:
     Note: In production, use Alembic migrations instead.
     """
     from models.base import Base
-    # Import all models to ensure they're registered
     from models.business import Business
     from models.photo import Photo
+    from models.review import Review
 
     async with engine.begin() as conn:
-        # Create all tables
         await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created successfully")
 

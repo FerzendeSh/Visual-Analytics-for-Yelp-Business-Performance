@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from api.endpoints.businesses import router as business_router
 from api.endpoints.locations import router as locations_router
+from api.endpoints.analytics import router as analytics_router
 from configs.settings import PROJECT_NAME, VERSION, ALLOWED_ORIGINS
 from database.database import init_db, close_db
 
@@ -39,6 +40,7 @@ app.add_middleware(
 # Register routers
 app.include_router(business_router, prefix="/api")
 app.include_router(locations_router, prefix="/api")
+app.include_router(analytics_router, prefix="/api")
 
 
 @app.get("/", tags=["health"])

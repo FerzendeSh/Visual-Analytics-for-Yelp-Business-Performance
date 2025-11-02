@@ -4,10 +4,10 @@ from sqlalchemy import String, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import TYPE_CHECKING
 
-from backend.models.base import Base
+from models.base import Base
 
 if TYPE_CHECKING:
-    from backend.models.business import Business
+    from models.business import Business
 
 
 class Photo(Base):
