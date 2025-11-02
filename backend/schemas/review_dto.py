@@ -6,7 +6,12 @@ class ReviewDTO(BaseModel):
     text: str = Field(..., description="Review text content")
     stars: float = Field(..., ge=0, le=5, description="Star rating (0-5)")
     date: str = Field(..., description="Review date")
+    user_id: str = Field(..., description="User who wrote the review")
     business_id: str = Field(..., description="Business this review belongs to")
+    useful: int = Field(..., ge=0, description="Number of useful votes")
+    funny: int = Field(..., ge=0, description="Number of funny votes")
+    cool: int = Field(..., ge=0, description="Number of cool votes")
+    sentiment_label: str = Field(..., description="Sentiment category (negative, neutral, positive)")
     sentiment_confidence: float = Field(..., description="Confidence of sentiment prediction")
     prob_negative: float = Field(..., ge=0, le=1, description="Probability of negative sentiment")
     prob_neutral: float = Field(..., ge=0, le=1, description="Probability of neutral sentiment")
@@ -22,7 +27,12 @@ class ReviewDTO(BaseModel):
                 "text": "Great food and excellent service! Highly recommend.",
                 "stars": 5.0,
                 "date": "2023-06-15",
+                "user_id": "abc123xyz",
                 "business_id": "MTSW4McQd7CbVtyjqoe9mw",
+                "useful": 5,
+                "funny": 0,
+                "cool": 2,
+                "sentiment_label": "positive",
                 "sentiment_confidence": 0.95,
                 "prob_negative": 0.02,
                 "prob_neutral": 0.03,

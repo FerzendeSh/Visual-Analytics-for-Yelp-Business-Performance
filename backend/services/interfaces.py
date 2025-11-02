@@ -3,7 +3,8 @@ Service interfaces (Abstract Base Classes).
 Define contracts for business logic layer.
 """
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from datetime import date
 
 from models.business import Business
 
@@ -95,5 +96,159 @@ class BusinessServiceInterface(ABC):
 
         Returns:
             List of Business objects ranked by relevance
+        """
+        pass
+
+
+class AnalyticsServiceInterface(ABC):
+    """Abstract interface for analytics service operations."""
+
+    @abstractmethod
+    async def get_business_ratings_timeline(
+        self,
+        business_id: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get ratings timeline for a business.
+
+        Args:
+            business_id: Business identifier
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+
+        Raises:
+            HTTPException: If business not found or invalid parameters
+        """
+        pass
+
+    @abstractmethod
+    async def get_business_sentiment_timeline(
+        self,
+        business_id: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get sentiment timeline for a business.
+
+        Args:
+            business_id: Business identifier
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+
+        Raises:
+            HTTPException: If business not found or invalid parameters
+        """
+        pass
+
+    @abstractmethod
+    async def get_business_timeline_with_city_comparison(
+        self,
+        business_id: str,
+        metric: str = 'rating',
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get business timeline with city average comparison.
+
+        Args:
+            business_id: Business identifier
+            metric: Metric to compare ('rating' or 'sentiment')
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with business and city comparison data
+
+        Raises:
+            HTTPException: If business not found or invalid parameters
+        """
+        pass
+
+    @abstractmethod
+    async def get_business_timeline_with_state_comparison(
+        self,
+        business_id: str,
+        metric: str = 'rating',
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get business timeline with state average comparison.
+
+        Args:
+            business_id: Business identifier
+            metric: Metric to compare ('rating' or 'sentiment')
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with business and state comparison data
+
+        Raises:
+            HTTPException: If business not found or invalid parameters
+        """
+        pass
+
+    @abstractmethod
+    async def get_city_ratings_timeline(
+        self,
+        city: str,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get ratings timeline for a city.
+
+        Args:
+            city: City name
+            state: State code
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+        """
+        pass
+
+    @abstractmethod
+    async def get_state_ratings_timeline(
+        self,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get ratings timeline for a state.
+
+        Args:
+            state: State code
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
         """
         pass

@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_async_session
 from repositories.business_repository import BusinessRepository
-from repositories.interfaces import BusinessRepositoryInterface
+from repositories.review_repository import ReviewRepository
+from repositories.interfaces import BusinessRepositoryInterface, ReviewRepositoryInterface
 from services.business_service import BusinessService
-from services.interfaces import BusinessServiceInterface
+from services.analytics_service import AnalyticsService
+from services.interfaces import BusinessServiceInterface, AnalyticsServiceInterface
 
 
 # ============================================================================
@@ -31,6 +33,21 @@ def get_business_repository(
     return BusinessRepository(db)
 
 
+def get_review_repository(
+    db: AsyncSession = Depends(get_async_session)
+) -> ReviewRepositoryInterface:
+    """
+    Get review repository instance.
+
+    Args:
+        db: Async database session from dependency
+
+    Returns:
+        ReviewRepositoryInterface: Concrete repository implementation
+    """
+    return ReviewRepository(db)
+
+
 # ============================================================================
 # Service Dependencies
 # ============================================================================
@@ -48,3 +65,20 @@ def get_business_service(
         BusinessServiceInterface: Concrete service implementation
     """
     return BusinessService(business_repository)
+
+
+def get_analytics_service(
+    review_repository: ReviewRepositoryInterface = Depends(get_review_repository),
+    business_repository: BusinessRepositoryInterface = Depends(get_business_repository)
+) -> AnalyticsServiceInterface:
+    """
+    Get analytics service instance with all dependencies injected.
+
+    Args:
+        review_repository: Review repository dependency
+        business_repository: Business repository dependency
+
+    Returns:
+        AnalyticsServiceInterface: Concrete service implementation
+    """
+    return AnalyticsService(review_repository, business_repository)

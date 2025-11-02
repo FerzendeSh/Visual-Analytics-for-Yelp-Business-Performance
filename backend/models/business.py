@@ -8,6 +8,7 @@ from models.base import Base
 
 if TYPE_CHECKING:
     from models.photo import Photo
+    from models.review import Review
 
 
 class Business(Base):
@@ -36,8 +37,13 @@ class Business(Base):
     attributes: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     hours: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
-    # Relationships - one business has many photos
+    # Relationships - one business has many photos and reviews
     photos: Mapped[List["Photo"]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan"
+    )
+
+    reviews: Mapped[List["Review"]] = relationship(
         back_populates="business",
         cascade="all, delete-orphan"
     )
