@@ -6,7 +6,6 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_async_session
-from database.unit_of_work import UnitOfWork
 from repositories.business_repository import BusinessRepository
 from repositories.interfaces import BusinessRepositoryInterface
 from services.business_service import BusinessService
@@ -30,25 +29,6 @@ def get_business_repository(
         BusinessRepositoryInterface: Concrete repository implementation
     """
     return BusinessRepository(db)
-
-
-# ============================================================================
-# Unit of Work Dependencies
-# ============================================================================
-
-def get_unit_of_work(
-    db: AsyncSession = Depends(get_async_session)
-) -> UnitOfWork:
-    """
-    Get Unit of Work instance for transaction management.
-
-    Args:
-        db: Async database session from dependency
-
-    Returns:
-        UnitOfWork: Transaction coordinator
-    """
-    return UnitOfWork(db)
 
 
 # ============================================================================
