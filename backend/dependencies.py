@@ -1,0 +1,84 @@
+"""
+Centralized dependency injection for FastAPI.
+Provides all service dependencies with proper wiring.
+"""
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database.database import get_async_session
+from repositories.business_repository import BusinessRepository
+from repositories.review_repository import ReviewRepository
+from repositories.interfaces import BusinessRepositoryInterface, ReviewRepositoryInterface
+from services.business_service import BusinessService
+from services.analytics_service import AnalyticsService
+from services.interfaces import BusinessServiceInterface, AnalyticsServiceInterface
+
+
+# ============================================================================
+# Repository Dependencies
+# ============================================================================
+
+def get_business_repository(
+    db: AsyncSession = Depends(get_async_session)
+) -> BusinessRepositoryInterface:
+    """
+    Get business repository instance.
+
+    Args:
+        db: Async database session from dependency
+
+    Returns:
+        BusinessRepositoryInterface: Concrete repository implementation
+    """
+    return BusinessRepository(db)
+
+
+def get_review_repository(
+    db: AsyncSession = Depends(get_async_session)
+) -> ReviewRepositoryInterface:
+    """
+    Get review repository instance.
+
+    Args:
+        db: Async database session from dependency
+
+    Returns:
+        ReviewRepositoryInterface: Concrete repository implementation
+    """
+    return ReviewRepository(db)
+
+
+# ============================================================================
+# Service Dependencies
+# ============================================================================
+
+def get_business_service(
+    business_repository: BusinessRepositoryInterface = Depends(get_business_repository)
+) -> BusinessServiceInterface:
+    """
+    Get business service instance with all dependencies injected.
+
+    Args:
+        business_repository: Business repository dependency
+
+    Returns:
+        BusinessServiceInterface: Concrete service implementation
+    """
+    return BusinessService(business_repository)
+
+
+def get_analytics_service(
+    review_repository: ReviewRepositoryInterface = Depends(get_review_repository),
+    business_repository: BusinessRepositoryInterface = Depends(get_business_repository)
+) -> AnalyticsServiceInterface:
+    """
+    Get analytics service instance with all dependencies injected.
+
+    Args:
+        review_repository: Review repository dependency
+        business_repository: Business repository dependency
+
+    Returns:
+        AnalyticsServiceInterface: Concrete service implementation
+    """
+    return AnalyticsService(review_repository, business_repository)
