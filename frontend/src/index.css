@@ -12,6 +12,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #001a4d 0%, #0d2d7a 50%, #001a4d 100%);
   color: white;
+  zoom: 70%;
 }
 
 #root {

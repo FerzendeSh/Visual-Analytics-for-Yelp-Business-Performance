@@ -1,10 +1,10 @@
 .filter-control-panel {
-  background: #161d26;
-  border: 1px solid #78787a;
+  background: #0f1b2a;
+  border: 1px solid #7373e73e;
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 0.5rem;
-  box-shadow: 0 1px 3px rgba(51, 102, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(1, 1, 27, 0.859);
 }
 
 .control-section {
@@ -29,7 +29,7 @@
 
 .filter-select {
   padding: 0.6rem 0.75rem;
-  border: 1px solid #78787a;
+  border: 1px solid #7373e73e;
   border-radius: 4px;
   font-size: 0.9rem;
   background-color: #010a1e;
@@ -37,6 +37,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 140px;
+  box-shadow: 0 4px 12px rgba(1, 1, 27, 0.859);
 }
 
 .filter-select:hover {
@@ -47,53 +48,58 @@
 .filter-select:focus {
   outline: none;
   border-color: #78787a;
-  box-shadow: 0 0 0 3px rgba(3, 27, 59, 0.2);
+  box-shadow: 0 0 0 3px rgba(1, 1, 27, 0.859);
 }
 
 .status-toggle-group {
   display: flex;
-  gap: 0.5rem;
+  gap: 0rem;
 }
 
 .status-toggle-btn {
   padding: 0.6rem 1rem;
-  border: 1px solid #78787a;
+  border: 1px solid #7373e73e;
   border-radius: 4px;
-  background-color: #161d26;
+  background-color: #010a1e;
   color: #ffffff;
   font-weight: 500;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 70px;
+  box-shadow: 0 4px 12px rgba(1, 1, 27, 0.859);
 }
 
 .status-toggle-btn:hover {
   border-color: #78787a;
   background-color: #1a4ba8;
+  box-shadow: 0 6px 16px rgba(1, 1, 27, 0.859);
 }
 
 .status-toggle-btn.active {
-  background-color: #3366ff;
+  background-color: #0a46fb89;
   color: #fff;
-  border-color: #78787a;
+  border-color: #7373e73e;
+  box-shadow: 0 4px 12px rgba(115, 115, 231, 0.3);
 }
 
 .status-toggle-btn.active:hover {
   background-color: #2255dd;
   border-color: #78787a;
+  box-shadow: 0 6px 16px rgba(115, 115, 231, 0.4);
 }
 
 .reset-filters-btn {
   padding: 0.6rem 1.25rem;
-  background-color: rgb(242, 240, 255);
+  background-color: #010a1e;
   color: #ffffff;
-  border: 1px solid #78787a;
+  border: 1px solid #7373e73e;
   border-radius: 4px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(1, 1, 27, 0.859);
 }
 
 .reset-filters-btn:hover {
