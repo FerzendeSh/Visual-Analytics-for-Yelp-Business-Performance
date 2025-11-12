@@ -10,7 +10,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #001a4d 0%, #0d2d7a 50%, #001a4d 100%);
+  background: linear-gradient(135deg, #161d26 0%, #161d26 50%, #161d26 100%);
   color: white;
   zoom: 70%;
 }
