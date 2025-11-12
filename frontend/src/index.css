@@ -10,7 +10,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0f1419;
+  background: linear-gradient(135deg, #001a4d 0%, #0d2d7a 50%, #001a4d 100%);
   color: white;
 }
 
@@ -40,10 +40,10 @@ p {
 }
 
 a {
-  color: #667eea;
+  color: #5588ff;
   transition: color 0.2s;
 }
 
 a:hover {
-  color: #8fa3ff;
+  color: #88bbff;
 }

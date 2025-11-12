@@ -24,6 +24,11 @@ interface BusinessMapProps {
     latitude: number;
     zoom: number;
   };
+  onBusinessSelect?: (business: Business) => void;
+  selectedCity?: string;
+  selectedCategory?: string;
+  selectedRating?: number | null;
+  selectedStatus?: number | null;
 }
 
 type PointFeature = GeoJSON.Feature<GeoJSON.Point, Business>;
@@ -34,13 +39,14 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     longitude: -98.5795,
     latitude: 39.8283,
     zoom: 3.5,},
+  onBusinessSelect,
+  selectedCity = "",
+  selectedCategory = "",
+  selectedRating = null,
+  selectedStatus = null,
 }) => {
   const mapRef = useRef<MapRef>(null);
   const [popupInfo, setPopupInfo] = useState<Business | null>(null);
-  const [selectedCity, setSelectedCity] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedRating, setSelectedRating] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [viewport, setViewport] = useState({ ...initialViewState });
   const previousCityRef = useRef<string>("");
 
@@ -125,67 +131,36 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
 
   const totalBusinesses = filteredBusinesses.length;
 
+  const handleZoomIn = () => {
+    mapRef.current?.easeTo({
+      zoom: viewport.zoom + 1,
+      duration: 300,
+    });
+  };
+
+  const handleZoomOut = () => {
+    mapRef.current?.easeTo({
+      zoom: Math.max(viewport.zoom - 1, 0),
+      duration: 300,
+    });
+  };
+
+  const handleResetOrientation = () => {
+    mapRef.current?.easeTo({
+      bearing: 0,
+      pitch: 0,
+      duration: 500,
+    });
+  };
+
   return (
     <div className="business-map-container">
-      <div className="filters-container">
-        <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
-          <option value="">All Cities</option>
-          {[...new Set(businesses.map((b) => b.city))].map((city) => (
-            <option key={city} value={city}>
-              {city}
-            </option>
-          ))}
-        </select>
-
-        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-          <option value="">All Categories</option>
-          {[...new Set(
-            businesses.flatMap((b) =>
-              b.categories ? b.categories.split(",").map((c) => c.trim()) : []
-            )
-          )]
-            .slice(0, 200)
-            .map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-        </select>
-
-        <select
-          value={selectedRating ?? ""}
-          onChange={(e) => setSelectedRating(Number(e.target.value) || null)}
-        >
-          <option value="">All Ratings</option>
-          {[5, 4, 3, 2, 1].map((r) => (
-            <option key={r} value={r}>
-              {r}★ 
-            </option>
-          ))}
-        </select>
-
-        <div className="status-toggle-group">
-          <button
-            className={`status-toggle-btn ${selectedStatus === 1 ? 'active' : ''}`}
-            onClick={() => setSelectedStatus(selectedStatus === 1 ? null : 1)}
-          >
-            Open
-          </button>
-          <button
-            className={`status-toggle-btn ${selectedStatus === 0 ? 'active' : ''}`}
-            onClick={() => setSelectedStatus(selectedStatus === 0 ? null : 0)}
-          >
-            Closed
-          </button>
-        </div>
-      </div>
-
       <Map
         ref={mapRef}
         initialViewState={initialViewState}
         onMove={(evt) => setViewport(evt.viewState)}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        mapStyle="https://tiles.openfreemap.org/styles/positron"
       >
         {clusters.map((cluster: any) => {
           const [longitude, latitude] = cluster.geometry.coordinates;
@@ -233,6 +208,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
               onClick={(e) => {
                 e.originalEvent.stopPropagation();
                 setPopupInfo(business);
+                onBusinessSelect?.(business);
               }}
             >
               <div className="marker">
@@ -279,11 +255,42 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
             </div>
           </Popup>
         )}
-      </Map>
 
-      <div className="map-info">
-        <p>Showing {totalBusinesses} businesses</p>
-      </div>
+        <div className="map-info">
+          <p>{totalBusinesses} businesses</p>
+        </div>
+
+        <div className="map-controls">
+          <button
+            className="map-control-btn zoom-in-btn"
+            onClick={handleZoomIn}
+            title="Zoom In"
+            aria-label="Zoom In"
+          >
+            <span className="control-icon">+</span>
+          </button>
+          <button
+            className="map-control-btn zoom-out-btn"
+            onClick={handleZoomOut}
+            title="Zoom Out"
+            aria-label="Zoom Out"
+          >
+            <span className="control-icon">−</span>
+          </button>
+          <button
+            className="map-control-btn reset-orientation-btn"
+            onClick={handleResetOrientation}
+            title="Reset Orientation"
+            aria-label="Reset Orientation"
+          >
+            <img src="/direction.png" alt="Reset Orientation" className="orientation-icon" />
+          </button>
+          <div className="zoom-level-display">
+            <span className="zoom-level-label">Zoom:</span>
+            <span className="zoom-level-value">{viewport.zoom.toFixed(1)}</span>
+          </div>
+        </div>
+      </Map>
     </div>
   );
 };

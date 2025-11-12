@@ -2,7 +2,7 @@
   margin-top: 64px;
   margin-left: 240px;
   min-height: calc(100vh - 64px);
-  background-color: #0f1419;
+  background: transparent;
   transition: margin-left 0.3s ease;
   padding: 2rem;
 }
@@ -14,7 +14,7 @@
 .main-header {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+  border-bottom: 1px solid rgba(11, 41, 174, 0.3);
 }
 
 .main-title {
@@ -31,7 +31,7 @@
 }
 
 .main-body {
-  color: white;
+  color: rgb(255, 255, 255);
 }
 
 /* Responsive design */

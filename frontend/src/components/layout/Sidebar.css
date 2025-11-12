@@ -1,5 +1,5 @@
 .sidebar {
-  background-color: #16213e;
+  background-color: #161d26;
   border-right: 1px solid rgba(102, 126, 234, 0.3);
   position: fixed;
   top: 64px;
@@ -18,7 +18,7 @@
 }
 
 .sidebar-toggle {
-  background-color: rgba(102, 126, 234, 0.2);
+  background-color: rgba(181, 183, 186, 0.415);
   border: none;
   color: white;
   padding: 0.75rem;
@@ -66,14 +66,15 @@
 }
 
 .sidebar-link:hover {
-  background-color: rgba(102, 126, 234, 0.2);
+  background-color: rgba(141, 142, 145, 0.67);
   color: white;
 }
 
 .sidebar-link.active {
-  background-color: rgba(102, 126, 234, 0.3);
-  color: white;
-  border-left: 3px solid #667eea;
+  background-color: rgba(4, 26, 125, 0.532);
+  color: #ffffff;
+  border-left: 4px solid #9d9b9b;
+  font-weight: 600;
 }
 
 .sidebar-icon {

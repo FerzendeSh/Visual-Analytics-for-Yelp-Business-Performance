@@ -1,46 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
-
-interface Business {
-  business_id: string;
-  name: string;
-  city: string;
-  state: string;
-  latitude: number;
-  longitude: number;
-  review_count: number;
-  stars: number;
-  categories: string;
-  is_open: number;
-}
+import { TimeSeriesChart } from '../components/timeseries';
+import { FilterControlPanel } from '../components/controls';
+import { getBusinesses, Business } from '../api';
 
 const Home: React.FC = () => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+
+  // Centralized filter state
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
+  const [period, setPeriod] = useState<'month' | 'year'>('year');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     const loadBusinesses = async () => {
       try {
         setLoading(true);
-        // Fetch from public directory
-        const response = await fetch('/subset_businesses.json');
+        setError(null);
 
-        if (!response.ok) {
-          throw new Error('Failed to load business data');
+        // Fetch all businesses with pagination
+        let allBusinesses: Business[] = [];
+        let skip = 0;
+        const limit = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const data = await getBusinesses({ skip, limit });
+          if (data.length === 0) {
+            hasMore = false;
+          } else {
+            allBusinesses = [...allBusinesses, ...data];
+            if (data.length < limit) {
+              hasMore = false;
+            } else {
+              skip += limit;
+            }
+          }
         }
 
-        const text = await response.text();
-        const lines = text.trim().split('\n');
-        const parsedBusinesses = lines.map(line => JSON.parse(line));
+        setBusinesses(allBusinesses);
+      } catch (apiErr) {
+        console.warn('API request failed, falling back to static data:', apiErr);
 
-        setBusinesses(parsedBusinesses);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading businesses:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load businesses');
+        // Fallback to static JSON file
+        try {
+          const response = await fetch('/subset_businesses.json');
+          if (!response.ok) {
+            throw new Error('Failed to load business data from both API and static file');
+          }
+
+          const text = await response.text();
+          const lines = text.trim().split('\n');
+          const parsedBusinesses = lines.map(line => JSON.parse(line));
+
+          setBusinesses(parsedBusinesses);
+          setError(null);
+        } catch (fallbackErr) {
+          console.error('Error loading businesses:', fallbackErr);
+          setError(
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : 'Failed to load businesses'
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -49,16 +78,23 @@ const Home: React.FC = () => {
     loadBusinesses();
   }, []);
 
+  const handleResetFilters = () => {
+    setSelectedCity("");
+    setSelectedCategory("");
+    setSelectedRating(null);
+    setSelectedStatus(null);
+    setPeriod('year');
+    setSelectedYear(new Date().getFullYear());
+  };
+
   return (
     <Layout
       title="Yelp Business Analytics Dashboard"
-      subtitle="Explore businesses across the United States"
       showSidebar={true}
     >
-      <div style={{ padding: '1rem' }}>
-        <section style={{ marginBottom: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Business Locations Map</h3>
-
+      <div style={{ padding: '1.5rem' }}>
+        {/* Map and Time Series Section */}
+        <section>
           {loading && (
             <div style={{
               padding: '2rem',
@@ -77,56 +113,138 @@ const Home: React.FC = () => {
               background: '#fff5f5',
               border: '1px solid #feb2b2',
               borderRadius: '8px',
-              color: '#c53030'
+              color: '#c53030',
+              marginBottom: '1rem'
             }}>
               Error: {error}
             </div>
           )}
 
           {!loading && !error && (
-            <BusinessMap businesses={businesses} />
+            <>
+              {/* Centralized Filter Control Panel */}
+              <FilterControlPanel
+                businesses={businesses}
+                selectedCity={selectedCity}
+                selectedCategory={selectedCategory}
+                selectedRating={selectedRating}
+                selectedStatus={selectedStatus}
+                period={period}
+                selectedYear={selectedYear}
+                onCityChange={setSelectedCity}
+                onCategoryChange={setSelectedCategory}
+                onRatingChange={setSelectedRating}
+                onStatusChange={setSelectedStatus}
+                onPeriodChange={setPeriod}
+                onYearChange={setSelectedYear}
+                onResetFilters={handleResetFilters}
+              />
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1.3fr 1fr',
+                gap: '0.8rem',
+                gridAutoRows: '1fr',
+              }}>
+                {/* Map View - Left Side, Takes Full Height */}
+                <div style={{
+                  gridRow: '1 / span 2',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: '1px solid #e2e8f0',
+                  background: '#fff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  <div style={{
+                    flex: 1,
+                    position: 'relative',
+                    width: '100%',
+                    minHeight: '600px',
+                  }}>
+                    <BusinessMap
+                      businesses={businesses}
+                      selectedCity={selectedCity}
+                      selectedCategory={selectedCategory}
+                      selectedRating={selectedRating}
+                      selectedStatus={selectedStatus}
+                      onBusinessSelect={setSelectedBusiness}
+                    />
+                  </div>
+                </div>
+                  {/* Ratings Timeline - Right Top */}
+                  <div style={{
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  background: '#0f1b2a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: '1px solid rgba(102, 126, 234, 0.25)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(102, 126, 234, 0.15)',
+                }}>
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderBottom: '1px solid #9b9c9eff',
+                    background: '#0f1b2a',
+                    flexShrink: 0,
+                  }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#ffffffff'
+                    }}>
+                      Rating Trends
+                    </h3>
+                  </div>
+                  <div style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    padding: '0.5rem',
+                    minHeight: 0,
+                  }}>
+                    <TimeSeriesChart business={selectedBusiness} isRatingsOnly={true} period={period} selectedYear={selectedYear} />
+                  </div>
+                </div>
+
+                {/* Sentiment Timeline - Right Bottom */}
+                <div style={{
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(102, 126, 234, 0.25)',
+                  background: '#0f1b2a',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(102, 126, 234, 0.15)',
+                }}>
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderBottom: '1px solid #e2e8f0',
+                    background: '#0f1b2a ',
+                    flexShrink: 0,
+                  }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#ffffffff'
+                    }}>
+                      Sentiment Trends
+                    </h3>
+                  </div>
+                  <div style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    padding: '0.5rem',
+                    minHeight: 0,
+                  }}>
+                    <TimeSeriesChart business={selectedBusiness} isSentimentOnly={true} period={period} selectedYear={selectedYear} />
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </section>
-
-        <nav style={{ marginTop: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Quick Navigation</h3>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            <li style={{ marginBottom: '1rem' }}>
-              <Link
-                to="/dashboard"
-                style={{
-                  fontSize: '1.1rem',
-                  color: '#667eea',
-                  textDecoration: 'none',
-                  display: 'inline-block',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                  borderRadius: '4px',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Go to Dashboard →
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/analytics"
-                style={{
-                  fontSize: '1.1rem',
-                  color: '#667eea',
-                  textDecoration: 'none',
-                  display: 'inline-block',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                  borderRadius: '4px',
-                  transition: 'all 0.2s'
-                }}
-              >
-                View Analytics →
-              </Link>
-            </li>
-          </ul>
-        </nav>
       </div>
     </Layout>
   );

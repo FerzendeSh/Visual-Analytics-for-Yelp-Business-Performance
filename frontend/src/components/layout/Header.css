@@ -1,6 +1,6 @@
 .header {
-  background-color: #1a1a2e;
-  border-bottom: 2px solid #667eea;
+  background: #161d26;
+  border-bottom: 2px solid #020425;
   position: fixed;
   top: 0;
   left: 0;
@@ -21,7 +21,7 @@
 
 .header-logo {
   text-decoration: none;
-  color: white;
+  color: rgb(185, 183, 189);
   transition: opacity 0.2s;
 }
 
@@ -54,7 +54,7 @@
 
 .nav-link:hover {
   color: white;
-  background-color: rgba(102, 126, 234, 0.2);
+  background-color: rgba(51, 102, 255, 0.25);
 }
 
 .header-actions {
@@ -64,7 +64,7 @@
 
 .header-button {
   background-color: transparent;
-  border: 1px solid rgba(102, 126, 234, 0.5);
+  border: 1px solid rgba(0, 29, 158, 0.5);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 4px;

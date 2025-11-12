@@ -1,0 +1,152 @@
+.filter-control-panel {
+  background: #161d26;
+  border: 1px solid #78787a;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(51, 102, 255, 0.2);
+}
+
+.control-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #ffffffe0;
+  display: block;
+}
+
+.filter-select {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #78787a;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: #010a1e;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.filter-select:hover {
+  border-color: #78787a;
+  background-color: #030e24;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #78787a;
+  box-shadow: 0 0 0 3px rgba(3, 27, 59, 0.2);
+}
+
+.status-toggle-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.status-toggle-btn {
+  padding: 0.6rem 1rem;
+  border: 1px solid #78787a;
+  border-radius: 4px;
+  background-color: #161d26;
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 70px;
+}
+
+.status-toggle-btn:hover {
+  border-color: #78787a;
+  background-color: #1a4ba8;
+}
+
+.status-toggle-btn.active {
+  background-color: #3366ff;
+  color: #fff;
+  border-color: #78787a;
+}
+
+.status-toggle-btn.active:hover {
+  background-color: #2255dd;
+  border-color: #78787a;
+}
+
+.reset-filters-btn {
+  padding: 0.6rem 1.25rem;
+  background-color: rgb(242, 240, 255);
+  color: #ffffff;
+  border: 1px solid #78787a;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-filters-btn:hover {
+  background-color: #0048b3;
+  border-color: #78787a;
+}
+
+.reset-filters-btn:active {
+  background-color: #061491;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .control-section {
+    gap: 0.75rem;
+  }
+
+  .filter-select,
+  .status-toggle-btn {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-control-panel {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .control-section {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .control-group {
+    width: 100%;
+  }
+
+  .filter-select {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .status-toggle-group {
+    width: 100%;
+  }
+
+  .status-toggle-btn {
+    flex: 1;
+    min-width: unset;
+  }
+
+  .reset-filters-btn {
+    width: 100%;
+  }
+}
