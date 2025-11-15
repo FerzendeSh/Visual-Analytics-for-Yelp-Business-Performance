@@ -13,6 +13,7 @@ export interface Business {
   stars: number;
   categories: string;
   is_open: number;
+  photo_count?: number;
 }
 
 export interface ApiResponse<T> {

@@ -203,6 +203,7 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         Get average ratings over time for all businesses in a city.
         Joins reviews with businesses table, filters by city/state, aggregates by date period.
+        Uses case-insensitive comparison for city and state to ensure consistent results.
 
         Args:
             city: City name
@@ -216,7 +217,12 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         period_col = self._get_date_trunc_expression(period).label('period_start')
 
+        # Normalize inputs: trim whitespace and handle case-insensitivity
+        normalized_city = city.strip()
+        normalized_state = state.strip().upper()
+
         # Build query with JOIN to businesses table
+        # Use ILIKE for case-insensitive comparison in PostgreSQL
         query = (
             select(
                 period_col,
@@ -227,8 +233,8 @@ class ReviewRepository(ReviewRepositoryInterface):
             .join(Business, Review.business_id == Business.business_id)
             .where(
                 and_(
-                    Business.city == city,
-                    Business.state == state
+                    func.lower(Business.city) == func.lower(normalized_city),
+                    func.lower(Business.state) == func.lower(normalized_state)
                 )
             )
         )
@@ -244,6 +250,11 @@ class ReviewRepository(ReviewRepositoryInterface):
 
         result = await self.db.execute(query)
         rows = result.all()
+
+        # DEBUG: Log query parameters
+        print(f"🔍 City Query - City: {normalized_city}, State: {normalized_state}, Period: {period}, Start: {start_date}, End: {end_date}, Rows: {len(rows)}")
+        if rows:
+            print(f"   First row avg_rating: {rows[0].avg_rating}, business_count: {rows[0].business_count}")
 
         return [
             {
@@ -265,6 +276,7 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         Get average ratings over time for all businesses in a state.
         Joins reviews with businesses table, filters by state, aggregates by date period.
+        Uses case-insensitive comparison for state to ensure consistent results.
 
         Args:
             state: State code
@@ -277,7 +289,11 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         period_col = self._get_date_trunc_expression(period).label('period_start')
 
+        # Normalize state: trim whitespace and handle case-insensitivity
+        normalized_state = state.strip().upper()
+
         # Build query with JOIN to businesses table
+        # Use case-insensitive comparison for state
         query = (
             select(
                 period_col,
@@ -286,7 +302,7 @@ class ReviewRepository(ReviewRepositoryInterface):
                 func.count(func.distinct(Review.business_id)).label('business_count')
             )
             .join(Business, Review.business_id == Business.business_id)
-            .where(Business.state == state)
+            .where(func.lower(Business.state) == func.lower(normalized_state))
         )
 
         # Apply date filters if provided
@@ -322,6 +338,7 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         Get average sentiment scores over time for all businesses in a city.
         Joins reviews with businesses table, filters by city/state, aggregates by date period.
+        Uses case-insensitive comparison for city and state to ensure consistent results.
 
         Args:
             city: City name
@@ -335,7 +352,12 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         period_col = self._get_date_trunc_expression(period).label('period_start')
 
+        # Normalize inputs: trim whitespace and handle case-insensitivity
+        normalized_city = city.strip()
+        normalized_state = state.strip().upper()
+
         # Build query with JOIN to businesses table
+        # Use case-insensitive comparison for city and state
         query = (
             select(
                 period_col,
@@ -347,8 +369,8 @@ class ReviewRepository(ReviewRepositoryInterface):
             .join(Business, Review.business_id == Business.business_id)
             .where(
                 and_(
-                    Business.city == city,
-                    Business.state == state
+                    func.lower(Business.city) == func.lower(normalized_city),
+                    func.lower(Business.state) == func.lower(normalized_state)
                 )
             )
         )
@@ -386,6 +408,7 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         Get average sentiment scores over time for all businesses in a state.
         Joins reviews with businesses table, filters by state, aggregates by date period.
+        Uses case-insensitive comparison for state to ensure consistent results.
 
         Args:
             state: State code
@@ -398,7 +421,11 @@ class ReviewRepository(ReviewRepositoryInterface):
         """
         period_col = self._get_date_trunc_expression(period).label('period_start')
 
+        # Normalize state: trim whitespace and handle case-insensitivity
+        normalized_state = state.strip().upper()
+
         # Build query with JOIN to businesses table
+        # Use case-insensitive comparison for state
         query = (
             select(
                 period_col,
@@ -408,7 +435,7 @@ class ReviewRepository(ReviewRepositoryInterface):
                 func.count(func.distinct(Review.business_id)).label('business_count')
             )
             .join(Business, Review.business_id == Business.business_id)
-            .where(Business.state == state)
+            .where(func.lower(Business.state) == func.lower(normalized_state))
         )
 
         # Apply date filters if provided
@@ -465,17 +492,25 @@ class ReviewRepository(ReviewRepositoryInterface):
             .where(Review.business_id == business_id)
         )
 
+        # Normalize city/state for case-insensitive comparison
+        normalized_city = city.strip()
+        normalized_state = state.strip().upper()
+
         # City query with JOIN - counts distinct businesses
+        # Use case-insensitive comparison for city and state
         city_query = (
             select(
                 period_expr.label('period_start'),
                 func.avg(Review.stars).label('avg_rating'),
                 func.count(Review.review_id).label('review_count'),
-                func.count(func.distinct(Review.business_id)).label('business_count'), 
+                func.count(func.distinct(Review.business_id)).label('business_count'),
                 literal('city').label('data_type')
             )
             .join(Business, Review.business_id == Business.business_id)
-            .where(and_(Business.city == city, Business.state == state))
+            .where(and_(
+                func.lower(Business.city) == func.lower(normalized_city),
+                func.lower(Business.state) == func.lower(normalized_state)
+            ))
         )
 
         # Apply date filters to both
@@ -524,17 +559,20 @@ class ReviewRepository(ReviewRepositoryInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Get business and state ratings in a SINGLE query."""
+        """Get business and state ratings in a SINGLE query with case-insensitive state matching."""
 
         # Use consistent period expression
         period_expr = func.date_trunc(period, Review.date)
+
+        # Normalize state for case-insensitive comparison
+        normalized_state = state.strip().upper()
 
         business_query = (
             select(
                 period_expr.label('period_start'),
                 func.avg(Review.stars).label('avg_rating'),
                 func.count(Review.review_id).label('review_count'),
-                literal(1).label('business_count'),  
+                literal(1).label('business_count'),
                 literal('business').label('data_type')
             )
             .where(Review.business_id == business_id)
@@ -545,11 +583,11 @@ class ReviewRepository(ReviewRepositoryInterface):
                 period_expr.label('period_start'),
                 func.avg(Review.stars).label('avg_rating'),
                 func.count(Review.review_id).label('review_count'),
-                func.count(func.distinct(Review.business_id)).label('business_count'),  
+                func.count(func.distinct(Review.business_id)).label('business_count'),
                 literal('state').label('data_type')
             )
             .join(Business, Review.business_id == Business.business_id)
-            .where(Business.state == state)
+            .where(func.lower(Business.state) == func.lower(normalized_state))
         )
 
         if start_date:
@@ -719,7 +757,7 @@ class ReviewRepository(ReviewRepositoryInterface):
                 'avg_sentiment_score': float(row.avg_sentiment_score) if row.avg_sentiment_score else 0.0,
                 'avg_sentiment_expected': float(row.avg_sentiment_expected) if row.avg_sentiment_expected else 0.0,
                 'review_count': int(row.review_count),
-                'business_count': int(row.business_count)  
+                'business_count': int(row.business_count)
             }
             if row.data_type == 'business':
                 business_data.append(data_point)
@@ -727,3 +765,121 @@ class ReviewRepository(ReviewRepositoryInterface):
                 state_data.append(data_point)
 
         return business_data, state_data
+
+    async def get_category_ratings_over_time(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get average ratings over time for all businesses in a category.
+        Joins reviews with businesses table, filters by category, aggregates by date period.
+        Uses case-insensitive comparison for category to ensure consistent results.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of dicts with keys: period_start, avg_rating, review_count, business_count
+        """
+        period_col = self._get_date_trunc_expression(period).label('period_start')
+
+        # Build query with JOIN to businesses table
+        # Use case-insensitive comparison for category
+        query = (
+            select(
+                period_col,
+                func.avg(Review.stars).label('avg_rating'),
+                func.count(Review.review_id).label('review_count'),
+                func.count(func.distinct(Review.business_id)).label('business_count')
+            )
+            .join(Business, Review.business_id == Business.business_id)
+            .where(Business.categories.ilike(f'%{category}%'))
+        )
+
+        # Apply date filters if provided
+        if start_date:
+            query = query.where(Review.date >= start_date)
+        if end_date:
+            query = query.where(Review.date <= end_date)
+
+        # Group by period and order chronologically
+        query = query.group_by(period_col).order_by(period_col)
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        return [
+            {
+                'period_start': row.period_start.isoformat() if row.period_start else None,
+                'avg_rating': float(row.avg_rating) if row.avg_rating else 0.0,
+                'review_count': int(row.review_count),
+                'business_count': int(row.business_count)
+            }
+            for row in rows
+        ]
+
+    async def get_category_sentiment_over_time(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get average sentiment scores over time for all businesses in a category.
+        Joins reviews with businesses table, filters by category, aggregates by date period.
+        Uses case-insensitive comparison for category to ensure consistent results.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of dicts with keys: period_start, avg_sentiment_score, avg_sentiment_expected, review_count, business_count
+        """
+        period_col = self._get_date_trunc_expression(period).label('period_start')
+
+        # Build query with JOIN to businesses table
+        # Use case-insensitive comparison for category
+        query = (
+            select(
+                period_col,
+                func.avg(Review.sentiment_score_prob_diff).label('avg_sentiment_score'),
+                func.avg(Review.sentiment_score_expected).label('avg_sentiment_expected'),
+                func.count(Review.review_id).label('review_count'),
+                func.count(func.distinct(Review.business_id)).label('business_count')
+            )
+            .join(Business, Review.business_id == Business.business_id)
+            .where(Business.categories.ilike(f'%{category}%'))
+        )
+
+        # Apply date filters if provided
+        if start_date:
+            query = query.where(Review.date >= start_date)
+        if end_date:
+            query = query.where(Review.date <= end_date)
+
+        # Group by period and order chronologically
+        query = query.group_by(period_col).order_by(period_col)
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        return [
+            {
+                'period_start': row.period_start.isoformat() if row.period_start else None,
+                'avg_sentiment_score': float(row.avg_sentiment_score) if row.avg_sentiment_score else 0.0,
+                'avg_sentiment_expected': float(row.avg_sentiment_expected) if row.avg_sentiment_expected else 0.0,
+                'review_count': int(row.review_count),
+                'business_count': int(row.business_count)
+            }
+            for row in rows
+        ]

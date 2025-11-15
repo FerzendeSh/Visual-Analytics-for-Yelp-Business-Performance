@@ -215,3 +215,47 @@ class ReviewRepositoryInterface(ABC):
             List of dicts with keys: period_start, avg_sentiment_score, review_count, business_count
         """
         pass
+
+    @abstractmethod
+    async def get_category_ratings_over_time(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get average ratings over time for all businesses in a category.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of dicts with keys: period_start, avg_rating, review_count, business_count
+        """
+        pass
+
+    @abstractmethod
+    async def get_category_sentiment_over_time(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get average sentiment scores over time for all businesses in a category.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of dicts with keys: period_start, avg_sentiment_score, review_count, business_count
+        """
+        pass

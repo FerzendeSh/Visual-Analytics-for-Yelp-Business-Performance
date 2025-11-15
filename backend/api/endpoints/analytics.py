@@ -262,3 +262,162 @@ async def get_state_ratings_timeline(
         start_date=start_date,
         end_date=end_date
     )
+
+
+@router.get("/category/{category}/ratings-timeline", response_model=Dict[str, Any])
+async def get_category_ratings_timeline(
+    category: str = Path(..., min_length=1, description="Category name"),
+    period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
+    start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get average ratings over time for all businesses in a category.
+
+    Returns category-wide averages aggregated from all businesses in the category.
+    Perfect for comparing different categories' performance over time.
+
+    **Example Response:**
+    ```json
+    {
+        "category": "Restaurants",
+        "period": "month",
+        "metric": "rating",
+        "data": [
+            {
+                "period_start": "2023-01",
+                "avg_rating": 3.9,
+                "review_count": 5420,
+                "business_count": 450
+            }
+        ]
+    }
+    ```
+    """
+    return await analytics_service.get_category_ratings_timeline(
+        category=category,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
+@router.get("/category/{category}/sentiment-timeline", response_model=Dict[str, Any])
+async def get_category_sentiment_timeline(
+    category: str = Path(..., min_length=1, description="Category name"),
+    period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
+    start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get average sentiment scores over time for all businesses in a category.
+
+    Returns category-wide sentiment averages aggregated from all businesses in the category.
+    Perfect for comparing different categories' sentiment trends over time.
+
+    **Example Response:**
+    ```json
+    {
+        "category": "Restaurants",
+        "period": "month",
+        "metric": "sentiment",
+        "data": [
+            {
+                "period_start": "2023-01",
+                "avg_sentiment_score": 0.65,
+                "avg_sentiment_expected": 0.62,
+                "review_count": 5420
+            }
+        ]
+    }
+    ```
+    """
+    return await analytics_service.get_category_sentiment_timeline(
+        category=category,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
+@router.get("/city/{state}/{city}/sentiment-timeline", response_model=Dict[str, Any])
+async def get_city_sentiment_timeline(
+    state: str = Path(..., min_length=2, max_length=2, description="State code (e.g., 'PA')"),
+    city: str = Path(..., min_length=1, description="City name"),
+    period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
+    start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get average sentiment scores over time for all businesses in a city.
+
+    Returns city-wide sentiment averages aggregated from all businesses in the city.
+    Perfect for comparing different cities' sentiment trends over time.
+
+    **Example Response:**
+    ```json
+    {
+        "city": "Philadelphia",
+        "state": "PA",
+        "period": "month",
+        "metric": "sentiment",
+        "data": [
+            {
+                "period_start": "2023-01",
+                "avg_sentiment_score": 0.75,
+                "avg_sentiment_expected": 0.72,
+                "review_count": 1542
+            }
+        ]
+    }
+    ```
+    """
+    return await analytics_service.get_city_sentiment_timeline(
+        city=city,
+        state=state,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
+@router.get("/state/{state}/sentiment-timeline", response_model=Dict[str, Any])
+async def get_state_sentiment_timeline(
+    state: str = Path(..., min_length=2, max_length=2, description="State code (e.g., 'PA')"),
+    period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
+    start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get average sentiment scores over time for all businesses in a state.
+
+    Returns state-wide sentiment averages aggregated from all businesses in the state.
+    Perfect for comparing different states' sentiment trends over time.
+
+    **Example Response:**
+    ```json
+    {
+        "state": "PA",
+        "period": "month",
+        "metric": "sentiment",
+        "data": [
+            {
+                "period_start": "2023-01",
+                "avg_sentiment_score": 0.72,
+                "avg_sentiment_expected": 0.70,
+                "review_count": 15420
+            }
+        ]
+    }
+    ```
+    """
+    return await analytics_service.get_state_sentiment_timeline(
+        state=state,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )

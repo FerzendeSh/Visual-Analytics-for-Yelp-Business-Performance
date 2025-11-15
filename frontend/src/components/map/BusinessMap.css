@@ -12,6 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .marker-pin {
@@ -25,13 +26,14 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s, background 0.2s;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
 .marker-pin:hover {
   transform: rotate(-45deg) scale(1.15);
   background: #5568d3;
 }
+
 
 .marker-pin.closed {
   background: #771f1f;

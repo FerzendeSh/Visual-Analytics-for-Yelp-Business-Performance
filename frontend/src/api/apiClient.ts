@@ -3,7 +3,7 @@
  * Handles all HTTP communication with the backend using native fetch API
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;

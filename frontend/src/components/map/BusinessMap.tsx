@@ -15,6 +15,7 @@ interface Business {
   stars: number;
   categories: string;
   is_open: number;
+  photo_count?: number;
 }
 
 interface BusinessMapProps {
@@ -29,6 +30,7 @@ interface BusinessMapProps {
   selectedCategory?: string;
   selectedRating?: number | null;
   selectedStatus?: number | null;
+  selectedBusiness?: Business | null;
 }
 
 type PointFeature = GeoJSON.Feature<GeoJSON.Point, Business>;
@@ -44,11 +46,14 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   selectedCategory = "",
   selectedRating = null,
   selectedStatus = null,
+  selectedBusiness = null,
 }) => {
   const mapRef = useRef<MapRef>(null);
   const [popupInfo, setPopupInfo] = useState<Business | null>(null);
   const [viewport, setViewport] = useState({ ...initialViewState });
   const previousCityRef = useRef<string>("");
+  const viewportRef = useRef({ ...initialViewState });
+  const isMapClickRef = useRef(false); // Track if selection came from map click
 
   //Filtered businesses based on dropdowns
   const filteredBusinesses = useMemo(() => {
@@ -107,11 +112,11 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
 
         const lats = cityBusinesses.map(b => b.latitude).filter(lat => !isNaN(lat));
         const lngs = cityBusinesses.map(b => b.longitude).filter(lng => !isNaN(lng));
-        
+
         if (lats.length > 0 && lngs.length > 0) {
           const avgLat = lats.reduce((a, b) => a + b) / lats.length;
           const avgLng = lngs.reduce((a, b) => a + b) / lngs.length;
-          
+
           mapRef.current?.flyTo({
             center: [avgLng, avgLat],
             zoom: 11,
@@ -125,22 +130,78 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
         zoom: initialViewState.zoom,
         duration: 700,
       });
-    }    
+    }
     previousCityRef.current = selectedCity;
   }, [selectedCity, businesses, initialViewState]);
+
+ // Zoom to selected business when it changes
+useEffect(() => {
+  // Close popup and clear selection when selectedBusiness becomes null
+  if (selectedBusiness === null) {
+    setPopupInfo(null);
+    isMapClickRef.current = false;
+    return;
+  }
+
+  if (
+    !selectedBusiness ||
+    !selectedBusiness.latitude ||
+    !selectedBusiness.longitude
+  ) {
+    return;
+  }
+
+  // Show popup when business is selected
+  setPopupInfo(selectedBusiness);
+
+  const map = mapRef.current;
+  if (!map) return;
+
+  // Skip zoom animation if user clicked directly on map marker
+  // Map click selections don't need zoom animation
+  if (isMapClickRef.current) {
+    isMapClickRef.current = false;
+    return;
+  }
+
+  const currentZoom = map.getZoom();
+
+  // If we're already zoomed in close to the target location, don't animate zoom-out
+  if (currentZoom > 11) {
+    map.easeTo({
+      center: [selectedBusiness.longitude, selectedBusiness.latitude],
+      zoom: 16,
+      duration: 300,
+    });
+  } else {
+    // Zoom out slightly for movement then zoom in
+    map.easeTo({
+      zoom: 7,
+      duration: 150,
+    });
+
+    setTimeout(() => {
+      map.easeTo({
+        center: [selectedBusiness.longitude, selectedBusiness.latitude],
+        zoom: 17,
+        duration: 300,
+      });
+    }, 160);
+  }
+}, [selectedBusiness]); // <- IMPORTANT: remove viewport.zoom
 
   const totalBusinesses = filteredBusinesses.length;
 
   const handleZoomIn = () => {
     mapRef.current?.easeTo({
-      zoom: viewport.zoom + 1,
+      zoom: Math.min(viewportRef.current.zoom + 1, 20),
       duration: 300,
     });
   };
 
   const handleZoomOut = () => {
     mapRef.current?.easeTo({
-      zoom: Math.max(viewport.zoom - 1, 0),
+      zoom: Math.max(viewportRef.current.zoom - 1, 0),
       duration: 300,
     });
   };
@@ -153,12 +214,42 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     });
   };
 
+  // Keyboard controls for zoom
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Allow zoom with + and - keys
+      if (e.key === '+' || e.key === '=' || e.key === 'Add') {
+        e.preventDefault();
+        mapRef.current?.easeTo({
+          zoom: Math.min(viewportRef.current.zoom + 1, 20),
+          duration: 300,
+        });
+      } else if (e.key === '-' || e.key === 'Subtract') {
+        e.preventDefault();
+        mapRef.current?.easeTo({
+          zoom: Math.max(viewportRef.current.zoom - 1, 0),
+          duration: 300,
+        });
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="business-map-container">
       <Map
         ref={mapRef}
         initialViewState={initialViewState}
-        onMove={(evt) => setViewport(evt.viewState)}
+        onMove={(evt) => {
+          setViewport(evt.viewState);
+          viewportRef.current = evt.viewState;
+        }}
+        onClick={() => {
+          setPopupInfo(null);
+          onBusinessSelect?.(null as any);
+        }}
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://tiles.openfreemap.org/styles/positron"
       >
@@ -181,7 +272,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
                   mapRef.current?.flyTo({
                     center: [longitude, latitude],
                     zoom: expansionZoom,
-                    duration: 500,
+                    duration: 250,
                   });
                 }}
               >
@@ -207,8 +298,12 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
               anchor="bottom"
               onClick={(e) => {
                 e.originalEvent.stopPropagation();
+                // Flag that this selection came from a map click (skip zoom animation)
+                isMapClickRef.current = true;
+                // Show popup IMMEDIATELY without waiting for parent state update
                 setPopupInfo(business);
-                onBusinessSelect?.(business);
+                // Update parent state asynchronously so popup appears instantly
+                setTimeout(() => onBusinessSelect?.(business), 0);
               }}
             >
               <div className="marker">

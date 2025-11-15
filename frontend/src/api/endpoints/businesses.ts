@@ -51,3 +51,20 @@ export const getBusinessesInViewport = (bounds: {
 export const getBusinessById = (businessId: string): Promise<Business> => {
   return get<Business>(`/api/businesses/${businessId}`);
 };
+
+/**
+ * Search businesses by query (name, city, state, categories)
+ * Supports fuzzy matching and multi-term search
+ */
+export const searchBusinesses = (query: string, options?: {
+  skip?: number;
+  limit?: number;
+}): Promise<Business[]> => {
+  return get<Business[]>('/api/businesses/search', {
+    params: {
+      q: query,
+      skip: options?.skip || 0,
+      limit: options?.limit || 20,
+    },
+  });
+};

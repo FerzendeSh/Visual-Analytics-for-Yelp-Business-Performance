@@ -1,5 +1,6 @@
 import React from 'react';
 import { Business } from '../../api';
+import { SearchBar } from '../search';
 import './FilterControlPanel.css';
 
 interface FilterControlPanelProps {
@@ -17,6 +18,7 @@ interface FilterControlPanelProps {
   onPeriodChange: (period: 'month' | 'year') => void;
   onYearChange: (year: number) => void;
   onResetFilters: () => void;
+  onBusinessSelect?: (business: Business) => void;
 }
 
 const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
@@ -34,6 +36,7 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
   onPeriodChange,
   onYearChange,
   onResetFilters,
+  onBusinessSelect,
 }) => {
   // Extract unique cities from businesses
   const cities = [...new Set(businesses.map((b) => b.city))].sort();
@@ -165,6 +168,10 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
         >
           Reset Filters
         </button>
+
+        <div className="search-box-wrapper">
+          {onBusinessSelect && <SearchBar onBusinessSelect={onBusinessSelect} />}
+        </div>
       </div>
     </div>
   );

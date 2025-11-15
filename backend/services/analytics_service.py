@@ -311,6 +311,7 @@ class AnalyticsService(AnalyticsServiceInterface):
     ) -> Dict[str, Any]:
         """
         Get ratings timeline for a city.
+        Normalizes city/state inputs to ensure consistent results across queries.
 
         Args:
             city: City name
@@ -325,18 +326,22 @@ class AnalyticsService(AnalyticsServiceInterface):
 
         self._validate_period(period)
 
+        # Normalize inputs: trim whitespace and uppercase state for consistency
+        normalized_city = city.strip()
+        normalized_state = state.strip().upper()
+
         # Get timeline data from repository
         timeline_data = await self.review_repository.get_city_ratings_over_time(
-            city=city,
-            state=state,
+            city=normalized_city,
+            state=normalized_state,
             period=period,
             start_date=start_date,
             end_date=end_date
         )
 
         return {
-            'city': city,
-            'state': state,
+            'city': normalized_city,
+            'state': normalized_state,
             'period': period,
             'metric': 'rating',
             'start_date': start_date.isoformat() if start_date else None,
@@ -363,7 +368,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         Returns:
             Dict with timeline data and metadata
         """
-       
+
         self._validate_period(period)
 
         # Get timeline data from repository
@@ -378,6 +383,169 @@ class AnalyticsService(AnalyticsServiceInterface):
             'state': state,
             'period': period,
             'metric': 'rating',
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
+            'data': timeline_data
+        }
+
+    async def get_category_ratings_timeline(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get ratings timeline for a category.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+        """
+        self._validate_period(period)
+
+        # Get timeline data from repository
+        timeline_data = await self.review_repository.get_category_ratings_over_time(
+            category=category,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        return {
+            'category': category,
+            'period': period,
+            'metric': 'rating',
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
+            'data': timeline_data
+        }
+
+    async def get_category_sentiment_timeline(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get sentiment timeline for a category.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+        """
+        self._validate_period(period)
+
+        # Get timeline data from repository
+        timeline_data = await self.review_repository.get_category_sentiment_over_time(
+            category=category,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        return {
+            'category': category,
+            'period': period,
+            'metric': 'sentiment',
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
+            'data': timeline_data
+        }
+
+    async def get_city_sentiment_timeline(
+        self,
+        city: str,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get sentiment timeline for a city.
+        Normalizes city/state inputs to ensure consistent results across queries.
+
+        Args:
+            city: City name
+            state: State code
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+        """
+
+        self._validate_period(period)
+
+        # Normalize inputs: trim whitespace and uppercase state for consistency
+        normalized_city = city.strip()
+        normalized_state = state.strip().upper()
+
+        # Get timeline data from repository
+        timeline_data = await self.review_repository.get_city_sentiment_over_time(
+            city=normalized_city,
+            state=normalized_state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        return {
+            'city': normalized_city,
+            'state': normalized_state,
+            'period': period,
+            'metric': 'sentiment',
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
+            'data': timeline_data
+        }
+
+    async def get_state_sentiment_timeline(
+        self,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get sentiment timeline for a state.
+
+        Args:
+            state: State code
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+        """
+
+        self._validate_period(period)
+
+        # Get timeline data from repository
+        timeline_data = await self.review_repository.get_state_sentiment_over_time(
+            state=state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        return {
+            'state': state,
+            'period': period,
+            'metric': 'sentiment',
             'start_date': start_date.isoformat() if start_date else None,
             'end_date': end_date.isoformat() if end_date else None,
             'data': timeline_data

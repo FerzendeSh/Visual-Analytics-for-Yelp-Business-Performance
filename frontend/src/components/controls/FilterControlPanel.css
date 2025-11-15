@@ -14,6 +14,13 @@
   align-items: flex-end;
 }
 
+.search-box-wrapper {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: 280px;
+  max-width: 450px;
+}
+
 .control-group {
   display: flex;
   flex-direction: column;
@@ -121,6 +128,12 @@
   .status-toggle-btn {
     min-width: 120px;
   }
+
+  .search-box-wrapper {
+    margin-left: 0;
+    margin-top: 0.5rem;
+    min-width: auto;
+  }
 }
 
 @media (max-width: 768px) {
@@ -132,6 +145,11 @@
   .control-section {
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .search-box-wrapper {
+    max-width: 100%;
+    margin-left: 0;
   }
 
   .control-group {

@@ -3,6 +3,7 @@ import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
 import { TimeSeriesChart } from '../components/timeseries';
 import { FilterControlPanel } from '../components/controls';
+import ScatterPlot from '../components/scatter/ScatterPlot';
 import { getBusinesses, Business } from '../api';
 
 const Home: React.FC = () => {
@@ -138,17 +139,20 @@ const Home: React.FC = () => {
                 onPeriodChange={setPeriod}
                 onYearChange={setSelectedYear}
                 onResetFilters={handleResetFilters}
+                onBusinessSelect={setSelectedBusiness}
               />
 
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1.3fr 1fr',
+                gridTemplateRows: '1fr 1fr',
                 gap: '0.8rem',
-                gridAutoRows: '1fr',
+                minHeight: '800px',
               }}>
-                {/* Map View - Left Side, Takes Full Height */}
+                {/* Left Top: Map View */}
                 <div style={{
-                  gridRow: '1 / span 2',
+                  gridRow: '1',
+                  gridColumn: '1',
                   borderRadius: '8px',
                   overflow: 'hidden',
                   border: '1px solid #e2e8f0',
@@ -160,7 +164,6 @@ const Home: React.FC = () => {
                     flex: 1,
                     position: 'relative',
                     width: '100%',
-                    minHeight: '600px',
                   }}>
                     <BusinessMap
                       businesses={businesses}
@@ -168,12 +171,31 @@ const Home: React.FC = () => {
                       selectedCategory={selectedCategory}
                       selectedRating={selectedRating}
                       selectedStatus={selectedStatus}
+                      selectedBusiness={selectedBusiness}
                       onBusinessSelect={setSelectedBusiness}
                     />
                   </div>
                 </div>
-                  {/* Ratings Timeline - Right Top */}
-                  <div style={{
+
+                {/* Left Bottom: Scatter Plot */}
+                <div style={{
+                  gridRow: '2',
+                  gridColumn: '1',
+                }}>
+                  <ScatterPlot
+                    businesses={businesses}
+                    selectedCity={selectedCity}
+                    selectedCategory={selectedCategory}
+                    selectedRating={selectedRating}
+                    selectedStatus={selectedStatus}
+                    selectedBusiness={selectedBusiness}
+                    onBusinessSelect={setSelectedBusiness}
+                  />
+                </div>
+                {/* Ratings Timeline - Right Top */}
+                <div style={{
+                  gridRow: '1',
+                  gridColumn: '2',
                   borderRadius: '16px',
                   overflow: 'hidden',
                   background: '#0f1b2a',
@@ -203,12 +225,25 @@ const Home: React.FC = () => {
                     padding: '0.5rem',
                     minHeight: 0,
                   }}>
-                    <TimeSeriesChart business={selectedBusiness} isRatingsOnly={true} period={period} selectedYear={selectedYear} />
+                    <TimeSeriesChart
+                      business={selectedBusiness}
+                      isRatingsOnly={true}
+                      period={period}
+                      selectedYear={selectedYear}
+                      selectedCity={selectedCity}
+                      selectedState="PA"
+                      selectedCategory={selectedCategory}
+                      selectedRating={selectedRating}
+                      selectedStatus={selectedStatus}
+                      businesses={businesses}
+                    />
                   </div>
                 </div>
 
                 {/* Sentiment Timeline - Right Bottom */}
                 <div style={{
+                  gridRow: '2',
+                  gridColumn: '2',
                   borderRadius: '16px',
                   overflow: 'hidden',
                   border: '1px solid rgba(102, 126, 234, 0.25)',
@@ -238,7 +273,18 @@ const Home: React.FC = () => {
                     padding: '0.5rem',
                     minHeight: 0,
                   }}>
-                    <TimeSeriesChart business={selectedBusiness} isSentimentOnly={true} period={period} selectedYear={selectedYear} />
+                    <TimeSeriesChart
+                      business={selectedBusiness}
+                      isSentimentOnly={true}
+                      period={period}
+                      selectedYear={selectedYear}
+                      selectedCity={selectedCity}
+                      selectedState="PA"
+                      selectedCategory={selectedCategory}
+                      selectedRating={selectedRating}
+                      selectedStatus={selectedStatus}
+                      businesses={businesses}
+                    />
                   </div>
                 </div>
               </div>

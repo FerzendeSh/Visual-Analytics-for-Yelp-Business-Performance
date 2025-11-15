@@ -252,3 +252,47 @@ class AnalyticsServiceInterface(ABC):
             Dict with timeline data and metadata
         """
         pass
+
+    @abstractmethod
+    async def get_category_ratings_timeline(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get ratings timeline for a category.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+        """
+        pass
+
+    @abstractmethod
+    async def get_category_sentiment_timeline(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        """
+        Get sentiment timeline for a category.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Dict with timeline data and metadata
+        """
+        pass

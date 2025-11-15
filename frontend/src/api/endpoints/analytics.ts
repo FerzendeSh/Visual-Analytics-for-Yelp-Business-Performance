@@ -17,8 +17,10 @@ export interface TimeSeriesDataPoint {
 }
 
 export interface RatingsTimeline {
-  business_id: string;
-  business_name: string;
+  business_id?: string;
+  business_name?: string;
+  city?: string;
+  state?: string;
   period: string;
   metric: string;
   data: TimeSeriesDataPoint[];
@@ -89,6 +91,113 @@ export const getBusinessSentimentTimeline = (
 ): Promise<SentimentTimeline> => {
   return get<SentimentTimeline>(
     `/api/analytics/business/${businessId}/sentiment-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+      },
+    }
+  );
+};
+
+/**
+ * Get ratings timeline for a specific city
+ */
+export const getCityRatingsTimeline = (
+  city: string,
+  state: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<RatingsTimeline> => {
+  return get<RatingsTimeline>(
+    `/api/analytics/city/${encodeURIComponent(state)}/${encodeURIComponent(city)}/ratings-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+      },
+    }
+  );
+};
+
+/**
+ * Get ratings timeline for a specific state
+ */
+export const getStateRatingsTimeline = (
+  state: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<RatingsTimeline> => {
+  return get<RatingsTimeline>(
+    `/api/analytics/state/${encodeURIComponent(state)}/ratings-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+      },
+    }
+  );
+};
+
+/**
+ * Get ratings timeline for a specific category
+ */
+export const getCategoryRatingsTimeline = (
+  category: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<RatingsTimeline> => {
+  return get<RatingsTimeline>(
+    `/api/analytics/category/${encodeURIComponent(category)}/ratings-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+      },
+    }
+  );
+};
+
+/**
+ * Get sentiment timeline for a specific category
+ */
+export const getCategorySentimentTimeline = (
+  category: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<SentimentTimeline> => {
+  return get<SentimentTimeline>(
+    `/api/analytics/category/${encodeURIComponent(category)}/sentiment-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+      },
+    }
+  );
+};
+
+/**
+ * Get sentiment timeline for a specific city
+ */
+export const getCitySentimentTimeline = (
+  city: string,
+  state: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<SentimentTimeline> => {
+  return get<SentimentTimeline>(
+    `/api/analytics/city/${encodeURIComponent(state)}/${encodeURIComponent(city)}/sentiment-timeline`,
     {
       params: {
         period,
