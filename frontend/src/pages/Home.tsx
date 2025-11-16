@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
-import { TimeSeriesChart } from '../components/timeseries';
+import TimeSeriesChartOptimized from '../components/timeseries/TimeSeriesChartOptimized';
 import { FilterControlPanel } from '../components/controls';
 import ScatterPlot from '../components/scatter/ScatterPlot';
-import { getBusinesses, Business } from '../api';
+import { Business } from '../api';
+import { useTimelineData } from '../hooks/useTimelineData';
+import { useBusinesses } from '../hooks/useBusinesses';
 
 const Home: React.FC = () => {
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+
+  // Load businesses for scatter plot and filter options only (NOT for map)
+  // Map will use viewport-based loading for better performance
+  const { data: businesses = [], isLoading: loading, error: queryError } = useBusinesses();
+  const error = queryError ? (queryError as Error).message : null;
 
   // Centralized filter state
   const [selectedCity, setSelectedCity] = useState<string>("");
@@ -20,73 +24,33 @@ const Home: React.FC = () => {
   const [period, setPeriod] = useState<'month' | 'year'>('year');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  useEffect(() => {
-    const loadBusinesses = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch all businesses with pagination
-        let allBusinesses: Business[] = [];
-        let skip = 0;
-        const limit = 1000;
-        let hasMore = true;
-
-        while (hasMore) {
-          const data = await getBusinesses({ skip, limit });
-          if (data.length === 0) {
-            hasMore = false;
-          } else {
-            allBusinesses = [...allBusinesses, ...data];
-            if (data.length < limit) {
-              hasMore = false;
-            } else {
-              skip += limit;
-            }
-          }
-        }
-
-        setBusinesses(allBusinesses);
-      } catch (apiErr) {
-        console.warn('API request failed, falling back to static data:', apiErr);
-
-        // Fallback to static JSON file
-        try {
-          const response = await fetch('/subset_businesses.json');
-          if (!response.ok) {
-            throw new Error('Failed to load business data from both API and static file');
-          }
-
-          const text = await response.text();
-          const lines = text.trim().split('\n');
-          const parsedBusinesses = lines.map(line => JSON.parse(line));
-
-          setBusinesses(parsedBusinesses);
-          setError(null);
-        } catch (fallbackErr) {
-          console.error('Error loading businesses:', fallbackErr);
-          setError(
-            fallbackErr instanceof Error
-              ? fallbackErr.message
-              : 'Failed to load businesses'
-          );
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadBusinesses();
-  }, []);
-
-  const handleResetFilters = () => {
+  // Memoize reset handler to prevent recreating on every render
+  const handleResetFilters = useCallback(() => {
     setSelectedCity("");
     setSelectedCategory("");
     setSelectedRating(null);
     setSelectedStatus(null);
     setPeriod('year');
     setSelectedYear(new Date().getFullYear());
-  };
+  }, []);
+
+  // Memoize timeline data params to prevent unnecessary API calls
+  const timelineParams = useMemo(() => ({
+    business: selectedBusiness,
+    selectedCity,
+    selectedState: selectedBusiness?.state || "PA", // Use business state if selected
+    selectedCategory,
+    period,
+    selectedYear,
+  }), [selectedBusiness, selectedCity, selectedCategory, period, selectedYear]);
+
+  // Fetch timeline data once using the custom hook with React Query
+  const {
+    isLoading: timelineLoading,
+    error: timelineError,
+    data: timelineData,
+    primaryCategory,
+  } = useTimelineData(timelineParams);
 
   return (
     <Layout
@@ -166,7 +130,7 @@ const Home: React.FC = () => {
                     width: '100%',
                   }}>
                     <BusinessMap
-                      businesses={businesses}
+                      useViewportLoading={true}
                       selectedCity={selectedCity}
                       selectedCategory={selectedCategory}
                       selectedRating={selectedRating}
@@ -225,17 +189,19 @@ const Home: React.FC = () => {
                     padding: '0.5rem',
                     minHeight: 0,
                   }}>
-                    <TimeSeriesChart
+                    <TimeSeriesChartOptimized
                       business={selectedBusiness}
+                      selectedCity={selectedCity}
+                      selectedState={selectedBusiness?.state || "PA"}
+                      selectedCategory={selectedCategory}
+                      primaryCategory={primaryCategory}
                       isRatingsOnly={true}
                       period={period}
-                      selectedYear={selectedYear}
-                      selectedCity={selectedCity}
-                      selectedState="PA"
-                      selectedCategory={selectedCategory}
-                      selectedRating={selectedRating}
-                      selectedStatus={selectedStatus}
-                      businesses={businesses}
+                      ratingsData={(timelineData as any)?.business_ratings || (timelineData as any)?.city_ratings || null}
+                      cityRatingsData={(timelineData as any)?.city_ratings || null}
+                      categoryRatingsData={(timelineData as any)?.category_ratings || null}
+                      isLoading={timelineLoading}
+                      error={timelineError}
                     />
                   </div>
                 </div>
@@ -273,17 +239,19 @@ const Home: React.FC = () => {
                     padding: '0.5rem',
                     minHeight: 0,
                   }}>
-                    <TimeSeriesChart
+                    <TimeSeriesChartOptimized
                       business={selectedBusiness}
+                      selectedCity={selectedCity}
+                      selectedState={selectedBusiness?.state || "PA"}
+                      selectedCategory={selectedCategory}
+                      primaryCategory={primaryCategory}
                       isSentimentOnly={true}
                       period={period}
-                      selectedYear={selectedYear}
-                      selectedCity={selectedCity}
-                      selectedState="PA"
-                      selectedCategory={selectedCategory}
-                      selectedRating={selectedRating}
-                      selectedStatus={selectedStatus}
-                      businesses={businesses}
+                      sentimentData={(timelineData as any)?.business_sentiment || (timelineData as any)?.city_sentiment || null}
+                      citySentimentData={(timelineData as any)?.city_sentiment || null}
+                      categorySentimentData={(timelineData as any)?.category_sentiment || null}
+                      isLoading={timelineLoading}
+                      error={timelineError}
                     />
                   </div>
                 </div>

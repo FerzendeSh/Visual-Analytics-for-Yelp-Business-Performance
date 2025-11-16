@@ -18,7 +18,7 @@ interface FilterControlPanelProps {
   onPeriodChange: (period: 'month' | 'year') => void;
   onYearChange: (year: number) => void;
   onResetFilters: () => void;
-  onBusinessSelect?: (business: Business) => void;
+  onBusinessSelect?: (business: Business | null) => void;
 }
 
 const FilterControlPanel: React.FC<FilterControlPanelProps> = ({

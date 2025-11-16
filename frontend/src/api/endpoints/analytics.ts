@@ -60,6 +60,64 @@ export const getAnalyticsSummary = (): Promise<AnalyticsData> => {
 };
 
 /**
+ * Get combined timeline data for a business (ratings + sentiment + comparisons)
+ * This reduces API calls from 6 to 1
+ */
+export const getBusinessCombinedTimeline = (
+  businessId: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<{
+  business_ratings: RatingsTimeline;
+  business_sentiment: SentimentTimeline;
+  city_ratings: RatingsTimeline | null;
+  city_sentiment: SentimentTimeline | null;
+  category_ratings: RatingsTimeline | null;
+  category_sentiment: SentimentTimeline | null;
+}> => {
+  return get(
+    `/api/analytics/business/${businessId}/combined-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+      },
+    }
+  );
+};
+
+/**
+ * Get combined timeline data for a city (ratings + sentiment + category comparison)
+ */
+export const getCityCombinedTimeline = (
+  city: string,
+  state: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string,
+  category?: string
+): Promise<{
+  city_ratings: RatingsTimeline;
+  city_sentiment: SentimentTimeline;
+  category_ratings: RatingsTimeline | null;
+  category_sentiment: SentimentTimeline | null;
+}> => {
+  return get(
+    `/api/analytics/city/${encodeURIComponent(state)}/${encodeURIComponent(city)}/combined-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+        ...(category && { category }),
+      },
+    }
+  );
+};
+
+/**
  * Get ratings timeline for a specific business
  */
 export const getBusinessRatingsTimeline = (
@@ -134,6 +192,31 @@ export const getStateRatingsTimeline = (
 ): Promise<RatingsTimeline> => {
   return get<RatingsTimeline>(
     `/api/analytics/state/${encodeURIComponent(state)}/ratings-timeline`,
+    {
+      params: {
+        period,
+        ...(startDate && { start_date: startDate }),
+        ...(endDate && { end_date: endDate }),
+      },
+    }
+  );
+};
+
+/**
+ * Get combined timeline data for a category (ratings + sentiment)
+ * This reduces API calls from 2 to 1
+ */
+export const getCategoryCombinedTimeline = (
+  category: string,
+  period: string = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<{
+  category_ratings: RatingsTimeline;
+  category_sentiment: SentimentTimeline;
+}> => {
+  return get(
+    `/api/analytics/category/${encodeURIComponent(category)}/combined-timeline`,
     {
       params: {
         period,

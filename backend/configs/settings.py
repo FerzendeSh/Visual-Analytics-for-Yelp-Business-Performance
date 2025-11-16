@@ -30,8 +30,8 @@ class Settings(BaseSettings):
 
     # Database Configuration
     DATABASE_URL: str = "postgresql+asyncpg://yelp_user:yelp_password@localhost:5432/yelp_analytics"
-    DB_POOL_SIZE: int = 5
-    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_SIZE: int = 10  # Increased from 5 for better concurrency
+    DB_MAX_OVERFLOW: int = 20  # Increased from 10 to handle traffic spikes
     DB_POOL_TIMEOUT: int = 30
 
     # PostgreSQL Connection Details (used by Docker Compose)

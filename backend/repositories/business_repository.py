@@ -83,31 +83,58 @@ class BusinessRepository(BusinessRepositoryInterface):
         north: float,
         west: float,
         east: float,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
+        category: Optional[str] = None,
+        min_rating: Optional[float] = None,
+        is_open: Optional[int] = None,
         limit: int = 1000
     ) -> List[Business]:
         """
-        Get businesses within a geographic viewport (bounding box).
+        Get businesses within a geographic viewport (bounding box) with optional filters.
 
         Args:
             south: Southern latitude bound
             north: Northern latitude bound
             west: Western longitude bound
             east: Eastern longitude bound
+            state: Filter by state code (e.g., 'PA', 'CA')
+            city: Filter by city name
+            category: Filter by category (partial match, case-insensitive)
+            min_rating: Filter by minimum star rating
+            is_open: Filter by open status (0 = closed, 1 = open)
             limit: Maximum number of businesses to return
 
         Returns:
-            List of Business objects within the viewport
+            List of Business objects within the viewport matching filters
         """
+        # Build base viewport query
+        conditions = [
+            Business.latitude >= south,
+            Business.latitude <= north,
+            Business.longitude >= west,
+            Business.longitude <= east
+        ]
+
+        # Add optional filters
+        if state is not None:
+            conditions.append(Business.state == state)
+
+        if city is not None:
+            conditions.append(Business.city == city)
+
+        if category is not None:
+            conditions.append(Business.categories.ilike(f"%{category}%"))
+
+        if min_rating is not None:
+            conditions.append(Business.stars >= min_rating)
+
+        if is_open is not None:
+            conditions.append(Business.is_open == is_open)
+
         stmt = (
             select(Business)
-            .where(
-                and_(
-                    Business.latitude >= south,
-                    Business.latitude <= north,
-                    Business.longitude >= west,
-                    Business.longitude <= east
-                )
-            )
+            .where(and_(*conditions))
             .order_by(Business.stars.desc(), Business.review_count.desc())
             .limit(limit)
         )

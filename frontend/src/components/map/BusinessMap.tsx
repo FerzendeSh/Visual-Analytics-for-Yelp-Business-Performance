@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import Map, { Marker, Popup, MapRef } from 'react-map-gl/maplibre';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { Map as MapLibre, Marker, Popup, MapRef } from 'react-map-gl/maplibre';
 import Supercluster from 'supercluster';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './BusinessMap.css';
+import { useViewportBusinesses } from '../../hooks/useViewportBusinesses';
 
 interface Business {
   business_id: string;
@@ -19,7 +20,8 @@ interface Business {
 }
 
 interface BusinessMapProps {
-  businesses: Business[];
+  businesses?: Business[]; // Now optional - can use viewport loading instead
+  useViewportLoading?: boolean; // Enable dynamic viewport-based loading
   initialViewState?: {
     longitude: number;
     latitude: number;
@@ -33,14 +35,19 @@ interface BusinessMapProps {
   selectedBusiness?: Business | null;
 }
 
+// Nashville, TN - default starting location
+const NASHVILLE_CENTER = {
+  longitude: -86.7816,
+  latitude: 36.1627,
+  zoom: 12,
+};
+
 type PointFeature = GeoJSON.Feature<GeoJSON.Point, Business>;
 
 const BusinessMap: React.FC<BusinessMapProps> = ({
-  businesses,
-  initialViewState = {
-    longitude: -98.5795,
-    latitude: 39.8283,
-    zoom: 3.5,},
+  businesses: propBusinesses,
+  useViewportLoading = true, // Default to viewport loading
+  initialViewState = NASHVILLE_CENTER, // Default to Nashville
   onBusinessSelect,
   selectedCity = "",
   selectedCategory = "",
@@ -55,8 +62,83 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   const viewportRef = useRef({ ...initialViewState });
   const isMapClickRef = useRef(false); // Track if selection came from map click
 
-  //Filtered businesses based on dropdowns
+  // Accumulative business storage - keeps all loaded businesses
+  const [accumulatedBusinesses, setAccumulatedBusinesses] = useState<Map<string, Business>>(new Map());
+
+  // Track loaded viewport bounds to avoid duplicate fetches
+  const loadedBoundsRef = useRef<Set<string>>(new Set());
+
+  // Debounced viewport bounds for API calls (only update after user stops panning)
+  const [debouncedBounds, setDebouncedBounds] = useState<{
+    south: number;
+    north: number;
+    west: number;
+    east: number;
+  } | null>(null);
+
+  // Calculate dynamic limit based on zoom level
+  // Zoomed out (zoom < 5): fetch more businesses to cover large area
+  // Zoomed in (zoom > 10): fetch fewer businesses for performance
+  const dynamicLimit = useMemo(() => {
+    const zoom = viewport.zoom;
+    if (zoom < 4) return 5000; // Fully zoomed out - get max businesses
+    if (zoom < 7) return 3000; // State/region level
+    if (zoom < 10) return 2000; // City level
+    return 1500; // Neighborhood level
+  }, [viewport.zoom]);
+
+  // Load businesses from viewport if enabled
+  const { data: viewportBusinesses, isLoading: viewportLoading } = useViewportBusinesses({
+    bounds: debouncedBounds || {
+      south: initialViewState.latitude - 0.2,
+      north: initialViewState.latitude + 0.2,
+      west: initialViewState.longitude - 0.2,
+      east: initialViewState.longitude + 0.2,
+    },
+    filters: {
+      city: selectedCity || undefined,
+      category: selectedCategory || undefined,
+      min_rating: selectedRating || undefined,
+      is_open: selectedStatus !== null ? selectedStatus : undefined,
+    },
+    limit: dynamicLimit,
+    enabled: useViewportLoading && !!debouncedBounds, // Only fetch if viewport loading is enabled and bounds are set
+  });
+
+  // Accumulate businesses as they're loaded (don't replace, add to existing)
+  useEffect(() => {
+    if (!useViewportLoading || !viewportBusinesses || viewportBusinesses.length === 0) return;
+
+    setAccumulatedBusinesses(prev => {
+      const updated = new Map(prev);
+      viewportBusinesses.forEach(business => {
+        updated.set(business.business_id, business);
+      });
+      return updated;
+    });
+  }, [viewportBusinesses, useViewportLoading]);
+
+  // Clear accumulated businesses when filters change
+  useEffect(() => {
+    if (useViewportLoading) {
+      setAccumulatedBusinesses(new Map());
+      loadedBoundsRef.current.clear();
+    }
+  }, [selectedCity, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
+
+  // Use accumulated businesses if loading mode is enabled, otherwise use prop businesses
+  const businesses = useViewportLoading
+    ? Array.from(accumulatedBusinesses.values())
+    : (propBusinesses || []);
+
+  // For viewport loading mode, businesses are already filtered server-side
+  // For prop mode, filter client-side as before
   const filteredBusinesses = useMemo(() => {
+    if (useViewportLoading) {
+      // Server already filtered, just return businesses
+      return businesses;
+    }
+    // Client-side filtering for prop mode
     return businesses.filter((b) => {
       const cityMatch = selectedCity ? b.city === selectedCity : true;
       const categoryMatch = selectedCategory
@@ -67,7 +149,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
 
       return cityMatch && categoryMatch && ratingMatch && statusMatch;
     });
-  }, [businesses, selectedCity, selectedCategory, selectedRating, selectedStatus]);
+  }, [businesses, selectedCity, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
 
   //Supercluster built from filtered businesses
   const supercluster = useMemo(() => {
@@ -101,6 +183,40 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       Math.floor(viewport.zoom)
     );
   }, [supercluster, viewport]);
+
+  // Debounce viewport changes for API calls (wait 500ms after user stops panning)
+  useEffect(() => {
+    if (!useViewportLoading) return;
+
+    const debounceTimer = setTimeout(() => {
+      const bounds = mapRef.current?.getBounds();
+      if (bounds) {
+        setDebouncedBounds({
+          south: bounds.getSouth(),
+          north: bounds.getNorth(),
+          west: bounds.getWest(),
+          east: bounds.getEast(),
+        });
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(debounceTimer);
+  }, [viewport, useViewportLoading]);
+
+  // Initialize bounds on mount for viewport loading
+  useEffect(() => {
+    if (!useViewportLoading || debouncedBounds) return;
+
+    const bounds = mapRef.current?.getBounds();
+    if (bounds) {
+      setDebouncedBounds({
+        south: bounds.getSouth(),
+        north: bounds.getNorth(),
+        west: bounds.getWest(),
+        east: bounds.getEast(),
+      });
+    }
+  }, [useViewportLoading, debouncedBounds]);
 
   useEffect(() => {
     const previousCity = previousCityRef.current;
@@ -214,6 +330,23 @@ useEffect(() => {
     });
   };
 
+  const handleRefreshBusinesses = useCallback(() => {
+    if (useViewportLoading) {
+      setAccumulatedBusinesses(new Map());
+      loadedBoundsRef.current.clear();
+      // Trigger a refresh by updating bounds
+      const bounds = mapRef.current?.getBounds();
+      if (bounds) {
+        setDebouncedBounds({
+          south: bounds.getSouth(),
+          north: bounds.getNorth(),
+          west: bounds.getWest(),
+          east: bounds.getEast(),
+        });
+      }
+    }
+  }, [useViewportLoading]);
+
   // Keyboard controls for zoom
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -239,7 +372,7 @@ useEffect(() => {
 
   return (
     <div className="business-map-container">
-      <Map
+      <MapLibre
         ref={mapRef}
         initialViewState={initialViewState}
         onMove={(evt) => {
@@ -352,7 +485,13 @@ useEffect(() => {
         )}
 
         <div className="map-info">
-          <p>{totalBusinesses} businesses</p>
+          <p>
+            {viewportLoading && useViewportLoading ? (
+              <>Loading...</>
+            ) : (
+              <>{totalBusinesses} businesses {useViewportLoading && accumulatedBusinesses.size > 0 ? `(${accumulatedBusinesses.size} loaded)` : ''}</>
+            )}
+          </p>
         </div>
 
         <div className="map-controls">
@@ -380,12 +519,22 @@ useEffect(() => {
           >
             <img src="/direction.png" alt="Reset Orientation" className="orientation-icon" />
           </button>
+          {useViewportLoading && (
+            <button
+              className="map-control-btn refresh-btn"
+              onClick={handleRefreshBusinesses}
+              title="Refresh Businesses (Clear Cached)"
+              aria-label="Refresh Businesses"
+            >
+              <span className="control-icon">⟳</span>
+            </button>
+          )}
           <div className="zoom-level-display">
             <span className="zoom-level-label">Zoom:</span>
             <span className="zoom-level-value">{viewport.zoom.toFixed(1)}</span>
           </div>
         </div>
-      </Map>
+      </MapLibre>
     </div>
   );
 };

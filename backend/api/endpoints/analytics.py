@@ -4,6 +4,7 @@ Provides rating and sentiment timelines for businesses and geographic regions.
 """
 from typing import Dict, Any, Optional
 from datetime import date
+import asyncio
 from fastapi import APIRouter, Depends, Path, Query
 
 from dependencies import get_analytics_service
@@ -19,6 +20,102 @@ router = APIRouter(
 # ============================================================================
 # Business Timeline Endpoints
 # ============================================================================
+
+@router.get("/business/{business_id}/combined-timeline", response_model=Dict[str, Any])
+async def get_business_combined_timeline(
+    business_id: str = Path(..., description="Business identifier"),
+    period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
+    start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get combined ratings and sentiment timelines for a business with city and category comparisons.
+
+    This endpoint combines multiple timeline queries into a single response to reduce API calls.
+    Returns business data along with city and category averages for comparison.
+
+    **Example Response:**
+    ```json
+    {
+        "business_ratings": {...},
+        "business_sentiment": {...},
+        "city_ratings": {...},
+        "city_sentiment": {...},
+        "category_ratings": {...},
+        "category_sentiment": {...}
+    }
+    ```
+    """
+    # Get business ratings and sentiment
+    # Note: Can't parallelize with asyncio.gather() due to shared DB session
+    business_ratings = await analytics_service.get_business_ratings_timeline(
+        business_id=business_id,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+    business_sentiment = await analytics_service.get_business_sentiment_timeline(
+        business_id=business_id,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+    # Get city and category data if available
+    city_ratings = None
+    city_sentiment = None
+    category_ratings = None
+    category_sentiment = None
+
+    # Extract city and category from business data
+    if business_ratings.get('city') and business_ratings.get('state'):
+        city = business_ratings['city']
+        state = business_ratings['state']
+        city_ratings = await analytics_service.get_city_ratings_timeline(
+            city=city,
+            state=state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+        city_sentiment = await analytics_service.get_city_sentiment_timeline(
+            city=city,
+            state=state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+    # Get category data if business has categories
+    if business_ratings.get('categories'):
+        # Get first category
+        categories = business_ratings['categories'].split(',')
+        if categories:
+            category = categories[0].strip()
+            category_ratings = await analytics_service.get_category_ratings_timeline(
+                category=category,
+                period=period,
+                start_date=start_date,
+                end_date=end_date
+            )
+            category_sentiment = await analytics_service.get_category_sentiment_timeline(
+                category=category,
+                period=period,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+    return {
+        "business_ratings": business_ratings,
+        "business_sentiment": business_sentiment,
+        "city_ratings": city_ratings,
+        "city_sentiment": city_sentiment,
+        "category_ratings": category_ratings,
+        "category_sentiment": category_sentiment
+    }
+
 
 @router.get("/business/{business_id}/ratings-timeline", response_model=Dict[str, Any])
 async def get_business_ratings_timeline(
@@ -183,6 +280,64 @@ async def get_business_timeline_with_state_comparison(
 # Geographic Timeline Endpoints
 # ============================================================================
 
+@router.get("/city/{state}/{city}/combined-timeline", response_model=Dict[str, Any])
+async def get_city_combined_timeline(
+    state: str = Path(..., min_length=2, max_length=2, description="State code (e.g., 'PA')"),
+    city: str = Path(..., min_length=1, description="City name"),
+    period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
+    start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    category: Optional[str] = Query(None, description="Optional category for comparison"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get combined ratings and sentiment timelines for a city with optional category comparison.
+
+    Reduces API calls by combining city ratings, city sentiment, and optional category data.
+    """
+    # Get city ratings and sentiment
+    city_ratings = await analytics_service.get_city_ratings_timeline(
+        city=city,
+        state=state,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+    city_sentiment = await analytics_service.get_city_sentiment_timeline(
+        city=city,
+        state=state,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+    # Get category data if provided
+    category_ratings = None
+    category_sentiment = None
+
+    if category:
+        category_ratings = await analytics_service.get_category_ratings_timeline(
+            category=category,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+        category_sentiment = await analytics_service.get_category_sentiment_timeline(
+            category=category,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+    return {
+        "city_ratings": city_ratings,
+        "city_sentiment": city_sentiment,
+        "category_ratings": category_ratings,
+        "category_sentiment": category_sentiment
+    }
+
+
 @router.get("/city/{state}/{city}/ratings-timeline", response_model=Dict[str, Any])
 async def get_city_ratings_timeline(
     state: str = Path(..., min_length=2, max_length=2, description="State code (e.g., 'PA')"),
@@ -262,6 +417,41 @@ async def get_state_ratings_timeline(
         start_date=start_date,
         end_date=end_date
     )
+
+
+@router.get("/category/{category}/combined-timeline", response_model=Dict[str, Any])
+async def get_category_combined_timeline(
+    category: str = Path(..., min_length=1, description="Category name"),
+    period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
+    start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get combined ratings and sentiment timelines for a category.
+
+    Reduces network overhead by combining both metrics in a single HTTP request.
+    Both queries use precomputed metrics for fast performance.
+    """
+    # Fetch both ratings and sentiment from precomputed metrics
+    category_ratings = await analytics_service.get_category_ratings_timeline(
+        category=category,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+    category_sentiment = await analytics_service.get_category_sentiment_timeline(
+        category=category,
+        period=period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+    return {
+        "category_ratings": category_ratings,
+        "category_sentiment": category_sentiment
+    }
 
 
 @router.get("/category/{category}/ratings-timeline", response_model=Dict[str, Any])

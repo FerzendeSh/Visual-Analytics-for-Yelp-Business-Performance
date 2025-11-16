@@ -7,29 +7,36 @@ from datetime import date
 from fastapi import HTTPException, status
 
 from repositories.interfaces import ReviewRepositoryInterface, BusinessRepositoryInterface
+from repositories.metrics_repository import MetricsRepository
 from services.interfaces import AnalyticsServiceInterface
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AnalyticsService(AnalyticsServiceInterface):
     """
     Concrete implementation of analytics service.
     Handles business logic for time-series analytics and comparisons.
+    Uses pre-computed metrics for fast queries.
     """
 
     def __init__(
         self,
         review_repository: ReviewRepositoryInterface,
-        business_repository: BusinessRepositoryInterface
+        business_repository: BusinessRepositoryInterface,
+        db: AsyncSession = None
     ):
         """
         Initialize service with repository dependencies.
 
         Args:
-            review_repository: Repository for review data access
+            review_repository: Repository for review data access (legacy)
             business_repository: Repository for business data access
+            db: Database session for metrics repository
         """
         self.review_repository = review_repository
         self.business_repository = business_repository
+        self.db = db
+        self.metrics_repo = MetricsRepository()
 
     def _validate_period(self, period: str) -> None:
         """
@@ -97,8 +104,9 @@ class AnalyticsService(AnalyticsServiceInterface):
                 detail=f"Business with ID '{business_id}' not found"
             )
 
-        # Get timeline data from repository
-        timeline_data = await self.review_repository.get_business_ratings_over_time(
+        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        timeline_data = await self.metrics_repo.get_business_ratings_timeline(
+            db=self.db,
             business_id=business_id,
             period=period,
             start_date=start_date,
@@ -108,6 +116,9 @@ class AnalyticsService(AnalyticsServiceInterface):
         return {
             'business_id': business_id,
             'business_name': business.name,
+            'city': business.city,
+            'state': business.state,
+            'categories': business.categories,
             'period': period,
             'metric': 'rating',
             'start_date': start_date.isoformat() if start_date else None,
@@ -148,8 +159,9 @@ class AnalyticsService(AnalyticsServiceInterface):
                 detail=f"Business with ID '{business_id}' not found"
             )
 
-        # Get timeline data from repository
-        timeline_data = await self.review_repository.get_business_sentiment_over_time(
+        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        timeline_data = await self.metrics_repo.get_business_sentiment_timeline(
+            db=self.db,
             business_id=business_id,
             period=period,
             start_date=start_date,
@@ -159,6 +171,8 @@ class AnalyticsService(AnalyticsServiceInterface):
         return {
             'business_id': business_id,
             'business_name': business.name,
+            'city': business.city,
+            'state': business.state,
             'period': period,
             'metric': 'sentiment',
             'start_date': start_date.isoformat() if start_date else None,
@@ -330,8 +344,9 @@ class AnalyticsService(AnalyticsServiceInterface):
         normalized_city = city.strip()
         normalized_state = state.strip().upper()
 
-        # Get timeline data from repository
-        timeline_data = await self.review_repository.get_city_ratings_over_time(
+        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        timeline_data = await self.metrics_repo.get_city_ratings_timeline(
+            db=self.db,
             city=normalized_city,
             state=normalized_state,
             period=period,
@@ -372,7 +387,8 @@ class AnalyticsService(AnalyticsServiceInterface):
         self._validate_period(period)
 
         # Get timeline data from repository
-        timeline_data = await self.review_repository.get_state_ratings_over_time(
+        timeline_data = await self.metrics_repo.get_state_ratings_timeline(
+            db=self.db,
             state=state,
             period=period,
             start_date=start_date,
@@ -409,8 +425,10 @@ class AnalyticsService(AnalyticsServiceInterface):
         """
         self._validate_period(period)
 
-        # Get timeline data from repository
-        timeline_data = await self.review_repository.get_category_ratings_over_time(
+        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        # Note: Category metrics are city-specific in pre-computed tables
+        timeline_data = await self.metrics_repo.get_category_ratings_timeline(
+            db=self.db,
             category=category,
             period=period,
             start_date=start_date,
@@ -447,8 +465,9 @@ class AnalyticsService(AnalyticsServiceInterface):
         """
         self._validate_period(period)
 
-        # Get timeline data from repository
-        timeline_data = await self.review_repository.get_category_sentiment_over_time(
+        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        timeline_data = await self.metrics_repo.get_category_sentiment_timeline(
+            db=self.db,
             category=category,
             period=period,
             start_date=start_date,
@@ -493,8 +512,9 @@ class AnalyticsService(AnalyticsServiceInterface):
         normalized_city = city.strip()
         normalized_state = state.strip().upper()
 
-        # Get timeline data from repository
-        timeline_data = await self.review_repository.get_city_sentiment_over_time(
+        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        timeline_data = await self.metrics_repo.get_city_sentiment_timeline(
+            db=self.db,
             city=normalized_city,
             state=normalized_state,
             period=period,
@@ -535,7 +555,8 @@ class AnalyticsService(AnalyticsServiceInterface):
         self._validate_period(period)
 
         # Get timeline data from repository
-        timeline_data = await self.review_repository.get_state_sentiment_over_time(
+        timeline_data = await self.metrics_repo.get_state_sentiment_timeline(
+            db=self.db,
             state=state,
             period=period,
             start_date=start_date,

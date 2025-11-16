@@ -36,9 +36,14 @@ class BusinessRepositoryInterface(ABC):
         north: float,
         west: float,
         east: float,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
+        category: Optional[str] = None,
+        min_rating: Optional[float] = None,
+        is_open: Optional[int] = None,
         limit: int = 1000
     ) -> List[Business]:
-        """Get businesses within a geographic viewport."""
+        """Get businesses within a geographic viewport with optional filters."""
         pass
 
     @abstractmethod

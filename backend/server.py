@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 
 from api.endpoints.businesses import router as business_router
@@ -36,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add GZip compression for responses > 1KB (reduces bandwidth by ~70%)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Register routers
 app.include_router(business_router, prefix="/api")

@@ -82,10 +82,15 @@ class BusinessService(BusinessServiceInterface):
         north: float,
         west: float,
         east: float,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
+        category: Optional[str] = None,
+        min_rating: Optional[float] = None,
+        is_open: Optional[int] = None,
         limit: int = 1000
     ) -> List[Business]:
         """
-        Get businesses within a geographic viewport (bounding box).
+        Get businesses within a geographic viewport (bounding box) with optional filters.
 
         Validates bounds before querying.
 
@@ -94,6 +99,11 @@ class BusinessService(BusinessServiceInterface):
             north: Northern latitude bound
             west: Western longitude bound
             east: Eastern longitude bound
+            state: Filter by state code (will be normalized to uppercase)
+            city: Filter by city name
+            category: Filter by category (partial match)
+            min_rating: Filter by minimum star rating
+            is_open: Filter by open status (0 = closed, 1 = open)
             limit: Maximum number of businesses to return
 
         Returns:
@@ -114,11 +124,19 @@ class BusinessService(BusinessServiceInterface):
                 detail="West longitude must be less than east longitude"
             )
 
+        # Normalize state to uppercase
+        normalized_state = state.upper() if state else None
+
         return await self.business_repository.get_in_viewport(
             south=south,
             north=north,
             west=west,
             east=east,
+            state=normalized_state,
+            city=city,
+            category=category,
+            min_rating=min_rating,
+            is_open=is_open,
             limit=limit
         )
 

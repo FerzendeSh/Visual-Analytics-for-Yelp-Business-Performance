@@ -25,13 +25,18 @@ export const getBusinesses = (options?: {
 };
 
 /**
- * Get businesses within map viewport bounds
+ * Get businesses within map viewport bounds with optional filters
  */
 export const getBusinessesInViewport = (bounds: {
   south: number;
   north: number;
   west: number;
   east: number;
+  state?: string;
+  city?: string;
+  category?: string;
+  min_rating?: number;
+  is_open?: number;
   limit?: number;
 }): Promise<Business[]> => {
   return get<Business[]>('/api/businesses/viewport', {
@@ -40,6 +45,11 @@ export const getBusinessesInViewport = (bounds: {
       north: bounds.north,
       west: bounds.west,
       east: bounds.east,
+      state: bounds.state,
+      city: bounds.city,
+      category: bounds.category,
+      min_rating: bounds.min_rating,
+      is_open: bounds.is_open,
       limit: bounds.limit || 1000,
     },
   });
