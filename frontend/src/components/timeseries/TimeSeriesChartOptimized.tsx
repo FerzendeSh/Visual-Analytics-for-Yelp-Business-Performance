@@ -1,19 +1,14 @@
-/**
- * Optimized TimeSeriesChart Component
- * Accepts pre-fetched data as props instead of fetching internally
- * This allows data sharing between multiple chart instances
- */
 import React, { useMemo } from 'react';
 import {
-  LineChart,
+  ComposedChart,
   Line,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ComposedChart,
 } from 'recharts';
 import { Business } from '../../api';
 import {
@@ -21,7 +16,22 @@ import {
   SentimentTimeline,
 } from '../../api/endpoints/analytics';
 
-// Date formatting utility
+import { CHART_COLORS, LINE_STYLES, CHART_CONFIG } from './chartConstants';
+import {
+  calculateTrend,
+  calculateCompetitivePosition,
+  TrendAnalysis,
+  CompetitivePosition,
+} from './trendUtils';
+import {
+  generateRatingInsight,
+  generateSentimentInsight,
+} from './insightUtils';
+import TrendIndicator from './TrendIndicator';
+import CompetitivePositionBadge from './CompetitivePositionBadge';
+import EnhancedTooltip from './EnhancedTooltip';
+import { CARD_STYLE } from '../../theme/sharedStyles';
+
 function formatDateForPeriod(dateString: string, period: 'month' | 'year'): string {
   try {
     const date = new Date(dateString);
@@ -82,7 +92,6 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
   isLoading = false,
   error = null,
 }) => {
-  // Merge comparison data into main data
   const mergedRatingsData = useMemo(() => {
     if (!ratingsData?.data) return null;
 
@@ -125,60 +134,101 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
     };
   }, [sentimentData, citySentimentData, categorySentimentData]);
 
-  // Calculate total reviews
   const periodReviewCount = useMemo(() => {
     if (!ratingsData?.data) return 0;
     return ratingsData.data.reduce((sum, point) => sum + (point.review_count || 0), 0);
   }, [ratingsData]);
 
-  // Show empty state
+  const ratingTrend: TrendAnalysis | null = useMemo(() => {
+    if (!mergedRatingsData?.data) return null;
+    return calculateTrend(mergedRatingsData.data, 'avg_rating', 3);
+  }, [mergedRatingsData]);
+
+  const sentimentTrend: TrendAnalysis | null = useMemo(() => {
+    if (!mergedSentimentData?.data) return null;
+    return calculateTrend(mergedSentimentData.data, 'avg_sentiment_score', 3);
+  }, [mergedSentimentData]);
+
+  const ratingCompetitivePosition: CompetitivePosition | null = useMemo(() => {
+    if (!mergedRatingsData?.data || !cityRatingsData?.data) return null;
+    return calculateCompetitivePosition(
+      mergedRatingsData.data,
+      cityRatingsData.data,
+      'avg_rating'
+    );
+  }, [mergedRatingsData, cityRatingsData]);
+
+  const sentimentCompetitivePosition: CompetitivePosition | null = useMemo(() => {
+    if (!mergedSentimentData?.data || !citySentimentData?.data) return null;
+    return calculateCompetitivePosition(
+      mergedSentimentData.data,
+      citySentimentData.data,
+      'avg_sentiment_score'
+    );
+  }, [mergedSentimentData, citySentimentData]);
+
+  const ratingInsight = useMemo(() => {
+    return generateRatingInsight(
+      business?.name || null,
+      selectedCity || null,
+      selectedCategory || null,
+      ratingTrend,
+      ratingCompetitivePosition
+    );
+  }, [business, selectedCity, selectedCategory, ratingTrend, ratingCompetitivePosition]);
+
+  const sentimentInsight = useMemo(() => {
+    return generateSentimentInsight(
+      business?.name || null,
+      selectedCity || null,
+      selectedCategory || null,
+      sentimentTrend,
+      sentimentCompetitivePosition
+    );
+  }, [business, selectedCity, selectedCategory, sentimentTrend, sentimentCompetitivePosition]);
+
   if (!business && !selectedCity && !selectedCategory) {
     return (
       <div
         style={{
           padding: '2rem',
           textAlign: 'center',
-          color: '#aaccff',
+          color: CHART_COLORS.textMuted,
           background: 'linear-gradient(135deg, #0d2d7a 0%, #1a3a6e 100%)',
           borderRadius: '8px',
         }}
       >
-        Select a city, category, or business to view time-series data
+        Select a city, category, or business to view performance trends and competitive analysis
       </div>
     );
   }
 
   return (
     <div style={{ padding: '1.5rem' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>
-          {business ? business.name : selectedCity ? `${selectedCity}, ${selectedState}` : selectedCategory}
-        </h3>
+      <div style={{ marginBottom: '1rem' }}>
         {business && (
-          <p style={{ margin: 0, color: '#d2d2d4ff', fontSize: '0.9rem' }}>
-            {business.city}, {business.state} • ★ {business.stars} ({periodReviewCount > 0 ? periodReviewCount : business.review_count} reviews)
+          <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
+            {business.city}, {business.state} • ★ {business.stars} ({periodReviewCount > 0 ? periodReviewCount.toLocaleString() : business.review_count.toLocaleString()} reviews)
           </p>
         )}
         {!business && selectedCity && (
-          <p style={{ margin: 0, color: '#d2d2d4ff', fontSize: '0.9rem' }}>
+          <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
             {selectedCategory ? `${selectedCategory} in ${selectedCity}, ${selectedState}` : `${selectedCity}, ${selectedState}`}
           </p>
         )}
         {!business && !selectedCity && selectedCategory && (
-          <p style={{ margin: 0, color: '#d2d2d4ff', fontSize: '0.9rem' }}>
+          <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
             Category average trends
           </p>
         )}
       </div>
 
-      {/* Loading State */}
       {isLoading && (
         <div
           style={{
             padding: '2rem',
             textAlign: 'center',
-            color: '#aaccff',
+            color: CHART_COLORS.textMuted,
             background: 'linear-gradient(135deg, #0a1529ff 0%, #0a1529ff 100%)',
             borderRadius: '8px',
           }}
@@ -187,15 +237,14 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
         </div>
       )}
 
-      {/* Error State */}
       {error && (
         <div
           style={{
             padding: '1rem',
-            background: 'rgba(255, 255, 255, 0.2)',
-            border: '1px solid #5588ff',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: '8px',
-            color: '#88bbff',
+            color: '#ef4444',
             marginBottom: '1rem',
           }}
         >
@@ -203,202 +252,282 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
         </div>
       )}
 
-      {/* Charts */}
       {!isLoading && !error && (mergedRatingsData || mergedSentimentData) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-          {/* Ratings Timeline Chart */}
           {!isSentimentOnly && mergedRatingsData && mergedRatingsData.data.length > 0 && (
-            <div style={{ padding: '1rem', backgroundColor: '#0f1b2a', borderRadius: '16px', marginBottom: '1rem', border: '1px solid rgba(102, 126, 234, 0.25)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(102, 126, 234, 0.15)' }}>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart
-                  data={mergedRatingsData.data}
-                  margin={{ top: 5, right: 30, left: 15, bottom: 50 }}
-                  style={{ backgroundColor: '#0f1b2a' }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(102, 126, 234, 0.15)" />
-                  <XAxis
-                    dataKey="period_start"
-                    stroke="#eeeef0ff"
-                    style={{ fontSize: '12px' }}
-                    tick={{ fill: '#eeeef0ff' }}
-                    tickFormatter={(value) => formatDateForPeriod(value, period)}
-                    angle={-55}
-                    textAnchor="end"
-                    height={10}
-                    interval={Math.floor(mergedRatingsData.data.length / 6) || 0}
-                  />
-                  <YAxis
-                    stroke="#eeeef0ff"
-                    style={{ fontSize: '12px' }}
-                    tick={{ fill: '#eeeef0ff' }}
-                    domain={[1, 5]}
-                    ticks={[1, 2, 3, 4, 5]}
-                    width={15}
-                    type="number"
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#515152ff',
-                      border: '1px solid #090253ff',
-                      borderRadius: '4px',
-                    }}
-                    labelStyle={{ color: '#eeeef0ff' }}
-                    formatter={(value: any) => {
-                      if (typeof value === 'number') {
-                        return value.toFixed(2);
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
+                  {ratingInsight.title}
+                </h4>
+                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: CHART_COLORS.textSecondary }}>
+                  {ratingInsight.subtitle}
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {ratingTrend && <TrendIndicator trend={ratingTrend} metric="rating" />}
+                  {business && ratingCompetitivePosition && (
+                    <CompetitivePositionBadge
+                      position={ratingCompetitivePosition}
+                      comparisonType="city"
+                      comparisonName={business.city}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div style={{ ...CARD_STYLE, padding: '1rem' }}>
+                <ResponsiveContainer width="100%" height={CHART_CONFIG.height}>
+                  <ComposedChart
+                    data={mergedRatingsData.data}
+                    margin={CHART_CONFIG.margin}
+                    style={{ backgroundColor: CARD_STYLE.background }}
+                    aria-label={ratingInsight.ariaLabel}
+                  >
+                    <CartesianGrid
+                      stroke={CHART_COLORS.gridlines}
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="period_start"
+                      stroke={CHART_COLORS.textPrimary}
+                      style={{ fontSize: '13px' }}
+                      tick={{ fill: CHART_COLORS.textPrimary }}
+                      tickFormatter={(value) => formatDateForPeriod(value, period)}
+                      angle={CHART_CONFIG.xAxisAngle}
+                      textAnchor={CHART_CONFIG.xAxisTextAnchor}
+                      height={50}
+                      interval="preserveStartEnd"
+                      minTickGap={30}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      stroke={CHART_COLORS.textPrimary}
+                      style={{ fontSize: '13px' }}
+                      tick={{ fill: CHART_COLORS.textPrimary }}
+                      domain={CHART_CONFIG.ratingDomain}
+                      ticks={CHART_CONFIG.ratingTicks}
+                      width={35}
+                      type="number"
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke={CHART_COLORS.textSecondary}
+                      style={{ fontSize: '12px' }}
+                      tick={{ fill: CHART_COLORS.textSecondary }}
+                      width={40}
+                      label={{ value: 'Reviews', angle: 90, position: 'insideRight', style: { fill: CHART_COLORS.textSecondary, fontSize: '12px' } }}
+                    />
+
+                    <Tooltip
+                      content={
+                        <EnhancedTooltip
+                          data={mergedRatingsData.data}
+                          metric="avg_rating"
+                          period={period}
+                        />
                       }
-                      return value;
-                    }}
-                    labelFormatter={(label) => formatDateForPeriod(label, period)}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    wrapperStyle={{ paddingBottom: '10px' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="avg_rating"
-                    stroke="#00d4ff"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 6 }}
-                    name={business ? business.name : selectedCity ? "City Average Rating" : `${selectedCategory} Average`}
-                    isAnimationActive={false}
-                  />
-                  {business && (
-                    <Line
-                      type="monotone"
-                      dataKey="city_avg_rating"
-                      stroke="#b819e8ff"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      activeDot={{ r: 6 }}
-                      name={`${business.city} Average`}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      wrapperStyle={{
+                        paddingTop: '16px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: CHART_COLORS.textPrimary,
+                      }}
+                      iconSize={12}
+                      iconType="circle"
+                    />
+
+                    <Bar
+                      yAxisId="right"
+                      dataKey="review_count"
+                      fill={CHART_COLORS.volumeBars}
+                      radius={[4, 4, 0, 0]}
+                      name="Review Volume"
                       isAnimationActive={false}
                     />
-                  )}
-                  {primaryCategory && business && (
+
                     <Line
+                      yAxisId="left"
                       type="monotone"
-                      dataKey="category_avg_rating"
-                      stroke="#ff1493ff"
-                      strokeWidth={2}
-                      strokeDasharray="8 4"
+                      dataKey="avg_rating"
+                      stroke={CHART_COLORS.business}
+                      strokeWidth={LINE_STYLES.business.strokeWidth}
                       dot={false}
                       activeDot={{ r: 6 }}
-                      name={`${primaryCategory} Average`}
+                      name={business ? business.name : selectedCity ? "City Avg Rating" : `${selectedCategory} Avg`}
                       isAnimationActive={false}
                     />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
+                    {business && (
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="city_avg_rating"
+                        stroke={CHART_COLORS.city}
+                        strokeWidth={LINE_STYLES.city.strokeWidth}
+                        strokeDasharray={LINE_STYLES.city.strokeDasharray}
+                        strokeOpacity={LINE_STYLES.city.opacity}
+                        dot={false}
+                        activeDot={{ r: 6 }}
+                        name={`${business.city} Avg`}
+                        isAnimationActive={false}
+                      />
+                    )}
+                    {categoryRatingsData && (
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="category_avg_rating"
+                        stroke={CHART_COLORS.category}
+                        strokeWidth={LINE_STYLES.category.strokeWidth}
+                        strokeDasharray={LINE_STYLES.category.strokeDasharray}
+                        strokeOpacity={LINE_STYLES.category.opacity}
+                        dot={false}
+                        activeDot={{ r: 6 }}
+                        name={selectedCategory ? `${selectedCategory} in ${selectedCity}` : `${primaryCategory} Avg`}
+                        isAnimationActive={false}
+                      />
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
 
-          {/* Sentiment Timeline Chart */}
           {!isRatingsOnly && mergedSentimentData && mergedSentimentData.data.length > 0 && (
-            <div style={{ padding: '1rem', backgroundColor: '#0f1b2a', borderRadius: '16px', border: '1px solid rgba(102, 126, 234, 0.25)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(102, 126, 234, 0.15)' }}>
-              <ResponsiveContainer width="100%" height={220}>
-                <ComposedChart
-                  data={mergedSentimentData.data}
-                  margin={{ top: 10, right: 30, left: 15, bottom: 50 }}
-                  style={{ backgroundColor: '#0f1b2a' }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(102, 126, 234, 0.15)" />
-                  <XAxis
-                    dataKey="period_start"
-                    stroke="#eeeef0ff"
-                    style={{ fontSize: '12px' }}
-                    tick={{ fill: '#eeeef0ff' }}
-                    tickFormatter={(value) => formatDateForPeriod(value, period)}
-                    angle={-55}
-                    textAnchor="end"
-                    height={10}
-                    interval={Math.floor(mergedSentimentData.data.length / 6) || 0}
-                  />
-                  <YAxis
-                    stroke="#eeeef0ff"
-                    style={{ fontSize: '12px' }}
-                    tick={{ fill: '#eeeef0ff' }}
-                    domain={[-1, 1]}
-                    ticks={[-1, -0.5, 0, 0.5, 1]}
-                    width={15}
-                    tickFormatter={(value) => value.toFixed(1)}
-                    type="number"
-                    allowDecimals={true}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#515152ff',
-                      border: '1px solid #090253ff',
-                      borderRadius: '4px',
-                    }}
-                    labelStyle={{ color: '#eeeef0ff' }}
-                    formatter={(value: any) => {
-                      if (typeof value === 'number') {
-                        return value.toFixed(3);
+            <div>
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
+                  {sentimentInsight.title}
+                </h4>
+                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: CHART_COLORS.textSecondary }}>
+                  {sentimentInsight.subtitle}
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {sentimentTrend && <TrendIndicator trend={sentimentTrend} metric="sentiment" />}
+                  {business && sentimentCompetitivePosition && (
+                    <CompetitivePositionBadge
+                      position={sentimentCompetitivePosition}
+                      comparisonType="city"
+                      comparisonName={business.city}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div style={{ ...CARD_STYLE, padding: '1rem' }}>
+                <ResponsiveContainer width="100%" height={CHART_CONFIG.height}>
+                  <ComposedChart
+                    data={mergedSentimentData.data}
+                    margin={CHART_CONFIG.margin}
+                    style={{ backgroundColor: CARD_STYLE.background }}
+                    aria-label={sentimentInsight.ariaLabel}
+                  >
+                    <CartesianGrid
+                      stroke={CHART_COLORS.gridlines}
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="period_start"
+                      stroke={CHART_COLORS.textPrimary}
+                      style={{ fontSize: '13px' }}
+                      tick={{ fill: CHART_COLORS.textPrimary }}
+                      tickFormatter={(value) => formatDateForPeriod(value, period)}
+                      angle={CHART_CONFIG.xAxisAngle}
+                      textAnchor={CHART_CONFIG.xAxisTextAnchor}
+                      height={50}
+                      interval="preserveStartEnd"
+                      minTickGap={50}
+                    />
+                    <YAxis
+                      stroke={CHART_COLORS.textPrimary}
+                      style={{ fontSize: '13px' }}
+                      tick={{ fill: CHART_COLORS.textPrimary }}
+                      domain={CHART_CONFIG.sentimentDomain}
+                      ticks={CHART_CONFIG.sentimentTicks}
+                      width={35}
+                      tickFormatter={(value) => value.toFixed(1)}
+                      type="number"
+                      allowDecimals={true}
+                    />
+
+                    <Tooltip
+                      content={
+                        <EnhancedTooltip
+                          data={mergedSentimentData.data}
+                          metric="avg_sentiment_score"
+                          period={period}
+                        />
                       }
-                      return value;
-                    }}
-                    labelFormatter={(label) => formatDateForPeriod(label, period)}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    height={36}
-                    wrapperStyle={{ paddingBottom: '10px' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="avg_sentiment_score"
-                    stroke="#ff6633"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 6 }}
-                    name={business ? business.name : selectedCity ? "City Average Sentiment" : `${selectedCategory} Sentiment Average`}
-                    isAnimationActive={false}
-                  />
-                  {business && (
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      wrapperStyle={{
+                        paddingTop: '16px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: CHART_COLORS.textPrimary,
+                      }}
+                      iconSize={12}
+                      iconType="circle"
+                    />
+
                     <Line
                       type="monotone"
-                      dataKey="city_avg_sentiment_score"
-                      stroke="#ffa500"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
+                      dataKey="avg_sentiment_score"
+                      stroke={CHART_COLORS.business}
+                      strokeWidth={LINE_STYLES.business.strokeWidth}
                       dot={false}
                       activeDot={{ r: 6 }}
-                      name={`${business.city} Sentiment Average`}
+                      name={business ? business.name : selectedCity ? "City Avg Sentiment" : `${selectedCategory} Sentiment Avg`}
                       isAnimationActive={false}
                     />
-                  )}
-                  {primaryCategory && business && (
-                    <Line
-                      type="monotone"
-                      dataKey="category_avg_sentiment_score"
-                      stroke="#00d4ff"
-                      strokeWidth={2}
-                      strokeDasharray="8 4"
-                      dot={false}
-                      activeDot={{ r: 6 }}
-                      name={`${primaryCategory} Sentiment Average`}
-                      isAnimationActive={false}
-                    />
-                  )}
-                </ComposedChart>
-              </ResponsiveContainer>
+                    {business && (
+                      <Line
+                        type="monotone"
+                        dataKey="city_avg_sentiment_score"
+                        stroke={CHART_COLORS.city}
+                        strokeWidth={LINE_STYLES.city.strokeWidth}
+                        strokeDasharray={LINE_STYLES.city.strokeDasharray}
+                        strokeOpacity={LINE_STYLES.city.opacity}
+                        dot={false}
+                        activeDot={{ r: 6 }}
+                        name={`${business.city} Sentiment Avg`}
+                        isAnimationActive={false}
+                      />
+                    )}
+                    {categorySentimentData && (
+                      <Line
+                        type="monotone"
+                        dataKey="category_avg_sentiment_score"
+                        stroke={CHART_COLORS.category}
+                        strokeWidth={LINE_STYLES.category.strokeWidth}
+                        strokeDasharray={LINE_STYLES.category.strokeDasharray}
+                        strokeOpacity={LINE_STYLES.category.opacity}
+                        dot={false}
+                        activeDot={{ r: 6 }}
+                        name={selectedCategory ? `${selectedCategory} in ${selectedCity}` : `${primaryCategory} Sentiment Avg`}
+                        isAnimationActive={false}
+                      />
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* No Data State */}
       {!isLoading && !mergedRatingsData && !mergedSentimentData && !error && (
         <div
           style={{
             padding: '2rem',
             textAlign: 'center',
-            color: '#aaccff',
+            color: CHART_COLORS.textMuted,
             background: 'linear-gradient(135deg, #0d2d7a 0%, #1a3a6e 100%)',
             borderRadius: '8px',
           }}
