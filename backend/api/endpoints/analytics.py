@@ -27,6 +27,7 @@ async def get_business_combined_timeline(
     period: str = Query('month', regex='^(day|week|month|year)$', description="Time period for aggregation"),
     start_date: Optional[date] = Query(None, description="Start date filter (YYYY-MM-DD)"),
     end_date: Optional[date] = Query(None, description="End date filter (YYYY-MM-DD)"),
+    category: Optional[str] = Query(None, description="Optional category for comparison (user-selected)"),
     analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
 ):
     """
@@ -88,24 +89,27 @@ async def get_business_combined_timeline(
             end_date=end_date
         )
 
-    # Get category data if business has categories
-    if business_ratings.get('categories'):
-        # Get first category
-        categories = business_ratings['categories'].split(',')
-        if categories:
-            category = categories[0].strip()
-            category_ratings = await analytics_service.get_category_ratings_timeline(
-                category=category,
-                period=period,
-                start_date=start_date,
-                end_date=end_date
-            )
-            category_sentiment = await analytics_service.get_category_sentiment_timeline(
-                category=category,
-                period=period,
-                start_date=start_date,
-                end_date=end_date
-            )
+    # Get category data ONLY if user explicitly selected a category via filter
+    if category:
+        # Get city-specific category data for comparison
+        category_city = business_ratings.get('city')
+        category_state = business_ratings.get('state')
+        category_ratings = await analytics_service.get_category_ratings_timeline(
+            category=category,
+            city=category_city,
+            state=category_state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+        category_sentiment = await analytics_service.get_category_sentiment_timeline(
+            category=category,
+            city=category_city,
+            state=category_state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
 
     return {
         "business_ratings": business_ratings,
@@ -312,19 +316,23 @@ async def get_city_combined_timeline(
         end_date=end_date
     )
 
-    # Get category data if provided
+    # Get category data if provided (city-specific)
     category_ratings = None
     category_sentiment = None
 
     if category:
         category_ratings = await analytics_service.get_category_ratings_timeline(
             category=category,
+            city=city,
+            state=state,
             period=period,
             start_date=start_date,
             end_date=end_date
         )
         category_sentiment = await analytics_service.get_category_sentiment_timeline(
             category=category,
+            city=city,
+            state=state,
             period=period,
             start_date=start_date,
             end_date=end_date
@@ -610,4 +618,71 @@ async def get_state_sentiment_timeline(
         period=period,
         start_date=start_date,
         end_date=end_date
+    )
+
+
+# ============================================================================
+# Competitive Positioning Endpoints
+# ============================================================================
+
+@router.get("/competitive-snapshot", response_model=Dict[str, Any])
+async def get_competitive_snapshot(
+    city: Optional[str] = Query(None, description="Filter by city name"),
+    state: Optional[str] = Query(None, min_length=2, max_length=2, description="Filter by state code (e.g., 'PA')"),
+    category: Optional[str] = Query(None, description="Filter by category (partial match)"),
+    business_id: Optional[str] = Query(None, description="Specific business to highlight"),
+    analytics_service: AnalyticsServiceInterface = Depends(get_analytics_service)
+):
+    """
+    Get competitive positioning snapshot for market analysis.
+
+    Returns all businesses in the specified market (city/category) with pre-calculated
+    statistics for competitive positioning visualization (scatter plots, quadrant analysis).
+
+    **Use Case**: Competitive market positioning visualization (RQ2)
+    - Show how a business compares to competitors in rating vs review volume space
+    - Identify market leaders, hidden gems, and at-risk businesses
+    - Provide actionable insights about competitive position
+
+    **Filters** (at least one recommended):
+    - `city` + `state`: All businesses in a city (e.g., Philadelphia, PA)
+    - `category`: All businesses in a category (e.g., Restaurants)
+    - Combine filters for precision (e.g., Restaurants in Philadelphia)
+
+    **Performance**: Returns up to 5000 businesses with pre-calculated market statistics
+
+    **Example Response:**
+    ```json
+    {
+        "businesses": [
+            {
+                "business_id": "abc123",
+                "name": "Joe's Pizza",
+                "stars": 4.5,
+                "review_count": 234,
+                "city": "Philadelphia",
+                "state": "PA",
+                "categories": "Restaurants, Pizza, Italian",
+                "is_open": 1
+            }
+        ],
+        "statistics": {
+            "avg_rating": 3.8,
+            "median_review_count": 45,
+            "total_businesses": 1234
+        },
+        "selected_business": {...},
+        "filters": {
+            "city": "Philadelphia",
+            "state": "PA",
+            "category": "Restaurants"
+        }
+    }
+    ```
+    """
+    return await analytics_service.get_competitive_snapshot(
+        city=city,
+        state=state,
+        category=category,
+        business_id=business_id
     )

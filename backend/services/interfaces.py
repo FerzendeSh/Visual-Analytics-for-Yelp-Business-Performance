@@ -267,6 +267,8 @@ class AnalyticsServiceInterface(ABC):
     async def get_category_ratings_timeline(
         self,
         category: str,
+        city: Optional[str] = None,
+        state: Optional[str] = None,
         period: str = 'month',
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
@@ -276,6 +278,8 @@ class AnalyticsServiceInterface(ABC):
 
         Args:
             category: Category name
+            city: Optional city filter (for city-specific category data)
+            state: Optional state filter (required if city is provided)
             period: Time period for aggregation ('day', 'week', 'month', 'year')
             start_date: Optional start date filter
             end_date: Optional end date filter
@@ -289,6 +293,8 @@ class AnalyticsServiceInterface(ABC):
     async def get_category_sentiment_timeline(
         self,
         category: str,
+        city: Optional[str] = None,
+        state: Optional[str] = None,
         period: str = 'month',
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
@@ -298,11 +304,47 @@ class AnalyticsServiceInterface(ABC):
 
         Args:
             category: Category name
+            city: Optional city filter (for city-specific category data)
+            state: Optional state filter (required if city is provided)
             period: Time period for aggregation ('day', 'week', 'month', 'year')
             start_date: Optional start date filter
             end_date: Optional end date filter
 
         Returns:
             Dict with timeline data and metadata
+        """
+        pass
+
+    @abstractmethod
+    async def get_competitive_snapshot(
+        self,
+        city: Optional[str] = None,
+        state: Optional[str] = None,
+        category: Optional[str] = None,
+        business_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get competitive positioning snapshot for a market.
+
+        Returns all businesses in the specified market (city/category) with
+        pre-calculated statistics for competitive analysis visualization.
+
+        Args:
+            city: City name (optional)
+            state: State code (optional, recommended with city)
+            category: Category name (optional)
+            business_id: Specific business to highlight (optional)
+
+        Returns:
+            Dict with businesses and market statistics:
+            {
+                "businesses": List of business data with ratings and review counts,
+                "statistics": {
+                    "avg_rating": float,
+                    "median_review_count": int,
+                    "total_businesses": int
+                },
+                "selected_business": Optional business data if business_id provided
+            }
         """
         pass
