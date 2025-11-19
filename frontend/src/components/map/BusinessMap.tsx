@@ -27,7 +27,13 @@ interface BusinessMapProps {
     latitude: number;
     zoom: number;
   };
+  targetLocation?: { // NEW: Programmatically fly to this location
+    longitude: number;
+    latitude: number;
+    zoom?: number;
+  } | null;
   onBusinessSelect?: (business: Business) => void;
+  onMapCityChange?: (city: string, state: string) => void; // NEW: Called when map viewport changes to a different city
   selectedCity?: string;
   selectedCategory?: string;
   selectedRating?: number | null;
@@ -48,7 +54,9 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   businesses: propBusinesses,
   useViewportLoading = true, // Default to viewport loading
   initialViewState = NASHVILLE_CENTER, // Default to Nashville
+  targetLocation = null,
   onBusinessSelect,
+  onMapCityChange,
   selectedCity = "",
   selectedCategory = "",
   selectedRating = null,
@@ -60,15 +68,12 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   const [viewport, setViewport] = useState({ ...initialViewState });
   const previousCityRef = useRef<string>("");
   const viewportRef = useRef({ ...initialViewState });
-  const isMapClickRef = useRef(false); // Track if selection came from map click
+  const isMapClickRef = useRef(false);
+  const isProgrammaticMoveRef = useRef(false);
 
-  // Accumulative business storage - keeps all loaded businesses
   const [accumulatedBusinesses, setAccumulatedBusinesses] = useState<Map<string, Business>>(new Map());
-
-  // Track loaded viewport bounds to avoid duplicate fetches
   const loadedBoundsRef = useRef<Set<string>>(new Set());
 
-  // Debounced viewport bounds for API calls (only update after user stops panning)
   const [debouncedBounds, setDebouncedBounds] = useState<{
     south: number;
     north: number;
@@ -76,18 +81,14 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     east: number;
   } | null>(null);
 
-  // Calculate dynamic limit based on zoom level
-  // Zoomed out (zoom < 5): fetch more businesses to cover large area
-  // Zoomed in (zoom > 10): fetch fewer businesses for performance
   const dynamicLimit = useMemo(() => {
     const zoom = viewport.zoom;
     if (zoom < 4) return 5000; // Fully zoomed out - get max businesses
     if (zoom < 7) return 3000; // State/region level
     if (zoom < 10) return 2000; // City level
-    return 1500; // Neighborhood level
+    return 1500;
   }, [viewport.zoom]);
 
-  // Load businesses from viewport if enabled
   const { data: viewportBusinesses, isLoading: viewportLoading } = useViewportBusinesses({
     bounds: debouncedBounds || {
       south: initialViewState.latitude - 0.2,
@@ -102,10 +103,9 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       is_open: selectedStatus !== null ? selectedStatus : undefined,
     },
     limit: dynamicLimit,
-    enabled: useViewportLoading && !!debouncedBounds, // Only fetch if viewport loading is enabled and bounds are set
+    enabled: useViewportLoading && !!debouncedBounds,
   });
 
-  // Accumulate businesses as they're loaded (don't replace, add to existing)
   useEffect(() => {
     if (!useViewportLoading || !viewportBusinesses || viewportBusinesses.length === 0) return;
 
@@ -118,7 +118,6 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     });
   }, [viewportBusinesses, useViewportLoading]);
 
-  // Clear accumulated businesses when filters change
   useEffect(() => {
     if (useViewportLoading) {
       setAccumulatedBusinesses(new Map());
@@ -126,19 +125,14 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     }
   }, [selectedCity, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
 
-  // Use accumulated businesses if loading mode is enabled, otherwise use prop businesses
   const businesses = useViewportLoading
     ? Array.from(accumulatedBusinesses.values())
     : (propBusinesses || []);
 
-  // For viewport loading mode, businesses are already filtered server-side
-  // For prop mode, filter client-side as before
   const filteredBusinesses = useMemo(() => {
     if (useViewportLoading) {
-      // Server already filtered, just return businesses
       return businesses;
     }
-    // Client-side filtering for prop mode
     return businesses.filter((b) => {
       const cityMatch = selectedCity ? b.city === selectedCity : true;
       const categoryMatch = selectedCategory
@@ -151,7 +145,6 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     });
   }, [businesses, selectedCity, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
 
-  //Supercluster built from filtered businesses
   const supercluster = useMemo(() => {
     const validBusinesses = filteredBusinesses.filter(
       (b) =>
@@ -172,7 +165,6 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     return cluster;
   }, [filteredBusinesses]);
 
-  // ✅ Get visible clusters
   const clusters = useMemo(() => {
     const bounds = mapRef.current?.getBounds();
     if (!bounds) {
@@ -184,7 +176,6 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     );
   }, [supercluster, viewport]);
 
-  // Debounce viewport changes for API calls (wait 500ms after user stops panning)
   useEffect(() => {
     if (!useViewportLoading) return;
 
@@ -198,12 +189,11 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
           east: bounds.getEast(),
         });
       }
-    }, 500); // 500ms debounce
+    }, 500);
 
     return () => clearTimeout(debounceTimer);
   }, [viewport, useViewportLoading]);
 
-  // Initialize bounds on mount for viewport loading
   useEffect(() => {
     if (!useViewportLoading || debouncedBounds) return;
 
@@ -219,10 +209,21 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   }, [useViewportLoading, debouncedBounds]);
 
   useEffect(() => {
+    if (targetLocation) {
+      isProgrammaticMoveRef.current = true;
+      mapRef.current?.flyTo({
+        center: [targetLocation.longitude, targetLocation.latitude],
+        zoom: targetLocation.zoom || 11,
+        duration: 700,
+      });
+    }
+  }, [targetLocation]);
+
+  useEffect(() => {
     const previousCity = previousCityRef.current;
 
     if (previousCity === selectedCity) return;
-    if (selectedCity !== "") {
+    if (selectedCity !== "" && !targetLocation) {
       const cityBusinesses = businesses.filter(b => b.city === selectedCity);
       if (cityBusinesses.length > 0) {
 
@@ -233,6 +234,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
           const avgLat = lats.reduce((a, b) => a + b) / lats.length;
           const avgLng = lngs.reduce((a, b) => a + b) / lngs.length;
 
+          isProgrammaticMoveRef.current = true;
           mapRef.current?.flyTo({
             center: [avgLng, avgLat],
             zoom: 11,
@@ -241,6 +243,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
         }
       }
     } else if (selectedCity === "" && previousCity !== "") {
+      isProgrammaticMoveRef.current = true;
       mapRef.current?.flyTo({
         center: [initialViewState.longitude, initialViewState.latitude],
         zoom: initialViewState.zoom,
@@ -248,11 +251,9 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       });
     }
     previousCityRef.current = selectedCity;
-  }, [selectedCity, businesses, initialViewState]);
+  }, [selectedCity, businesses, initialViewState, targetLocation]);
 
- // Zoom to selected business when it changes
 useEffect(() => {
-  // Close popup and clear selection when selectedBusiness becomes null
   if (selectedBusiness === null) {
     setPopupInfo(null);
     isMapClickRef.current = false;
@@ -267,14 +268,11 @@ useEffect(() => {
     return;
   }
 
-  // Show popup when business is selected
   setPopupInfo(selectedBusiness);
 
   const map = mapRef.current;
   if (!map) return;
 
-  // Skip zoom animation if user clicked directly on map marker
-  // Map click selections don't need zoom animation
   if (isMapClickRef.current) {
     isMapClickRef.current = false;
     return;
@@ -282,21 +280,22 @@ useEffect(() => {
 
   const currentZoom = map.getZoom();
 
-  // If we're already zoomed in close to the target location, don't animate zoom-out
   if (currentZoom > 11) {
+    isProgrammaticMoveRef.current = true;
     map.easeTo({
       center: [selectedBusiness.longitude, selectedBusiness.latitude],
       zoom: 16,
       duration: 300,
     });
   } else {
-    // Zoom out slightly for movement then zoom in
+    isProgrammaticMoveRef.current = true;
     map.easeTo({
       zoom: 7,
       duration: 150,
     });
 
     setTimeout(() => {
+      isProgrammaticMoveRef.current = true;
       map.easeTo({
         center: [selectedBusiness.longitude, selectedBusiness.latitude],
         zoom: 17,
@@ -304,7 +303,7 @@ useEffect(() => {
       });
     }, 160);
   }
-}, [selectedBusiness]); // <- IMPORTANT: remove viewport.zoom
+}, [selectedBusiness]);
 
   const totalBusinesses = filteredBusinesses.length;
 
@@ -347,10 +346,8 @@ useEffect(() => {
     }
   }, [useViewportLoading]);
 
-  // Keyboard controls for zoom
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow zoom with + and - keys
       if (e.key === '+' || e.key === '=' || e.key === 'Add') {
         e.preventDefault();
         mapRef.current?.easeTo({
@@ -370,6 +367,59 @@ useEffect(() => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const handleMoveEnd = useCallback(() => {
+    if (isProgrammaticMoveRef.current) {
+      isProgrammaticMoveRef.current = false;
+    }
+  }, []);
+
+  const handleSetFilterToView = useCallback(() => {
+    if (!onMapCityChange || !mapRef.current) return;
+
+    const bounds = mapRef.current.getBounds();
+    if (!bounds) return;
+
+    const businessesInView = businesses.filter((business) => {
+      const lat = business.latitude;
+      const lng = business.longitude;
+      return (
+        lat >= bounds.getSouth() &&
+        lat <= bounds.getNorth() &&
+        lng >= bounds.getWest() &&
+        lng <= bounds.getEast()
+      );
+    });
+
+    if (businessesInView.length === 0) return;
+
+    const cityCounts = new Map<string, { count: number; state: string }>();
+    businessesInView.forEach((business) => {
+      const city = business.city;
+      const existing = cityCounts.get(city);
+      if (existing) {
+        existing.count++;
+      } else {
+        cityCounts.set(city, { count: 1, state: business.state });
+      }
+    });
+
+    let dominantCity = '';
+    let dominantState = '';
+    let maxCount = 0;
+
+    cityCounts.forEach((data, city) => {
+      if (data.count > maxCount) {
+        maxCount = data.count;
+        dominantCity = city;
+        dominantState = data.state;
+      }
+    });
+
+    if (dominantCity && dominantCity !== selectedCity) {
+      onMapCityChange(dominantCity, dominantState);
+    }
+  }, [onMapCityChange, businesses, selectedCity]);
+
   return (
     <div className="business-map-container">
       <MapLibre
@@ -379,6 +429,7 @@ useEffect(() => {
           setViewport(evt.viewState);
           viewportRef.current = evt.viewState;
         }}
+        onMoveEnd={handleMoveEnd}
         onClick={() => {
           setPopupInfo(null);
           onBusinessSelect?.(null as any);
@@ -431,11 +482,8 @@ useEffect(() => {
               anchor="bottom"
               onClick={(e) => {
                 e.originalEvent.stopPropagation();
-                // Flag that this selection came from a map click (skip zoom animation)
                 isMapClickRef.current = true;
-                // Show popup IMMEDIATELY without waiting for parent state update
                 setPopupInfo(business);
-                // Update parent state asynchronously so popup appears instantly
                 setTimeout(() => onBusinessSelect?.(business), 0);
               }}
             >
@@ -476,7 +524,7 @@ useEffect(() => {
                 </p>
                 {popupInfo.categories && (
                   <p className="popup-categories">
-                    {popupInfo.categories.split(",").slice(0, 3).join(", ")}
+                    <strong>Categories:</strong> {popupInfo.categories.split(",").map(c => c.trim()).join(", ")}
                   </p>
                 )}
               </div>
@@ -527,6 +575,16 @@ useEffect(() => {
               aria-label="Refresh Businesses"
             >
               <span className="control-icon">⟳</span>
+            </button>
+          )}
+          {onMapCityChange && (
+            <button
+              className="map-control-btn set-filter-btn"
+              onClick={handleSetFilterToView}
+              title="Set Filter to Current View"
+              aria-label="Set Filter to Current View"
+            >
+              <span className="control-icon">📍</span>
             </button>
           )}
           <div className="zoom-level-display">

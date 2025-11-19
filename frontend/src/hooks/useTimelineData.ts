@@ -31,7 +31,6 @@ export const useTimelineData = ({
   period = 'year',
   selectedYear,
 }: UseTimelineDataParams) => {
-  // Calculate date range for monthly view
   let startDate: string | undefined;
   let endDate: string | undefined;
 
@@ -40,15 +39,13 @@ export const useTimelineData = ({
     endDate = `${selectedYear}-12-31`;
   }
 
-  // Scenario 1: Business is selected - fetch combined business data
   const businessQuery = useQuery({
-    queryKey: ['timeline', 'business', business?.business_id, period, startDate, endDate],
-    queryFn: () => getBusinessCombinedTimeline(business!.business_id, period, startDate, endDate),
+    queryKey: ['timeline', 'business', business?.business_id, period, startDate, endDate, selectedCategory],
+    queryFn: () => getBusinessCombinedTimeline(business!.business_id, period, startDate, endDate, selectedCategory || undefined),
     enabled: !!business?.business_id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Scenario 2: City is selected (no business) - fetch combined city data
   const cityQuery = useQuery({
     queryKey: ['timeline', 'city', selectedState, selectedCity, selectedCategory, period, startDate, endDate],
     queryFn: () => getCityCombinedTimeline(
@@ -63,15 +60,13 @@ export const useTimelineData = ({
     staleTime: 5 * 60 * 1000,
   });
 
-  // Scenario 3: Only category is selected (no business, no city) - USE COMBINED ENDPOINT
   const categoryQuery = useQuery({
     queryKey: ['timeline', 'category', selectedCategory, period, startDate, endDate],
     queryFn: () => getCategoryCombinedTimeline(selectedCategory, period, startDate, endDate),
-    enabled: !business && !selectedCity && !!selectedCategory,
+    enabled: false,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Determine which data source to use
   if (business?.business_id) {
     return {
       isLoading: businessQuery.isLoading,
@@ -104,7 +99,6 @@ export const useTimelineData = ({
     };
   }
 
-  // No selection
   return {
     isLoading: false,
     error: null,

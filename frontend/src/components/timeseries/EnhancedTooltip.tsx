@@ -1,8 +1,3 @@
-/**
- * Enhanced Tooltip Component
- * Rich tooltip with review count, period-over-period change, and context
- */
-
 import React from 'react';
 import { TimeSeriesDataPoint } from '../../api/endpoints/analytics';
 import { calculatePeriodChange } from './trendUtils';
@@ -52,11 +47,8 @@ export const EnhancedTooltip: React.FC<EnhancedTooltipProps> = ({
     return null;
   }
 
-  // Find the data point for this period
   const dataPoint = data.find(d => d.period_start === label);
   const reviewCount = dataPoint?.review_count || 0;
-
-  // Calculate period-over-period change
   const change = calculatePeriodChange(data, label || '', metric);
 
   return (
@@ -70,7 +62,6 @@ export const EnhancedTooltip: React.FC<EnhancedTooltipProps> = ({
         minWidth: '200px',
       }}
     >
-      {/* Period label */}
       <div
         style={{
           color: CHART_COLORS.textPrimary,
@@ -84,7 +75,6 @@ export const EnhancedTooltip: React.FC<EnhancedTooltipProps> = ({
         {formatDateForPeriod(label || '', period)}
       </div>
 
-      {/* Values */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         {payload.map((entry, index) => (
           <div
@@ -129,7 +119,6 @@ export const EnhancedTooltip: React.FC<EnhancedTooltipProps> = ({
         ))}
       </div>
 
-      {/* Review count context */}
       {reviewCount > 0 && (
         <div
           style={{
@@ -144,7 +133,6 @@ export const EnhancedTooltip: React.FC<EnhancedTooltipProps> = ({
         </div>
       )}
 
-      {/* Period-over-period change */}
       {change && (
         <div
           style={{

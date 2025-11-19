@@ -19,7 +19,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50% 50% 50% 0;
-  background: #127017;
+  background: #67a353; /* Cloudscape status-positive (green for open) */
   position: relative;
   transform: rotate(-45deg);
   display: flex;
@@ -31,16 +31,16 @@
 
 .marker-pin:hover {
   transform: rotate(-45deg) scale(1.15);
-  background: #5568d3;
+  background: #688ae8; /* Cloudscape categorical-1 (blue) */
 }
 
 
 .marker-pin.closed {
-  background: #771f1f;
+  background: #ba2e0f; /* Cloudscape status-high (red for closed) */
 }
 
 .marker-pin.closed:hover {
-  background: #0d2d7a;
+  background: #3759ce; /* Cloudscape blue-600 */
 }
 
 .marker-star {
@@ -93,12 +93,12 @@
 }
 
 .status-open {
-  color: #0c6f3a;
+  color: #67a353; /* Cloudscape status-positive */
   font-weight: 600;
 }
 
 .status-closed {
-  color: #e53e3e;
+  color: #ba2e0f; /* Cloudscape status-high */
   font-weight: 600;
 }
 
@@ -158,14 +158,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #19469b 0%, #03102e 100%);
+  background: linear-gradient(135deg, #3759ce 0%, #1b2b88 100%); /* Cloudscape blue-600 to blue-1200 */
   color: rgb(196, 196, 199);
   border-radius: 50%;
   font-weight: bold;
   font-size: 14px;
   cursor: pointer;
-  border: 3px solid #19469b;
-  box-shadow: 0 4px 8px rgba(51, 102, 255, 0.3);
+  border: 3px solid #3759ce; /* Cloudscape blue-600 */
+  box-shadow: 0 4px 8px rgba(104, 138, 232, 0.3); /* Cloudscape categorical-1 with alpha */
   transition: transform 0.2s, box-shadow 0.2s;
   min-width: 30px;
   min-height: 30px;
@@ -173,8 +173,8 @@
 
 .cluster-marker:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 12px rgba(51, 102, 255, 0.5);
-  background: linear-gradient(135deg, #3366ff 0%, #1a4ba8 100%);
+  box-shadow: 0 6px 12px rgba(104, 138, 232, 0.5); /* Cloudscape categorical-1 with alpha */
+  background: linear-gradient(135deg, #688ae8 0%, #3759ce 100%); /* Cloudscape categorical-1 to blue-600 */
 }
 
 .filters-container {
@@ -283,11 +283,11 @@
 }
 
 .reset-orientation-btn .orientation-icon {
-  color: #198754;
+  color: #67a353; /* Cloudscape status-positive */
 }
 
 .reset-orientation-btn:hover .orientation-icon {
-  color: #157347;
+  color: #1a7302; /* Cloudscape green-600 */
 }
 
 .zoom-level-display {

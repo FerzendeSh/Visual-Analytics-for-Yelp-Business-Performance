@@ -1,8 +1,3 @@
-/**
- * Competitive Position Badge Component
- * Shows how business compares to city/category average
- */
-
 import React from 'react';
 import { CompetitivePosition } from './trendUtils';
 import { CHART_COLORS, formatPercentChange } from './chartConstants';
@@ -37,11 +32,11 @@ export const CompetitivePositionBadge: React.FC<CompetitivePositionBadgeProps> =
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.5rem',
-        padding: '0.6rem 1rem',  // Bigger padding
-        background: `${color}20`,  // More opaque
-        border: `2px solid ${color}60`,  // Thicker border
+        padding: '0.6rem 1rem',
+        background: `${color}20`,
+        border: `2px solid ${color}60`,
         borderRadius: '8px',
-        fontSize: '0.9rem',  // Larger font
+        fontSize: '0.9rem',
         fontWeight: 600,
       }}
       role="status"
@@ -50,7 +45,7 @@ export const CompetitivePositionBadge: React.FC<CompetitivePositionBadgeProps> =
       <span
         style={{
           color: color,
-          fontSize: '0.9rem',  // Bigger icon
+          fontSize: '0.9rem',
           lineHeight: 1,
           fontWeight: 700,
         }}
@@ -61,8 +56,8 @@ export const CompetitivePositionBadge: React.FC<CompetitivePositionBadgeProps> =
       <span
         style={{
           color: color,
-          fontWeight: 700,  // Bolder
-          fontSize: '1rem',  // Larger percentage
+          fontWeight: 700,
+          fontSize: '1rem',
         }}
       >
         {formatPercentChange(Math.abs(gapPercent))}
@@ -70,7 +65,7 @@ export const CompetitivePositionBadge: React.FC<CompetitivePositionBadgeProps> =
       <span
         style={{
           color: CHART_COLORS.textSecondary,
-          fontSize: '0.85rem',  // Slightly larger
+          fontSize: '0.85rem',
         }}
       >
         {direction} {displayName} avg

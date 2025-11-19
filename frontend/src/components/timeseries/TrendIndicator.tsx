@@ -1,8 +1,3 @@
-/**
- * Trend Indicator Component
- * Displays visual trend direction with arrow, percentage, and color
- */
-
 import React from 'react';
 import { TrendAnalysis } from './trendUtils';
 import { CHART_COLORS, getTrendColor, getTrendIcon, formatPercentChange } from './chartConstants';
@@ -22,7 +17,6 @@ export const TrendIndicator: React.FC<TrendIndicatorProps> = ({ trend, className
   const trendIcon = getTrendIcon(trend.changePercent);
   const changeText = formatPercentChange(trend.changePercent);
 
-  // Determine descriptive text
   let description = '';
   if (trend.direction === 'improving') {
     description = 'Improving trend';
@@ -39,11 +33,11 @@ export const TrendIndicator: React.FC<TrendIndicatorProps> = ({ trend, className
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.6rem',
-        padding: '0.6rem 1rem',  // Bigger padding
-        background: `${trendColor}20`, // More opaque background
-        border: `2px solid ${trendColor}60`,  // Thicker, more visible border
+        padding: '0.6rem 1rem',
+        background: `${trendColor}20`,
+        border: `2px solid ${trendColor}60`,
         borderRadius: '8px',
-        fontSize: '0.95rem',  // Larger font
+        fontSize: '0.95rem',
         fontWeight: 600,
       }}
       role="status"
@@ -51,7 +45,7 @@ export const TrendIndicator: React.FC<TrendIndicatorProps> = ({ trend, className
     >
       <span
         style={{
-          fontSize: '1.3rem',  // Bigger icon
+          fontSize: '1.3rem',
           lineHeight: 1,
         }}
         aria-hidden="true"
@@ -61,8 +55,8 @@ export const TrendIndicator: React.FC<TrendIndicatorProps> = ({ trend, className
       <span
         style={{
           color: trendColor,
-          fontWeight: 700,  // Bolder
-          fontSize: '1rem',  // Larger percentage
+          fontWeight: 700,
+          fontSize: '1rem',
         }}
       >
         {changeText}
@@ -70,7 +64,7 @@ export const TrendIndicator: React.FC<TrendIndicatorProps> = ({ trend, className
       <span
         style={{
           color: CHART_COLORS.textSecondary,
-          fontSize: '0.85rem',  // Slightly larger
+          fontSize: '0.85rem',
         }}
       >
         vs previous

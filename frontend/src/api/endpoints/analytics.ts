@@ -67,7 +67,8 @@ export const getBusinessCombinedTimeline = (
   businessId: string,
   period: string = 'month',
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  category?: string
 ): Promise<{
   business_ratings: RatingsTimeline;
   business_sentiment: SentimentTimeline;
@@ -83,6 +84,7 @@ export const getBusinessCombinedTimeline = (
         period,
         ...(startDate && { start_date: startDate }),
         ...(endDate && { end_date: endDate }),
+        ...(category && { category }),
       },
     }
   );
@@ -289,4 +291,56 @@ export const getCitySentimentTimeline = (
       },
     }
   );
+};
+
+/**
+ * Competitive Positioning Types
+ */
+export interface CompetitiveBusinessData {
+  business_id: string;
+  name: string;
+  stars: number;
+  review_count: number;
+  city: string;
+  state: string;
+  categories: string;
+  is_open: number;
+  latitude: number;
+  longitude: number;
+}
+
+export interface CompetitiveStatistics {
+  avg_rating: number;
+  median_review_count: number;
+  total_businesses: number;
+}
+
+export interface CompetitiveSnapshot {
+  businesses: CompetitiveBusinessData[];
+  statistics: CompetitiveStatistics;
+  selected_business: CompetitiveBusinessData | null;
+  filters: {
+    city?: string | null;
+    state?: string | null;
+    category?: string | null;
+  };
+}
+
+/**
+ * Get competitive positioning snapshot for market analysis
+ */
+export const getCompetitiveSnapshot = (
+  city?: string,
+  state?: string,
+  category?: string,
+  businessId?: string
+): Promise<CompetitiveSnapshot> => {
+  return get<CompetitiveSnapshot>('/api/analytics/competitive-snapshot', {
+    params: {
+      ...(city && { city }),
+      ...(state && { state }),
+      ...(category && { category }),
+      ...(businessId && { business_id: businessId }),
+    },
+  });
 };

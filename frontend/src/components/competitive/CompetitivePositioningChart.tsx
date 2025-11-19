@@ -161,7 +161,6 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
 
   return (
     <div style={{ padding: '1.5rem' }}>
-      {/* Header */}
       <div style={{ marginBottom: '1rem' }}>
         <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
           Competitive Market Positioning
@@ -172,7 +171,6 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
             : data.filters.category || 'Market Overview'}
         </p>
 
-        {/* Statistics */}
         <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', marginBottom: '1rem' }}>
           <div>
             <span style={{ color: CHART_COLORS.textSecondary }}>Businesses:</span>{' '}
@@ -194,7 +192,6 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
           </div>
         </div>
 
-        {/* Legend */}
         <div style={{ display: 'flex', gap: '1.5rem', fontSize: '13px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: USE_CASE_COLORS.marketLeader }} />
@@ -221,7 +218,6 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
         </div>
       </div>
 
-      {/* Chart */}
       <div style={{ ...CARD_STYLE, padding: '1rem' }}>
         <ResponsiveContainer width="100%" height={380}>
           <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
@@ -257,7 +253,6 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
               ticks={[1, 2, 3, 4, 5]}
             />
 
-            {/* Reference lines for average rating and median review count */}
             <ReferenceLine
               y={avgRating}
               stroke={CHART_COLORS.city}

@@ -42,12 +42,10 @@ export function calculateTrend(
 ): TrendAnalysis | null {
   if (!data || data.length < 2) return null;
 
-  // Sort by date (newest first)
   const sorted = [...data].sort((a, b) =>
     new Date(b.period_start).getTime() - new Date(a.period_start).getTime()
   );
 
-  // Get recent periods and compare to previous periods
   const recentPeriods = sorted.slice(0, Math.min(periodsToCompare, sorted.length));
   const previousPeriods = sorted.slice(
     periodsToCompare,
@@ -55,7 +53,6 @@ export function calculateTrend(
   );
 
   if (previousPeriods.length === 0) {
-    // Not enough data for comparison, just compare first to last
     const endValue = sorted[0][metric] || 0;
     const startValue = sorted[sorted.length - 1][metric] || 0;
     const change = endValue - startValue;
@@ -72,7 +69,6 @@ export function calculateTrend(
     };
   }
 
-  // Calculate averages for recent vs previous periods
   const recentAvg = recentPeriods.reduce((sum, p) => sum + (p[metric] || 0), 0) / recentPeriods.length;
   const previousAvg = previousPeriods.reduce((sum, p) => sum + (p[metric] || 0), 0) / previousPeriods.length;
 
@@ -111,12 +107,10 @@ export function findKeyPoints(
 
   const keyPoints: KeyPoint[] = [];
 
-  // Sort by date (oldest first for analysis)
   const sorted = [...data].sort((a, b) =>
     new Date(a.period_start).getTime() - new Date(b.period_start).getTime()
   );
 
-  // Find peak (highest value)
   const peak = sorted.reduce((max, point) =>
     (point[metric] || 0) > (max[metric] || 0) ? point : max
   );
@@ -128,7 +122,6 @@ export function findKeyPoints(
     label: `Peak: ${(peak[metric] || 0).toFixed(2)}`,
   });
 
-  // Find trough (lowest value)
   const trough = sorted.reduce((min, point) =>
     (point[metric] || 0) < (min[metric] || 0) ? point : min
   );
@@ -142,7 +135,6 @@ export function findKeyPoints(
     });
   }
 
-  // Find largest improvement (biggest positive change between consecutive periods)
   let maxImprovement = 0;
   let improvementIndex = -1;
   for (let i = 1; i < sorted.length; i++) {
@@ -153,7 +145,7 @@ export function findKeyPoints(
     }
   }
 
-  if (improvementIndex > 0 && maxImprovement > 0.1) { // Only if significant
+  if (improvementIndex > 0 && maxImprovement > 0.1) {
     const point = sorted[improvementIndex];
     keyPoints.push({
       period: point.period_start,
@@ -164,7 +156,6 @@ export function findKeyPoints(
     });
   }
 
-  // Find largest decline
   let maxDecline = 0;
   let declineIndex = -1;
   for (let i = 1; i < sorted.length; i++) {
@@ -175,7 +166,7 @@ export function findKeyPoints(
     }
   }
 
-  if (declineIndex > 0 && maxDecline < -0.1) { // Only if significant
+  if (declineIndex > 0 && maxDecline < -0.1) {
     const point = sorted[declineIndex];
     keyPoints.push({
       period: point.period_start,
@@ -186,7 +177,6 @@ export function findKeyPoints(
     });
   }
 
-  // Return top N most important points
   return keyPoints.slice(0, limit);
 }
 
@@ -202,7 +192,6 @@ export function calculateCompetitivePosition(
     return null;
   }
 
-  // Calculate average across all periods for both
   const businessAvg = businessData.reduce((sum, p) => sum + (p[metric] || 0), 0) / businessData.length;
   const comparisonAvg = comparisonData.reduce((sum, p) => sum + (p[metric] || 0), 0) / comparisonData.length;
 
@@ -265,7 +254,6 @@ export function calculateTrendLine(
   const xMean = x.reduce((sum, val) => sum + val, 0) / n;
   const yMean = y.reduce((sum, val) => sum + val, 0) / n;
 
-  // Calculate slope (m)
   let numerator = 0;
   let denominator = 0;
   for (let i = 0; i < n; i++) {

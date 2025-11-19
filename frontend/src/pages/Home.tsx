@@ -3,30 +3,49 @@ import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
 import TimeSeriesChartOptimized from '../components/timeseries/TimeSeriesChartOptimized';
 import { FilterControlPanel } from '../components/controls';
-import ScatterPlot from '../components/scatter/ScatterPlot';
+import CompetitivePositioningChart from '../components/competitive/CompetitivePositioningChart';
 import { Business } from '../api';
 import { useTimelineData } from '../hooks/useTimelineData';
 import { useBusinesses } from '../hooks/useBusinesses';
+import { useCompetitiveSnapshot } from '../hooks/useCompetitiveSnapshot';
+import { CARD_STYLE } from '../theme/sharedStyles';
 
 const Home: React.FC = () => {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
-  // Load businesses for scatter plot and filter options only (NOT for map)
-  // Map will use viewport-based loading for better performance
   const { data: businesses = [], isLoading: loading, error: queryError } = useBusinesses();
   const error = queryError ? (queryError as Error).message : null;
 
-  // Centralized filter state
   const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [period, setPeriod] = useState<'month' | 'year'>('year');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  // Memoize reset handler to prevent recreating on every render
+  const handleCityChange = useCallback((cityState: string) => {
+    if (!cityState) {
+      setSelectedCity("");
+      setSelectedState("");
+      setSelectedBusiness(null);
+    } else {
+      const [city, state] = cityState.split('|');
+      setSelectedCity(city || "");
+      setSelectedState(state || "");
+      setSelectedBusiness(null);
+    }
+  }, []);
+
+  const handleMapCityChange = useCallback((city: string, state: string) => {
+    setSelectedCity(city);
+    setSelectedState(state);
+    setSelectedBusiness(null);
+  }, []);
+
   const handleResetFilters = useCallback(() => {
     setSelectedCity("");
+    setSelectedState("");
     setSelectedCategory("");
     setSelectedRating(null);
     setSelectedStatus(null);
@@ -34,17 +53,15 @@ const Home: React.FC = () => {
     setSelectedYear(new Date().getFullYear());
   }, []);
 
-  // Memoize timeline data params to prevent unnecessary API calls
   const timelineParams = useMemo(() => ({
     business: selectedBusiness,
     selectedCity,
-    selectedState: selectedBusiness?.state || "PA", // Use business state if selected
+    selectedState: selectedBusiness?.state || selectedState || "PA",
     selectedCategory,
     period,
     selectedYear,
-  }), [selectedBusiness, selectedCity, selectedCategory, period, selectedYear]);
+  }), [selectedBusiness, selectedCity, selectedState, selectedCategory, period, selectedYear]);
 
-  // Fetch timeline data once using the custom hook with React Query
   const {
     isLoading: timelineLoading,
     error: timelineError,
@@ -52,13 +69,43 @@ const Home: React.FC = () => {
     primaryCategory,
   } = useTimelineData(timelineParams);
 
+  const competitiveCity = selectedBusiness?.city || selectedCity;
+  const competitiveState = selectedBusiness?.state || selectedState || "PA";
+
+  const {
+    data: competitiveData,
+    isLoading: competitiveLoading,
+    error: competitiveError,
+  } = useCompetitiveSnapshot({
+    city: competitiveCity,
+    state: competitiveState,
+    category: selectedCategory,
+    businessId: selectedBusiness?.business_id,
+  });
+
+  const cityCenter = useMemo(() => {
+    if (!competitiveData?.businesses || competitiveData.businesses.length === 0) {
+      return null;
+    }
+
+    const lats = competitiveData.businesses.map(b => b.latitude).filter(lat => !isNaN(lat));
+    const lngs = competitiveData.businesses.map(b => b.longitude).filter(lng => !isNaN(lng));
+
+    if (lats.length === 0 || lngs.length === 0) return null;
+
+    return {
+      latitude: lats.reduce((a, b) => a + b) / lats.length,
+      longitude: lngs.reduce((a, b) => a + b) / lngs.length,
+      zoom: 11,
+    };
+  }, [competitiveData, selectedCity, selectedState]);
+
   return (
     <Layout
       title="Yelp Business Analytics Dashboard"
       showSidebar={true}
     >
       <div style={{ padding: '1.5rem' }}>
-        {/* Map and Time Series Section */}
         <section>
           {loading && (
             <div style={{
@@ -87,16 +134,15 @@ const Home: React.FC = () => {
 
           {!loading && !error && (
             <>
-              {/* Centralized Filter Control Panel */}
               <FilterControlPanel
                 businesses={businesses}
-                selectedCity={selectedCity}
+                selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
                 selectedCategory={selectedCategory}
                 selectedRating={selectedRating}
                 selectedStatus={selectedStatus}
                 period={period}
                 selectedYear={selectedYear}
-                onCityChange={setSelectedCity}
+                onCityChange={handleCityChange}
                 onCategoryChange={setSelectedCategory}
                 onRatingChange={setSelectedRating}
                 onStatusChange={setSelectedStatus}
@@ -113,7 +159,6 @@ const Home: React.FC = () => {
                 gap: '0.8rem',
                 minHeight: '800px',
               }}>
-                {/* Left Top: Map View */}
                 <div style={{
                   gridRow: '1',
                   gridColumn: '1',
@@ -131,42 +176,54 @@ const Home: React.FC = () => {
                   }}>
                     <BusinessMap
                       useViewportLoading={true}
+                      targetLocation={cityCenter}
                       selectedCity={selectedCity}
                       selectedCategory={selectedCategory}
                       selectedRating={selectedRating}
                       selectedStatus={selectedStatus}
                       selectedBusiness={selectedBusiness}
                       onBusinessSelect={setSelectedBusiness}
+                      onMapCityChange={handleMapCityChange}
                     />
                   </div>
                 </div>
 
-                {/* Left Bottom: Scatter Plot */}
                 <div style={{
+                  ...CARD_STYLE,
                   gridRow: '2',
                   gridColumn: '1',
-                }}>
-                  <ScatterPlot
-                    businesses={businesses}
-                    selectedCity={selectedCity}
-                    selectedCategory={selectedCategory}
-                    selectedRating={selectedRating}
-                    selectedStatus={selectedStatus}
-                    selectedBusiness={selectedBusiness}
-                    onBusinessSelect={setSelectedBusiness}
-                  />
-                </div>
-                {/* Ratings Timeline - Right Top */}
-                <div style={{
-                  gridRow: '1',
-                  gridColumn: '2',
-                  borderRadius: '16px',
                   overflow: 'hidden',
-                  background: '#0f1b2a',
                   display: 'flex',
                   flexDirection: 'column',
-                  border: '1px solid rgba(102, 126, 234, 0.25)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(102, 126, 234, 0.15)',
+                }}>
+                  {competitiveLoading ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: '#718096' }}>
+                      Loading competitive data...
+                    </div>
+                  ) : competitiveError ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+                      Error loading competitive data
+                    </div>
+                  ) : (
+                    <CompetitivePositioningChart
+                      data={competitiveData || null}
+                      selectedBusinessId={selectedBusiness?.business_id}
+                      onBusinessSelect={(businessId) => {
+                        const business = businesses.find(b => b.business_id === businessId);
+                        if (business) {
+                          setSelectedBusiness(business);
+                        }
+                      }}
+                    />
+                  )}
+                </div>
+                <div style={{
+                  ...CARD_STYLE,
+                  gridRow: '1',
+                  gridColumn: '2',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}>
                   <div style={{
                     padding: '0.75rem 1rem',
@@ -206,17 +263,13 @@ const Home: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Sentiment Timeline - Right Bottom */}
                 <div style={{
+                  ...CARD_STYLE,
                   gridRow: '2',
                   gridColumn: '2',
-                  borderRadius: '16px',
                   overflow: 'hidden',
-                  border: '1px solid rgba(102, 126, 234, 0.25)',
-                  background: '#0f1b2a',
                   display: 'flex',
                   flexDirection: 'column',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(102, 126, 234, 0.15)',
                 }}>
                   <div style={{
                     padding: '0.75rem 1rem',

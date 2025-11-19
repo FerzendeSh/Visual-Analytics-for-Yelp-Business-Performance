@@ -38,10 +38,17 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
   onResetFilters,
   onBusinessSelect,
 }) => {
-  // Extract unique cities from businesses
-  const cities = [...new Set(businesses.map((b) => b.city))].sort();
+  const cityStateMap = new Map<string, string>();
+  businesses.forEach((b) => {
+    if (b.city && b.state && !cityStateMap.has(b.city)) {
+      cityStateMap.set(b.city, b.state);
+    }
+  });
 
-  // Extract unique categories from businesses
+  const cities = Array.from(cityStateMap.entries())
+    .map(([city, state]) => ({ city, state }))
+    .sort((a, b) => a.city.localeCompare(b.city));
+
   const categories = [
     ...new Set(
       businesses.flatMap((b) =>
@@ -52,7 +59,6 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
     .slice(0, 200)
     .sort();
 
-  // Generate year range (from 2005 to current year)
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2005 + 1 }, (_, i) => currentYear - i).sort((a, b) => a - b);
 
@@ -68,8 +74,8 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
             className="filter-select"
           >
             <option value="">All Cities</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>
+            {cities.map(({ city, state }) => (
+              <option key={`${city}|${state}`} value={`${city}|${state}`}>
                 {city}
               </option>
             ))}

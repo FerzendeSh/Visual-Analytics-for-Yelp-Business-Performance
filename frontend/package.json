@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@cloudscape-design/design-tokens": "^3.0.64",
     "@reduxjs/toolkit": "^2.9.1",
     "@tanstack/react-query": "^5.90.9",
     "maplibre-gl": "^5.9.0",

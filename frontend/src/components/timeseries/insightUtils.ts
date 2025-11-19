@@ -1,8 +1,3 @@
-/**
- * Insight Generation Utilities
- * Generate dynamic, insight-driven titles and descriptions for charts
- */
-
 import { TrendAnalysis, CompetitivePosition } from './trendUtils';
 import { formatPercentChange } from './chartConstants';
 
@@ -12,9 +7,6 @@ export interface ChartInsight {
   ariaLabel: string;
 }
 
-/**
- * Generate insight-driven title for rating chart
- */
 export function generateRatingInsight(
   businessName: string | null,
   cityName: string | null,
@@ -22,11 +14,9 @@ export function generateRatingInsight(
   trend: TrendAnalysis | null,
   competitivePosition: CompetitivePosition | null
 ): ChartInsight {
-  // Determine the subject (business, city, or category)
   const subject = businessName || (cityName ? `${cityName} Average` : categoryName || 'Ratings');
   const isBusinessView = !!businessName;
 
-  // Base title if no trend data
   if (!trend) {
     return {
       title: `${subject} - Rating Trends`,
@@ -35,7 +25,6 @@ export function generateRatingInsight(
     };
   }
 
-  // Build title based on trend direction
   let title = '';
   let subtitle = '';
 
@@ -50,7 +39,6 @@ export function generateRatingInsight(
     subtitle = `Consistent around ${trend.endValue.toFixed(2)} stars`;
   }
 
-  // Add competitive context if available (only for business view)
   if (isBusinessView && competitivePosition) {
     const positionText = competitivePosition.isAboveAverage
       ? `${formatPercentChange(competitivePosition.gapPercent)} above average`
@@ -59,15 +47,11 @@ export function generateRatingInsight(
     subtitle += ` • ${positionText}`;
   }
 
-  // Generate accessible aria label
   const ariaLabel = `Rating trends for ${subject}. ${trend.direction === 'improving' ? 'Improving' : trend.direction === 'declining' ? 'Declining' : 'Stable'} trend with ${formatPercentChange(trend.changePercent)} change. Current rating: ${trend.endValue.toFixed(2)} stars.`;
 
   return { title, subtitle, ariaLabel };
 }
 
-/**
- * Generate insight-driven title for sentiment chart
- */
 export function generateSentimentInsight(
   businessName: string | null,
   cityName: string | null,
@@ -86,7 +70,6 @@ export function generateSentimentInsight(
     };
   }
 
-  // Helper to describe sentiment value
   const describeSentiment = (value: number): string => {
     if (value > 0.5) return 'Very Positive';
     if (value > 0.2) return 'Positive';
@@ -109,7 +92,6 @@ export function generateSentimentInsight(
     subtitle = `Consistent ${describeSentiment(trend.endValue)} sentiment`;
   }
 
-  // Add competitive context if available
   if (isBusinessView && competitivePosition) {
     const positionText = competitivePosition.isAboveAverage
       ? `${formatPercentChange(competitivePosition.gapPercent)} above average`
