@@ -306,8 +306,9 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                       tick={{ fill: CHART_COLORS.textPrimary }}
                       domain={CHART_CONFIG.ratingDomain}
                       ticks={CHART_CONFIG.ratingTicks}
-                      width={35}
+                      width={45}
                       type="number"
+                      label={{ value: 'Star Rating', angle: -90, position: 'insideLeft', style: { fill: CHART_COLORS.textPrimary, fontSize: '13px' } }}
                     />
                     <YAxis
                       yAxisId="right"
@@ -448,10 +449,11 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                       tick={{ fill: CHART_COLORS.textPrimary }}
                       domain={CHART_CONFIG.sentimentDomain}
                       ticks={CHART_CONFIG.sentimentTicks}
-                      width={35}
+                      width={45}
                       tickFormatter={(value) => value.toFixed(1)}
                       type="number"
                       allowDecimals={true}
+                      label={{ value: 'Sentiment', angle: -90, position: 'insideLeft', style: { fill: CHART_COLORS.textPrimary, fontSize: '13px' } }}
                     />
 
                     <Tooltip

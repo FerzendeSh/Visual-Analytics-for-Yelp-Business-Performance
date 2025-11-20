@@ -209,12 +209,6 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
             <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: USE_CASE_COLORS.challenger }} />
             <span style={{ color: CHART_COLORS.textPrimary, fontWeight: 500 }}>Challengers</span>
           </div>
-          {selectedBusinessId && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: CHART_COLORS.business }} />
-              <span style={{ color: CHART_COLORS.textPrimary, fontWeight: 500 }}>Selected</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -285,28 +279,30 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
               data={chartData}
               fill={CHART_COLORS.business}
               onClick={(data: any) => {
-                if (onBusinessSelect && data.business) {
-                  onBusinessSelect(data.business.business_id);
+                if (onBusinessSelect && data && data.payload && data.payload.business) {
+                  onBusinessSelect(data.payload.business.business_id);
                 }
               }}
-              style={{ cursor: 'pointer' }}
             >
-              {chartData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={getBusinessColor(
-                    entry.y,
-                    entry.rawReviewCount,
-                    avgRating,
-                    medianReviewCount,
-                    entry.isSelected
-                  )}
-                  r={entry.isSelected ? 10 : 6}
-                  opacity={entry.isSelected ? 1 : 0.7}
-                  stroke={entry.isSelected ? '#fff' : 'none'}
-                  strokeWidth={entry.isSelected ? 2 : 0}
-                />
-              ))}
+              {chartData.map((entry, index) => {
+                const color = getBusinessColor(
+                  entry.y,
+                  entry.rawReviewCount,
+                  avgRating,
+                  medianReviewCount,
+                  entry.isSelected
+                );
+                return (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={color}
+                    r={entry.isSelected ? 12 : 6}
+                    opacity={entry.isSelected ? 1 : 0.6}
+                    stroke={entry.isSelected ? color : 'none'}
+                    strokeWidth={entry.isSelected ? 2 : 0}
+                  />
+                );
+              })}
             </Scatter>
           </ScatterChart>
         </ResponsiveContainer>
