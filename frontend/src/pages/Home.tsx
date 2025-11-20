@@ -209,7 +209,31 @@ const Home: React.FC = () => {
                       data={competitiveData || null}
                       selectedBusinessId={selectedBusiness?.business_id}
                       onBusinessSelect={(businessId) => {
-                        const business = businesses.find(b => b.business_id === businessId);
+                        // First try to find in loaded businesses
+                        let business = businesses.find(b => b.business_id === businessId);
+
+                        // If not found, look in competitive data and convert it
+                        if (!business && competitiveData?.businesses) {
+                          const competitiveBusiness = competitiveData.businesses.find(
+                            b => b.business_id === businessId
+                          );
+                          if (competitiveBusiness) {
+                            // Convert CompetitiveBusinessData to Business
+                            business = {
+                              business_id: competitiveBusiness.business_id,
+                              name: competitiveBusiness.name,
+                              city: competitiveBusiness.city,
+                              state: competitiveBusiness.state,
+                              latitude: competitiveBusiness.latitude,
+                              longitude: competitiveBusiness.longitude,
+                              review_count: competitiveBusiness.review_count,
+                              stars: competitiveBusiness.stars,
+                              categories: competitiveBusiness.categories,
+                              is_open: competitiveBusiness.is_open,
+                            };
+                          }
+                        }
+
                         if (business) {
                           setSelectedBusiness(business);
                         }

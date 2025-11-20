@@ -278,11 +278,6 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
             <Scatter
               data={chartData}
               fill={CHART_COLORS.business}
-              onClick={(data: any) => {
-                if (onBusinessSelect && data && data.payload && data.payload.business) {
-                  onBusinessSelect(data.payload.business.business_id);
-                }
-              }}
             >
               {chartData.map((entry, index) => {
                 const color = getBusinessColor(
@@ -300,6 +295,12 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
                     opacity={entry.isSelected ? 1 : 0.6}
                     stroke={entry.isSelected ? color : 'none'}
                     strokeWidth={entry.isSelected ? 2 : 0}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      if (onBusinessSelect && entry.business) {
+                        onBusinessSelect(entry.business.business_id);
+                      }
+                    }}
                   />
                 );
               })}
