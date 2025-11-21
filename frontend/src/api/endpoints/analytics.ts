@@ -35,31 +35,6 @@ export interface SentimentTimeline {
 }
 
 /**
- * Get analytics data for a specific state
- */
-export const getStateAnalytics = (state: string): Promise<AnalyticsData> => {
-  return get<AnalyticsData>('/api/analytics/state', {
-    params: { state },
-  });
-};
-
-/**
- * Get analytics data for a specific city
- */
-export const getCityAnalytics = (city: string, state: string): Promise<AnalyticsData> => {
-  return get<AnalyticsData>('/api/analytics/city', {
-    params: { city, state },
-  });
-};
-
-/**
- * Get overall analytics summary
- */
-export const getAnalyticsSummary = (): Promise<AnalyticsData> => {
-  return get<AnalyticsData>('/api/analytics/summary');
-};
-
-/**
  * Get combined timeline data for a business (ratings + sentiment + comparisons)
  * This reduces API calls from 6 to 1
  */
@@ -120,85 +95,30 @@ export const getCityCombinedTimeline = (
 };
 
 /**
- * Get ratings timeline for a specific business
+ * Get combined timeline data for a neighborhood (ratings + sentiment + category comparison)
  */
-export const getBusinessRatingsTimeline = (
-  businessId: string,
-  period: string = 'month',
-  startDate?: string,
-  endDate?: string
-): Promise<RatingsTimeline> => {
-  return get<RatingsTimeline>(
-    `/api/analytics/business/${businessId}/ratings-timeline`,
-    {
-      params: {
-        period,
-        ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate }),
-      },
-    }
-  );
-};
-
-/**
- * Get sentiment timeline for a specific business
- */
-export const getBusinessSentimentTimeline = (
-  businessId: string,
-  period: string = 'month',
-  startDate?: string,
-  endDate?: string
-): Promise<SentimentTimeline> => {
-  return get<SentimentTimeline>(
-    `/api/analytics/business/${businessId}/sentiment-timeline`,
-    {
-      params: {
-        period,
-        ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate }),
-      },
-    }
-  );
-};
-
-/**
- * Get ratings timeline for a specific city
- */
-export const getCityRatingsTimeline = (
+export const getNeighborhoodCombinedTimeline = (
+  neighborhood: string,
   city: string,
   state: string,
   period: string = 'month',
   startDate?: string,
-  endDate?: string
-): Promise<RatingsTimeline> => {
-  return get<RatingsTimeline>(
-    `/api/analytics/city/${encodeURIComponent(state)}/${encodeURIComponent(city)}/ratings-timeline`,
+  endDate?: string,
+  category?: string
+): Promise<{
+  neighborhood_ratings: RatingsTimeline;
+  neighborhood_sentiment: SentimentTimeline;
+  category_ratings: RatingsTimeline | null;
+  category_sentiment: SentimentTimeline | null;
+}> => {
+  return get(
+    `/api/analytics/neighborhood/${encodeURIComponent(state)}/${encodeURIComponent(city)}/${encodeURIComponent(neighborhood)}/combined-timeline`,
     {
       params: {
         period,
         ...(startDate && { start_date: startDate }),
         ...(endDate && { end_date: endDate }),
-      },
-    }
-  );
-};
-
-/**
- * Get ratings timeline for a specific state
- */
-export const getStateRatingsTimeline = (
-  state: string,
-  period: string = 'month',
-  startDate?: string,
-  endDate?: string
-): Promise<RatingsTimeline> => {
-  return get<RatingsTimeline>(
-    `/api/analytics/state/${encodeURIComponent(state)}/ratings-timeline`,
-    {
-      params: {
-        period,
-        ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate }),
+        ...(category && { category }),
       },
     }
   );
@@ -219,70 +139,6 @@ export const getCategoryCombinedTimeline = (
 }> => {
   return get(
     `/api/analytics/category/${encodeURIComponent(category)}/combined-timeline`,
-    {
-      params: {
-        period,
-        ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate }),
-      },
-    }
-  );
-};
-
-/**
- * Get ratings timeline for a specific category
- */
-export const getCategoryRatingsTimeline = (
-  category: string,
-  period: string = 'month',
-  startDate?: string,
-  endDate?: string
-): Promise<RatingsTimeline> => {
-  return get<RatingsTimeline>(
-    `/api/analytics/category/${encodeURIComponent(category)}/ratings-timeline`,
-    {
-      params: {
-        period,
-        ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate }),
-      },
-    }
-  );
-};
-
-/**
- * Get sentiment timeline for a specific category
- */
-export const getCategorySentimentTimeline = (
-  category: string,
-  period: string = 'month',
-  startDate?: string,
-  endDate?: string
-): Promise<SentimentTimeline> => {
-  return get<SentimentTimeline>(
-    `/api/analytics/category/${encodeURIComponent(category)}/sentiment-timeline`,
-    {
-      params: {
-        period,
-        ...(startDate && { start_date: startDate }),
-        ...(endDate && { end_date: endDate }),
-      },
-    }
-  );
-};
-
-/**
- * Get sentiment timeline for a specific city
- */
-export const getCitySentimentTimeline = (
-  city: string,
-  state: string,
-  period: string = 'month',
-  startDate?: string,
-  endDate?: string
-): Promise<SentimentTimeline> => {
-  return get<SentimentTimeline>(
-    `/api/analytics/city/${encodeURIComponent(state)}/${encodeURIComponent(city)}/sentiment-timeline`,
     {
       params: {
         period,
@@ -332,6 +188,7 @@ export interface CompetitiveSnapshot {
 export const getCompetitiveSnapshot = (
   city?: string,
   state?: string,
+  neighborhood?: string,
   category?: string,
   businessId?: string
 ): Promise<CompetitiveSnapshot> => {
@@ -339,6 +196,7 @@ export const getCompetitiveSnapshot = (
     params: {
       ...(city && { city }),
       ...(state && { state }),
+      ...(neighborhood && { neighborhood }),
       ...(category && { category }),
       ...(businessId && { business_id: businessId }),
     },

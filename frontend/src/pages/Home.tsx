@@ -19,6 +19,7 @@ const Home: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [period, setPeriod] = useState<'month' | 'year'>('year');
@@ -28,11 +29,13 @@ const Home: React.FC = () => {
     if (!cityState) {
       setSelectedCity("");
       setSelectedState("");
+      setSelectedNeighborhood(""); // Clear neighborhood when city changes
       setSelectedBusiness(null);
     } else {
       const [city, state] = cityState.split('|');
       setSelectedCity(city || "");
       setSelectedState(state || "");
+      setSelectedNeighborhood(""); // Clear neighborhood when city changes
       setSelectedBusiness(null);
     }
   }, []);
@@ -47,6 +50,7 @@ const Home: React.FC = () => {
     setSelectedCity("");
     setSelectedState("");
     setSelectedCategory("");
+    setSelectedNeighborhood("");
     setSelectedRating(null);
     setSelectedStatus(null);
     setPeriod('year');
@@ -55,12 +59,13 @@ const Home: React.FC = () => {
 
   const timelineParams = useMemo(() => ({
     business: selectedBusiness,
-    selectedCity,
+    selectedCity: selectedCity || "",
     selectedState: selectedBusiness?.state || selectedState || "PA",
-    selectedCategory,
+    selectedCategory: selectedCategory || "",
+    selectedNeighborhood: selectedNeighborhood || "",
     period,
     selectedYear,
-  }), [selectedBusiness, selectedCity, selectedState, selectedCategory, period, selectedYear]);
+  }), [selectedBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, selectedYear]);
 
   const {
     isLoading: timelineLoading,
@@ -69,7 +74,7 @@ const Home: React.FC = () => {
     primaryCategory,
   } = useTimelineData(timelineParams);
 
-  const competitiveCity = selectedBusiness?.city || selectedCity;
+  const competitiveCity = selectedBusiness?.city || selectedCity || "";
   const competitiveState = selectedBusiness?.state || selectedState || "PA";
 
   const {
@@ -79,8 +84,9 @@ const Home: React.FC = () => {
   } = useCompetitiveSnapshot({
     city: competitiveCity,
     state: competitiveState,
-    category: selectedCategory,
-    businessId: selectedBusiness?.business_id,
+    neighborhood: selectedNeighborhood || "",
+    category: selectedCategory || "",
+    businessId: selectedBusiness?.business_id || "",
   });
 
   const cityCenter = useMemo(() => {
@@ -96,9 +102,9 @@ const Home: React.FC = () => {
     return {
       latitude: lats.reduce((a, b) => a + b) / lats.length,
       longitude: lngs.reduce((a, b) => a + b) / lngs.length,
-      zoom: 11,
+      zoom: selectedNeighborhood ? 14 : 11, // Zoom closer for neighborhoods
     };
-  }, [competitiveData, selectedCity, selectedState]);
+  }, [competitiveData, selectedNeighborhood]);
 
   return (
     <Layout
@@ -138,12 +144,14 @@ const Home: React.FC = () => {
                 businesses={businesses}
                 selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
                 selectedCategory={selectedCategory}
+                selectedNeighborhood={selectedNeighborhood}
                 selectedRating={selectedRating}
                 selectedStatus={selectedStatus}
                 period={period}
                 selectedYear={selectedYear}
                 onCityChange={handleCityChange}
                 onCategoryChange={setSelectedCategory}
+                onNeighborhoodChange={setSelectedNeighborhood}
                 onRatingChange={setSelectedRating}
                 onStatusChange={setSelectedStatus}
                 onPeriodChange={setPeriod}
@@ -178,6 +186,7 @@ const Home: React.FC = () => {
                       useViewportLoading={true}
                       targetLocation={cityCenter}
                       selectedCity={selectedCity}
+                      selectedNeighborhood={selectedNeighborhood}
                       selectedCategory={selectedCategory}
                       selectedRating={selectedRating}
                       selectedStatus={selectedStatus}
@@ -275,10 +284,11 @@ const Home: React.FC = () => {
                       selectedCity={selectedCity}
                       selectedState={selectedBusiness?.state || "PA"}
                       selectedCategory={selectedCategory}
+                      selectedNeighborhood={selectedNeighborhood}
                       primaryCategory={primaryCategory}
                       isRatingsOnly={true}
                       period={period}
-                      ratingsData={(timelineData as any)?.business_ratings || (timelineData as any)?.city_ratings || null}
+                      ratingsData={(timelineData as any)?.business_ratings || (timelineData as any)?.neighborhood_ratings || (timelineData as any)?.city_ratings || null}
                       cityRatingsData={(timelineData as any)?.city_ratings || null}
                       categoryRatingsData={(timelineData as any)?.category_ratings || null}
                       isLoading={timelineLoading}
@@ -321,10 +331,11 @@ const Home: React.FC = () => {
                       selectedCity={selectedCity}
                       selectedState={selectedBusiness?.state || "PA"}
                       selectedCategory={selectedCategory}
+                      selectedNeighborhood={selectedNeighborhood}
                       primaryCategory={primaryCategory}
                       isSentimentOnly={true}
                       period={period}
-                      sentimentData={(timelineData as any)?.business_sentiment || (timelineData as any)?.city_sentiment || null}
+                      sentimentData={(timelineData as any)?.business_sentiment || (timelineData as any)?.neighborhood_sentiment || (timelineData as any)?.city_sentiment || null}
                       citySentimentData={(timelineData as any)?.city_sentiment || null}
                       categorySentimentData={(timelineData as any)?.category_sentiment || null}
                       isLoading={timelineLoading}

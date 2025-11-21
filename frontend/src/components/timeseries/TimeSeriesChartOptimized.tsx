@@ -60,6 +60,7 @@ interface TimeSeriesChartOptimizedProps {
   selectedCity?: string;
   selectedState?: string;
   selectedCategory?: string;
+  selectedNeighborhood?: string;
   primaryCategory?: string;
   isRatingsOnly?: boolean;
   isSentimentOnly?: boolean;
@@ -79,6 +80,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
   selectedCity = '',
   selectedState = '',
   selectedCategory = '',
+  selectedNeighborhood = '',
   primaryCategory = '',
   isRatingsOnly = false,
   isSentimentOnly = false,
@@ -134,10 +136,32 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
     };
   }, [sentimentData, citySentimentData, categorySentimentData]);
 
+  // Calculate shared x-axis domain for both charts
+  const sharedXAxisDomain = useMemo(() => {
+    const allPeriods: string[] = [];
+
+    if (mergedRatingsData?.data) {
+      allPeriods.push(...mergedRatingsData.data.map(d => d.period_start));
+    }
+    if (mergedSentimentData?.data) {
+      allPeriods.push(...mergedSentimentData.data.map(d => d.period_start));
+    }
+
+    if (allPeriods.length === 0) return null;
+
+    const sortedPeriods = allPeriods.sort();
+    return [sortedPeriods[0], sortedPeriods[sortedPeriods.length - 1]];
+  }, [mergedRatingsData, mergedSentimentData]);
+
   const periodReviewCount = useMemo(() => {
     if (!ratingsData?.data) return 0;
     return ratingsData.data.reduce((sum, point) => sum + (point.review_count || 0), 0);
   }, [ratingsData]);
+
+  const periodSentimentReviewCount = useMemo(() => {
+    if (!sentimentData?.data) return 0;
+    return sentimentData.data.reduce((sum, point) => sum + (point.review_count || 0), 0);
+  }, [sentimentData]);
 
   const ratingTrend: TrendAnalysis | null = useMemo(() => {
     if (!mergedRatingsData?.data) return null;
@@ -187,6 +211,22 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
     );
   }, [business, selectedCity, selectedCategory, sentimentTrend, sentimentCompetitivePosition]);
 
+  // Determine which review count to display based on available data and mode
+  // MUST be before any early returns to maintain hook order!
+  const displayReviewCount = useMemo(() => {
+    // If showing only sentiment, use sentiment review count
+    if (isSentimentOnly && periodSentimentReviewCount > 0) {
+      return periodSentimentReviewCount;
+    }
+    // If showing only ratings, use ratings review count
+    if (isRatingsOnly && periodReviewCount > 0) {
+      return periodReviewCount;
+    }
+    // If showing both, use the maximum (they should be the same if from same business/periods)
+    const maxCount = Math.max(periodReviewCount, periodSentimentReviewCount);
+    return maxCount > 0 ? maxCount : business?.review_count || 0;
+  }, [periodReviewCount, periodSentimentReviewCount, business, isRatingsOnly, isSentimentOnly]);
+
   if (!business && !selectedCity && !selectedCategory) {
     return (
       <div
@@ -208,12 +248,14 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
       <div style={{ marginBottom: '1rem' }}>
         {business && (
           <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
-            {business.city}, {business.state} • ★ {business.stars} ({periodReviewCount > 0 ? periodReviewCount.toLocaleString() : business.review_count.toLocaleString()} reviews)
+            {business.city}, {business.state} • ★ {business.stars} ({displayReviewCount.toLocaleString()} reviews)
           </p>
         )}
-        {!business && selectedCity && (
+        {!business && (selectedCity || selectedNeighborhood) && (
           <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
-            {selectedCategory ? `${selectedCategory} in ${selectedCity}, ${selectedState}` : `${selectedCity}, ${selectedState}`}
+            {selectedNeighborhood
+              ? (selectedCategory ? `${selectedCategory} in ${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}, ${selectedCity}` : `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}, ${selectedCity}`)
+              : (selectedCategory ? `${selectedCategory} in ${selectedCity}, ${selectedState}` : `${selectedCity}, ${selectedState}`)}
           </p>
         )}
         {!business && !selectedCity && selectedCategory && (
@@ -257,12 +299,9 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
           {!isSentimentOnly && mergedRatingsData && mergedRatingsData.data.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <div style={{ marginBottom: '1rem' }}>
-                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
+                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
                   {ratingInsight.title}
                 </h4>
-                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: CHART_COLORS.textSecondary }}>
-                  {ratingInsight.subtitle}
-                </p>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   {ratingTrend && <TrendIndicator trend={ratingTrend} metric="rating" />}
                   {business && ratingCompetitivePosition && (
@@ -296,6 +335,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                       angle={CHART_CONFIG.xAxisAngle}
                       textAnchor={CHART_CONFIG.xAxisTextAnchor}
                       height={50}
+                      domain={sharedXAxisDomain || ['auto', 'auto']}
                       interval="preserveStartEnd"
                       minTickGap={30}
                     />
@@ -359,7 +399,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                       strokeWidth={LINE_STYLES.business.strokeWidth}
                       dot={false}
                       activeDot={{ r: 6 }}
-                      name={business ? business.name : selectedCity ? "City Avg Rating" : `${selectedCategory} Avg`}
+                      name={business ? business.name : selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Avg` : selectedCity ? "City Avg Rating" : `${selectedCategory} Avg`}
                       isAnimationActive={false}
                     />
                     {business && (
@@ -401,12 +441,9 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
           {!isRatingsOnly && mergedSentimentData && mergedSentimentData.data.length > 0 && (
             <div>
               <div style={{ marginBottom: '1rem' }}>
-                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
+                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
                   {sentimentInsight.title}
                 </h4>
-                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: CHART_COLORS.textSecondary }}>
-                  {sentimentInsight.subtitle}
-                </p>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   {sentimentTrend && <TrendIndicator trend={sentimentTrend} metric="sentiment" />}
                   {business && sentimentCompetitivePosition && (
@@ -440,8 +477,9 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                       angle={CHART_CONFIG.xAxisAngle}
                       textAnchor={CHART_CONFIG.xAxisTextAnchor}
                       height={50}
+                      domain={sharedXAxisDomain || ['auto', 'auto']}
                       interval="preserveStartEnd"
-                      minTickGap={50}
+                      minTickGap={30}
                     />
                     <YAxis
                       stroke={CHART_COLORS.textPrimary}
@@ -485,7 +523,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                       strokeWidth={LINE_STYLES.business.strokeWidth}
                       dot={false}
                       activeDot={{ r: 6 }}
-                      name={business ? business.name : selectedCity ? "City Avg Sentiment" : `${selectedCategory} Sentiment Avg`}
+                      name={business ? business.name : selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Sentiment` : selectedCity ? "City Avg Sentiment" : `${selectedCategory} Sentiment Avg`}
                       isAnimationActive={false}
                     />
                     {business && (

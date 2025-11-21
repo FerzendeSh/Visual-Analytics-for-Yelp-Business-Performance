@@ -8,6 +8,7 @@ import { getCompetitiveSnapshot, CompetitiveSnapshot } from '../api/endpoints/an
 interface UseCompetitiveSnapshotParams {
   city?: string;
   state?: string;
+  neighborhood?: string;
   category?: string;
   businessId?: string;
   enabled?: boolean;
@@ -20,13 +21,14 @@ interface UseCompetitiveSnapshotParams {
 export const useCompetitiveSnapshot = ({
   city,
   state,
+  neighborhood,
   category,
   businessId,
   enabled = true,
 }: UseCompetitiveSnapshotParams) => {
   return useQuery<CompetitiveSnapshot>({
-    queryKey: ['competitive-snapshot', city, state, category, businessId],
-    queryFn: () => getCompetitiveSnapshot(city, state, category, businessId),
+    queryKey: ['competitive-snapshot', city, state, neighborhood, category, businessId],
+    queryFn: () => getCompetitiveSnapshot(city, state, neighborhood, category, businessId),
     enabled: enabled && !!city, // City is required - no data without city selection
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes (less frequent changes than time-series)
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes

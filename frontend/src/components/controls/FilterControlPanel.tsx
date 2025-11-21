@@ -1,18 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Business } from '../../api';
 import { SearchBar } from '../search';
 import './FilterControlPanel.css';
+
+// Helper function to format neighborhood names for display
+const formatNeighborhoodName = (neighborhood: string): string => {
+  return neighborhood
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 interface FilterControlPanelProps {
   businesses: Business[];
   selectedCity: string;
   selectedCategory: string;
+  selectedNeighborhood: string;
   selectedRating: number | null;
   selectedStatus: number | null;
   period: 'month' | 'year';
   selectedYear: number;
   onCityChange: (city: string) => void;
   onCategoryChange: (category: string) => void;
+  onNeighborhoodChange: (neighborhood: string) => void;
   onRatingChange: (rating: number | null) => void;
   onStatusChange: (status: number | null) => void;
   onPeriodChange: (period: 'month' | 'year') => void;
@@ -25,12 +35,14 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
   businesses,
   selectedCity,
   selectedCategory,
+  selectedNeighborhood,
   selectedRating,
   selectedStatus,
   period,
   selectedYear,
   onCityChange,
   onCategoryChange,
+  onNeighborhoodChange,
   onRatingChange,
   onStatusChange,
   onPeriodChange,
@@ -38,6 +50,9 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
   onResetFilters,
   onBusinessSelect,
 }) => {
+  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+  const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
+
   const cityStateMap = new Map<string, string>();
   businesses.forEach((b) => {
     if (b.city && b.state && !cityStateMap.has(b.city)) {
@@ -61,6 +76,32 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2005 + 1 }, (_, i) => currentYear - i).sort((a, b) => a - b);
+
+  // Fetch neighborhoods when city changes
+  useEffect(() => {
+    if (selectedCity) {
+      const [city, state] = selectedCity.split('|');
+      if (city && state) {
+        setLoadingNeighborhoods(true);
+        fetch(`http://localhost:8080/api/neighborhoods?state=${state}&city=${city}`)
+          .then((res) => res.json())
+          .then((data: string[]) => {
+            setNeighborhoods(data);
+            setLoadingNeighborhoods(false);
+          })
+          .catch((err) => {
+            console.error('Error fetching neighborhoods:', err);
+            setNeighborhoods([]);
+            setLoadingNeighborhoods(false);
+          });
+      } else {
+        setNeighborhoods([]);
+      }
+    } else {
+      setNeighborhoods([]);
+      onNeighborhoodChange(''); // Clear neighborhood when city is cleared
+    }
+  }, [selectedCity, onNeighborhoodChange]);
 
   return (
     <div className="filter-control-panel">
@@ -94,6 +135,30 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
             {categories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="control-group">
+          <label htmlFor="neighborhood-filter">Neighborhood</label>
+          <select
+            id="neighborhood-filter"
+            value={selectedNeighborhood}
+            onChange={(e) => onNeighborhoodChange(e.target.value)}
+            className="filter-select"
+            disabled={!selectedCity || loadingNeighborhoods}
+          >
+            <option value="">
+              {!selectedCity
+                ? 'Select a city first'
+                : loadingNeighborhoods
+                ? 'Loading...'
+                : 'All Neighborhoods'}
+            </option>
+            {neighborhoods.map((neighborhood) => (
+              <option key={neighborhood} value={neighborhood}>
+                {formatNeighborhoodName(neighborhood)}
               </option>
             ))}
           </select>

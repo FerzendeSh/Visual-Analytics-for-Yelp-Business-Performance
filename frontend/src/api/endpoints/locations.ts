@@ -4,13 +4,6 @@
 
 import { get } from '../apiClient';
 
-export interface Location {
-  city: string;
-  state: string;
-  business_count: number;
-  avg_rating: number;
-}
-
 /**
  * Get all available states
  */
@@ -28,8 +21,10 @@ export const getCitiesByState = (state: string): Promise<string[]> => {
 };
 
 /**
- * Get location summary
+ * Get neighborhood boundaries as GeoJSON
  */
-export const getLocationSummary = (): Promise<Location[]> => {
-  return get<Location[]>('/api/locations/summary');
+export const getNeighborhoodBoundaries = (city: string, state: string): Promise<GeoJSON.FeatureCollection> => {
+  return get<GeoJSON.FeatureCollection>('/api/neighborhoods/boundaries', {
+    params: { city, state },
+  });
 };

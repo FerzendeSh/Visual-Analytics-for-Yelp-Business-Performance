@@ -16,6 +16,7 @@ export interface ViewportBounds {
 export interface ViewportFilters {
   state?: string;
   city?: string;
+  neighborhood?: string;
   category?: string;
   min_rating?: number;
   is_open?: number;
@@ -62,6 +63,7 @@ export const useViewportBusinesses = ({
     bounds.east.toFixed(4),
     filters?.state,
     filters?.city,
+    filters?.neighborhood,
     filters?.category,
     filters?.min_rating,
     filters?.is_open,

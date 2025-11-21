@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Map as MapLibre, Marker, Popup, MapRef } from 'react-map-gl/maplibre';
+import { Map as MapLibre, Marker, Popup, MapRef, Source, Layer } from 'react-map-gl/maplibre';
 import Supercluster from 'supercluster';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './BusinessMap.css';
 import { useViewportBusinesses } from '../../hooks/useViewportBusinesses';
+import { getNeighborhoodBoundaries } from '../../api/endpoints/locations';
 
 interface Business {
   business_id: string;
@@ -35,6 +36,7 @@ interface BusinessMapProps {
   onBusinessSelect?: (business: Business) => void;
   onMapCityChange?: (city: string, state: string) => void; // NEW: Called when map viewport changes to a different city
   selectedCity?: string;
+  selectedNeighborhood?: string;
   selectedCategory?: string;
   selectedRating?: number | null;
   selectedStatus?: number | null;
@@ -58,6 +60,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   onBusinessSelect,
   onMapCityChange,
   selectedCity = "",
+  selectedNeighborhood = "",
   selectedCategory = "",
   selectedRating = null,
   selectedStatus = null,
@@ -73,6 +76,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
 
   const [accumulatedBusinesses, setAccumulatedBusinesses] = useState<Map<string, Business>>(new Map());
   const loadedBoundsRef = useRef<Set<string>>(new Set());
+  const [neighborhoodBoundaries, setNeighborhoodBoundaries] = useState<GeoJSON.FeatureCollection | null>(null);
 
   const [debouncedBounds, setDebouncedBounds] = useState<{
     south: number;
@@ -98,6 +102,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     },
     filters: {
       city: selectedCity || undefined,
+      neighborhood: selectedNeighborhood || undefined,
       category: selectedCategory || undefined,
       min_rating: selectedRating || undefined,
       is_open: selectedStatus !== null ? selectedStatus : undefined,
@@ -123,7 +128,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       setAccumulatedBusinesses(new Map());
       loadedBoundsRef.current.clear();
     }
-  }, [selectedCity, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
+  }, [selectedCity, selectedNeighborhood, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
 
   const businesses = useViewportLoading
     ? Array.from(accumulatedBusinesses.values())
@@ -252,6 +257,27 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     }
     previousCityRef.current = selectedCity;
   }, [selectedCity, businesses, initialViewState, targetLocation]);
+
+  // Fetch neighborhood boundaries when city changes
+  useEffect(() => {
+    if (selectedCity) {
+      const [city, state] = selectedCity.split('|');
+      if (city && state) {
+        getNeighborhoodBoundaries(city, state)
+          .then((data) => {
+            setNeighborhoodBoundaries(data);
+          })
+          .catch((err) => {
+            console.log('Neighborhood boundaries not available for this city');
+            setNeighborhoodBoundaries(null);
+          });
+      } else {
+        setNeighborhoodBoundaries(null);
+      }
+    } else {
+      setNeighborhoodBoundaries(null);
+    }
+  }, [selectedCity]);
 
 useEffect(() => {
   if (selectedBusiness === null) {
@@ -437,6 +463,29 @@ useEffect(() => {
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://tiles.openfreemap.org/styles/positron"
       >
+        {neighborhoodBoundaries && (
+          <Source id="neighborhood-boundaries" type="geojson" data={neighborhoodBoundaries}>
+            <Layer
+              id="neighborhood-fill"
+              type="fill"
+              paint={{
+                'fill-color': '#3b82f6',
+                'fill-opacity': selectedNeighborhood ? 0.15 : 0.08,
+              }}
+              filter={selectedNeighborhood ? ['==', ['get', 'NAME'], selectedNeighborhood.toUpperCase()] : undefined}
+            />
+            <Layer
+              id="neighborhood-outline"
+              type="line"
+              paint={{
+                'line-color': selectedNeighborhood ? '#2563eb' : '#94a3b8',
+                'line-width': selectedNeighborhood ? 3 : 1,
+                'line-opacity': selectedNeighborhood ? 0.8 : 0.4,
+              }}
+              filter={selectedNeighborhood ? ['==', ['get', 'NAME'], selectedNeighborhood.toUpperCase()] : undefined}
+            />
+          </Source>
+        )}
         {clusters.map((cluster: any) => {
           const [longitude, latitude] = cluster.geometry.coordinates;
           const { cluster: isCluster, point_count: pointCount } = cluster.properties;

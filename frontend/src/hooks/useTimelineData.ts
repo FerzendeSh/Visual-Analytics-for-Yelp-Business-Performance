@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getBusinessCombinedTimeline,
   getCityCombinedTimeline,
+  getNeighborhoodCombinedTimeline,
   getCategoryCombinedTimeline,
 } from '../api/endpoints/analytics';
 import { Business } from '../api/types';
@@ -15,6 +16,7 @@ interface UseTimelineDataParams {
   selectedCity?: string;
   selectedState?: string;
   selectedCategory?: string;
+  selectedNeighborhood?: string;
   period?: 'month' | 'year';
   selectedYear?: number;
 }
@@ -28,11 +30,12 @@ export const useTimelineData = ({
   selectedCity = '',
   selectedState = '',
   selectedCategory = '',
+  selectedNeighborhood = '',
   period = 'year',
   selectedYear,
 }: UseTimelineDataParams) => {
-  let startDate: string | undefined;
-  let endDate: string | undefined;
+  let startDate: string = '';
+  let endDate: string = '';
 
   if (period === 'month' && selectedYear) {
     startDate = `${selectedYear}-01-01`;
@@ -40,9 +43,24 @@ export const useTimelineData = ({
   }
 
   const businessQuery = useQuery({
-    queryKey: ['timeline', 'business', business?.business_id, period, startDate, endDate, selectedCategory],
-    queryFn: () => getBusinessCombinedTimeline(business!.business_id, period, startDate, endDate, selectedCategory || undefined),
+    queryKey: ['timeline', 'business', business?.business_id || '', period, startDate, endDate, selectedCategory],
+    queryFn: () => getBusinessCombinedTimeline(business!.business_id, period, startDate || undefined, endDate || undefined, selectedCategory || undefined),
     enabled: !!business?.business_id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const neighborhoodQuery = useQuery({
+    queryKey: ['timeline', 'neighborhood', selectedState, selectedCity, selectedNeighborhood, selectedCategory, period, startDate, endDate],
+    queryFn: () => getNeighborhoodCombinedTimeline(
+      selectedNeighborhood,
+      selectedCity,
+      selectedState,
+      period,
+      startDate || undefined,
+      endDate || undefined,
+      selectedCategory || undefined
+    ),
+    enabled: !business && !!selectedNeighborhood && !!selectedCity && !!selectedState,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -52,17 +70,17 @@ export const useTimelineData = ({
       selectedCity,
       selectedState,
       period,
-      startDate,
-      endDate,
+      startDate || undefined,
+      endDate || undefined,
       selectedCategory || undefined
     ),
-    enabled: !business && !!selectedCity && !!selectedState,
+    enabled: !business && !selectedNeighborhood && !!selectedCity && !!selectedState,
     staleTime: 5 * 60 * 1000,
   });
 
   const categoryQuery = useQuery({
     queryKey: ['timeline', 'category', selectedCategory, period, startDate, endDate],
-    queryFn: () => getCategoryCombinedTimeline(selectedCategory, period, startDate, endDate),
+    queryFn: () => getCategoryCombinedTimeline(selectedCategory, period, startDate || undefined, endDate || undefined),
     enabled: false,
     staleTime: 5 * 60 * 1000,
   });
@@ -73,6 +91,15 @@ export const useTimelineData = ({
       error: businessQuery.error,
       data: businessQuery.data,
       primaryCategory: business.categories ? business.categories.split(',')[0].trim() : '',
+    };
+  }
+
+  if (selectedNeighborhood && selectedCity && selectedState) {
+    return {
+      isLoading: neighborhoodQuery.isLoading,
+      error: neighborhoodQuery.error,
+      data: neighborhoodQuery.data,
+      primaryCategory: selectedCategory,
     };
   }
 
