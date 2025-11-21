@@ -21,6 +21,7 @@ class Business(Base):
     name: Mapped[str] = mapped_column(String(255), index=True)
     city: Mapped[str] = mapped_column(String(100), index=True)
     state: Mapped[str] = mapped_column(String(50), index=True)
+    neighborhood: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
 
     # Location data
     latitude: Mapped[float] = mapped_column(Float)
@@ -51,6 +52,7 @@ class Business(Base):
     # Composite indexes for common queries
     __table_args__ = (
         Index('idx_location', 'city', 'state'),
+        Index('idx_location_neighborhood', 'city', 'state', 'neighborhood'),
         Index('idx_stars_reviews', 'stars', 'review_count'),
     )
 

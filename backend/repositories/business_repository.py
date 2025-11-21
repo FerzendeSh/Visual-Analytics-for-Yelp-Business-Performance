@@ -11,30 +11,11 @@ from repositories.interfaces import BusinessRepositoryInterface
 
 
 class BusinessRepository(BusinessRepositoryInterface):
-    """
-    Concrete implementation of business repository.
-    Handles all database operations for Business entities.
-    """
 
     def __init__(self, db: AsyncSession):
-        """
-        Initialize repository with database session.
-
-        Args:
-            db: Async database session
-        """
         self.db = db
 
     async def get_by_id(self, business_id: str) -> Optional[Business]:
-        """
-        Get a single business by ID.
-
-        Args:
-            business_id: Unique business identifier
-
-        Returns:
-            Business object or None if not found
-        """
         result = await self.db.execute(
             select(Business).where(Business.business_id == business_id)
         )
@@ -85,6 +66,7 @@ class BusinessRepository(BusinessRepositoryInterface):
         east: float,
         state: Optional[str] = None,
         city: Optional[str] = None,
+        neighborhood: Optional[str] = None,
         category: Optional[str] = None,
         min_rating: Optional[float] = None,
         is_open: Optional[int] = None,
@@ -122,6 +104,9 @@ class BusinessRepository(BusinessRepositoryInterface):
 
         if city is not None:
             conditions.append(Business.city == city)
+
+        if neighborhood is not None:
+            conditions.append(Business.neighborhood == neighborhood)
 
         if category is not None:
             conditions.append(Business.categories.ilike(f"%{category}%"))

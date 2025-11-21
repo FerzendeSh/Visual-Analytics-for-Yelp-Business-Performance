@@ -8,6 +8,7 @@ class BusinessDTO(BaseModel):
     categories: str = Field(..., description="Comma-separated business categories")
     city: str = Field(..., description="City where business is located")
     state: str = Field(..., description="State where business is located")
+    neighborhood: Optional[str] = Field(None, description="Neighborhood where business is located")
     latitude: float = Field(..., description="Latitude coordinate")
     longitude: float = Field(..., description="Longitude coordinate")
     review_count: int = Field(..., description="Total number of reviews")
@@ -25,6 +26,7 @@ class BusinessDTO(BaseModel):
                 "categories": "Restaurants, Food, Bubble Tea, Coffee & Tea, Bakeries",
                 "city": "Philadelphia",
                 "state": "PA",
+                "neighborhood": "RITTENHOUSE",
                 "latitude": 39.9555052,
                 "longitude": -75.1555641,
                 "review_count": 80,

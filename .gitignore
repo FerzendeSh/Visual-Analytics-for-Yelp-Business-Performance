@@ -123,3 +123,9 @@ backend/data/
 
 # Other
 commit_message_rules.md
+
+# Script data directories - ignore all directories inside scripts/
+backend/scripts/*/
+
+# Public data directory
+backend/public/

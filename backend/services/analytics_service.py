@@ -13,11 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AnalyticsService(AnalyticsServiceInterface):
-    """
-    Concrete implementation of analytics service.
-    Handles business logic for time-series analytics and comparisons.
-    Uses pre-computed metrics for fast queries.
-    """
 
     def __init__(
         self,
@@ -25,29 +20,12 @@ class AnalyticsService(AnalyticsServiceInterface):
         business_repository: BusinessRepositoryInterface,
         db: AsyncSession = None
     ):
-        """
-        Initialize service with repository dependencies.
-
-        Args:
-            review_repository: Repository for review data access (legacy)
-            business_repository: Repository for business data access
-            db: Database session for metrics repository
-        """
         self.review_repository = review_repository
         self.business_repository = business_repository
         self.db = db
         self.metrics_repo = MetricsRepository()
 
     def _validate_period(self, period: str) -> None:
-        """
-        Validate time period parameter.
-
-        Args:
-            period: Time period string
-
-        Raises:
-            HTTPException: If period is invalid
-        """
         valid_periods = {'day', 'week', 'month', 'year'}
         if period not in valid_periods:
             raise HTTPException(
@@ -56,15 +34,6 @@ class AnalyticsService(AnalyticsServiceInterface):
             )
 
     def _validate_metric(self, metric: str) -> None:
-        """
-        Validate metric parameter.
-
-        Args:
-            metric: Metric string
-
-        Raises:
-            HTTPException: If metric is invalid
-        """
         valid_metrics = {'rating', 'sentiment'}
         if metric not in valid_metrics:
             raise HTTPException(
@@ -79,21 +48,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get ratings timeline for a business.
-
-        Args:
-            business_id: Business identifier
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-
-        Raises:
-            HTTPException: If business not found or invalid parameters
-        """
         self._validate_period(period)
 
         # Verify business exists
@@ -133,21 +87,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get sentiment timeline for a business.
-
-        Args:
-            business_id: Business identifier
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-
-        Raises:
-            HTTPException: If business not found or invalid parameters
-        """
 
         self._validate_period(period)
 
@@ -188,22 +127,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get business timeline with city average comparison.
-
-        Args:
-            business_id: Business identifier
-            metric: Metric to compare ('rating' or 'sentiment')
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with business and city comparison data
-
-        Raises:
-            HTTPException: If business not found or invalid parameters
-        """
 
         self._validate_period(period)
         self._validate_metric(metric)
@@ -257,22 +180,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get business timeline with state average comparison.
-
-        Args:
-            business_id: Business identifier
-            metric: Metric to compare ('rating' or 'sentiment')
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with business and state comparison data
-
-        Raises:
-            HTTPException: If business not found or invalid parameters
-        """
 
         self._validate_period(period)
         self._validate_metric(metric)
@@ -323,20 +230,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get ratings timeline for a city.
-        Normalizes city/state inputs to ensure consistent results across queries.
-
-        Args:
-            city: City name
-            state: State code
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-        """
 
         self._validate_period(period)
 
@@ -371,18 +264,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get ratings timeline for a state.
-
-        Args:
-            state: State code
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-        """
 
         self._validate_period(period)
 
@@ -413,20 +294,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get ratings timeline for a category.
-
-        Args:
-            category: Category name
-            city: Optional city filter (for city-specific category data)
-            state: Optional state filter (required if city is provided)
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-        """
         self._validate_period(period)
 
         # Normalize city and state if provided
@@ -465,20 +332,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get sentiment timeline for a category.
-
-        Args:
-            category: Category name
-            city: Optional city filter (for city-specific category data)
-            state: Optional state filter (required if city is provided)
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-        """
         self._validate_period(period)
 
         # Normalize city and state if provided
@@ -516,20 +369,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get sentiment timeline for a city.
-        Normalizes city/state inputs to ensure consistent results across queries.
-
-        Args:
-            city: City name
-            state: State code
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-        """
 
         self._validate_period(period)
 
@@ -564,18 +403,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """
-        Get sentiment timeline for a state.
-
-        Args:
-            state: State code
-            period: Time period for aggregation ('day', 'week', 'month', 'year')
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-
-        Returns:
-            Dict with timeline data and metadata
-        """
 
         self._validate_period(period)
 
@@ -601,24 +428,10 @@ class AnalyticsService(AnalyticsServiceInterface):
         self,
         city: Optional[str] = None,
         state: Optional[str] = None,
+        neighborhood: Optional[str] = None,
         category: Optional[str] = None,
         business_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Get competitive positioning snapshot for a market.
-
-        Returns all businesses in the specified market (city/category) with
-        pre-calculated statistics for competitive analysis visualization.
-
-        Args:
-            city: City name (optional)
-            state: State code (optional, recommended with city)
-            category: Category name (optional)
-            business_id: Specific business to highlight (optional)
-
-        Returns:
-            Dict with businesses and market statistics
-        """
         from sqlalchemy import select, func
         from models.business import Business
 
@@ -632,6 +445,9 @@ class AnalyticsService(AnalyticsServiceInterface):
         if city:
             normalized_city = city.strip()
             stmt = stmt.where(Business.city == normalized_city)
+
+        if neighborhood:
+            stmt = stmt.where(Business.neighborhood == neighborhood)
 
         if category:
             stmt = stmt.where(Business.categories.ilike(f'%{category}%'))
@@ -659,6 +475,7 @@ class AnalyticsService(AnalyticsServiceInterface):
                 'filters': {
                     'city': city,
                     'state': state,
+                    'neighborhood': neighborhood,
                     'category': category
                 }
             }
@@ -704,6 +521,137 @@ class AnalyticsService(AnalyticsServiceInterface):
             'filters': {
                 'city': city,
                 'state': state,
+                'neighborhood': neighborhood,
                 'category': category
             }
+        }
+
+    async def get_neighborhood_ratings_timeline(
+        self,
+        neighborhood: str,
+        city: str,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        self._validate_period(period)
+
+        # Normalize inputs
+        normalized_state = state.strip().upper()
+        normalized_city = city.strip()
+        normalized_neighborhood = neighborhood.strip()
+
+        # Get pre-computed metrics
+        data = await self.metrics_repo.get_neighborhood_ratings_timeline(
+            db=self.db,
+            neighborhood=normalized_neighborhood,
+            city=normalized_city,
+            state=normalized_state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        return {
+            'neighborhood': normalized_neighborhood,
+            'city': normalized_city,
+            'state': normalized_state,
+            'period': period,
+            'metric': 'rating',
+            'data': data
+        }
+
+    async def get_neighborhood_sentiment_timeline(
+        self,
+        neighborhood: str,
+        city: str,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> Dict[str, Any]:
+        self._validate_period(period)
+
+        # Normalize inputs
+        normalized_state = state.strip().upper()
+        normalized_city = city.strip()
+        normalized_neighborhood = neighborhood.strip()
+
+        # Get pre-computed metrics
+        data = await self.metrics_repo.get_neighborhood_sentiment_timeline(
+            db=self.db,
+            neighborhood=normalized_neighborhood,
+            city=normalized_city,
+            state=normalized_state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        return {
+            'neighborhood': normalized_neighborhood,
+            'city': normalized_city,
+            'state': normalized_state,
+            'period': period,
+            'metric': 'sentiment',
+            'data': data
+        }
+
+    async def get_neighborhood_combined_timeline(
+        self,
+        neighborhood: str,
+        city: str,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        category: Optional[str] = None
+    ) -> Dict[str, Any]:
+        # Get neighborhood data
+        neighborhood_ratings = await self.get_neighborhood_ratings_timeline(
+            neighborhood=neighborhood,
+            city=city,
+            state=state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        neighborhood_sentiment = await self.get_neighborhood_sentiment_timeline(
+            neighborhood=neighborhood,
+            city=city,
+            state=state,
+            period=period,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        # Get category data if provided
+        category_ratings = None
+        category_sentiment = None
+
+        if category:
+            category_ratings = await self.get_category_ratings_timeline(
+                category=category,
+                city=city,
+                state=state,
+                period=period,
+                start_date=start_date,
+                end_date=end_date
+            )
+            category_sentiment = await self.get_category_sentiment_timeline(
+                category=category,
+                city=city,
+                state=state,
+                period=period,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+        return {
+            'neighborhood_ratings': neighborhood_ratings,
+            'neighborhood_sentiment': neighborhood_sentiment,
+            'category_ratings': category_ratings,
+            'category_sentiment': category_sentiment
         }

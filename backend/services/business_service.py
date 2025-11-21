@@ -11,33 +11,11 @@ from services.interfaces import BusinessServiceInterface
 
 
 class BusinessService(BusinessServiceInterface):
-    """
-    Concrete implementation of business service.
-    Handles business logic and coordinates with repository layer.
-    """
 
     def __init__(self, business_repository: BusinessRepositoryInterface):
-        """
-        Initialize service with repository dependency.
-
-        Args:
-            business_repository: Repository for business data access
-        """
         self.business_repository = business_repository
 
     async def get_business_by_id(self, business_id: str) -> Business:
-        """
-        Get a single business by ID.
-
-        Args:
-            business_id: Unique business identifier
-
-        Returns:
-            Business object
-
-        Raises:
-            HTTPException: If business not found
-        """
         business = await self.business_repository.get_by_id(business_id)
 
         if not business:
@@ -55,18 +33,6 @@ class BusinessService(BusinessServiceInterface):
         skip: int = 0,
         limit: int = 100
     ) -> List[Business]:
-        """
-        Get list of businesses with optional filtering and pagination.
-
-        Args:
-            state: Filter by state code (e.g., 'PA', 'CA') - will be normalized to uppercase
-            city: Filter by city name
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-
-        Returns:
-            List of Business objects
-        """
         normalized_state = state.upper() if state else None
 
         return await self.business_repository.get_all(
@@ -84,34 +50,12 @@ class BusinessService(BusinessServiceInterface):
         east: float,
         state: Optional[str] = None,
         city: Optional[str] = None,
+        neighborhood: Optional[str] = None,
         category: Optional[str] = None,
         min_rating: Optional[float] = None,
         is_open: Optional[int] = None,
         limit: int = 1000
     ) -> List[Business]:
-        """
-        Get businesses within a geographic viewport (bounding box) with optional filters.
-
-        Validates bounds before querying.
-
-        Args:
-            south: Southern latitude bound
-            north: Northern latitude bound
-            west: Western longitude bound
-            east: Eastern longitude bound
-            state: Filter by state code (will be normalized to uppercase)
-            city: Filter by city name
-            category: Filter by category (partial match)
-            min_rating: Filter by minimum star rating
-            is_open: Filter by open status (0 = closed, 1 = open)
-            limit: Maximum number of businesses to return
-
-        Returns:
-            List of Business objects within the viewport
-
-        Raises:
-            HTTPException: If bounds are invalid
-        """
         if south >= north:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -134,6 +78,7 @@ class BusinessService(BusinessServiceInterface):
             east=east,
             state=normalized_state,
             city=city,
+            neighborhood=neighborhood,
             category=category,
             min_rating=min_rating,
             is_open=is_open,
@@ -146,17 +91,6 @@ class BusinessService(BusinessServiceInterface):
         skip: int = 0,
         limit: int = 20
     ) -> List[Business]:
-        """
-        Search businesses using advanced fuzzy matching.
-
-        Args:
-            query: Search query - supports multi-term and fuzzy matching
-            skip: Number of records to skip
-            limit: Maximum number of results to return
-
-        Returns:
-            List of Business objects ranked by relevance
-        """
         return await self.business_repository.search(
             query=query,
             skip=skip,

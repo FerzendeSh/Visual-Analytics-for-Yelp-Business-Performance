@@ -114,3 +114,27 @@ class StateCategoryTimelineMetrics(Base):
         Index('idx_state_category_metrics_lookup', 'state', 'category',
               'period_type', 'period_start'),
     )
+
+
+class NeighborhoodTimelineMetrics(Base):
+    """Pre-computed timeline metrics for neighborhoods"""
+    __tablename__ = "neighborhood_timeline_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    state: Mapped[str] = mapped_column(String(2), index=True)
+    city: Mapped[str] = mapped_column(String(100), index=True)
+    neighborhood: Mapped[str] = mapped_column(String(100), index=True)
+    period_start: Mapped[date] = mapped_column(Date)
+    period_type: Mapped[str] = mapped_column(String(10))  # 'month' or 'year'
+    avg_rating: Mapped[float] = mapped_column(Float)
+    avg_sentiment_score: Mapped[float] = mapped_column(Float)
+    avg_sentiment_expected: Mapped[float] = mapped_column(Float)
+    review_count: Mapped[int] = mapped_column(Integer)
+    business_count: Mapped[int] = mapped_column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint('state', 'city', 'neighborhood', 'period_start', 'period_type',
+                        name='uq_neighborhood_period'),
+        Index('idx_neighborhood_metrics_lookup', 'state', 'city', 'neighborhood',
+              'period_type', 'period_start'),
+    )

@@ -38,6 +38,7 @@ class BusinessRepositoryInterface(ABC):
         east: float,
         state: Optional[str] = None,
         city: Optional[str] = None,
+        neighborhood: Optional[str] = None,
         category: Optional[str] = None,
         min_rating: Optional[float] = None,
         is_open: Optional[int] = None,
