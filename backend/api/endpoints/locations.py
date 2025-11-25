@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.database import get_async_session
-from repositories import business_repository
+from repositories.business_repository import BusinessRepository
 
 router = APIRouter(
     tags=["locations"]
@@ -26,7 +26,8 @@ async def get_states(
 
     Returns a sorted list of state codes (e.g., ['CA', 'NY', 'PA']).
     """
-    states = await business_repository.get_states(db)
+    repo = BusinessRepository(db)
+    states = await repo.get_states()
     return states
 
 
@@ -40,7 +41,8 @@ async def get_cities(
 
     Returns a sorted list of city names for the given state.
     """
-    cities = await business_repository.get_cities_by_state(db, state.upper())
+    repo = BusinessRepository(db)
+    cities = await repo.get_cities_by_state(state.upper())
     return cities
 
 
@@ -55,7 +57,8 @@ async def get_neighborhoods(
 
     Returns a sorted list of neighborhood names for the given city.
     """
-    neighborhoods = await business_repository.get_neighborhoods_by_city(db, state.upper(), city)
+    repo = BusinessRepository(db)
+    neighborhoods = await repo.get_neighborhoods_by_city(state.upper(), city)
     return neighborhoods
 
 

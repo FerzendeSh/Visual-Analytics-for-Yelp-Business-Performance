@@ -67,6 +67,11 @@ class BusinessRepositoryInterface(ABC):
         """Get list of unique cities in a state."""
         pass
 
+    @abstractmethod
+    async def get_neighborhoods_by_city(self, state: str, city: str) -> List[str]:
+        """Get list of unique neighborhoods in a city."""
+        pass
+
 
 class ReviewRepositoryInterface(ABC):
     """Abstract interface for review data access operations with time-series support."""

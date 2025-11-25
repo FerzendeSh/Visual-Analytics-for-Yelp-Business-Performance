@@ -256,3 +256,31 @@ class BusinessRepository(BusinessRepositoryInterface):
 
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_neighborhoods_by_city(self, state: str, city: str) -> List[str]:
+        """
+        Get list of unique neighborhoods in a specific city.
+
+        Args:
+            state: State code (e.g., 'PA', 'CA')
+            city: City name
+
+        Returns:
+            List of neighborhood names sorted alphabetically
+        """
+        stmt = (
+            select(Business.neighborhood)
+            .where(
+                and_(
+                    Business.state == state,
+                    Business.city == city,
+                    Business.neighborhood.isnot(None),
+                    Business.neighborhood != ''
+                )
+            )
+            .distinct()
+            .order_by(Business.neighborhood)
+        )
+
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())

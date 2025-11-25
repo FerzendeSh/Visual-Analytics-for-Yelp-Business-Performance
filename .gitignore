@@ -42,9 +42,6 @@ venv.bak/
 *.code-workspace
 .history/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
 
 # Environment variables
 .env

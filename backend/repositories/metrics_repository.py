@@ -12,7 +12,8 @@ from models.metrics import (
     CityTimelineMetrics,
     StateTimelineMetrics,
     CityCategoryTimelineMetrics,
-    StateCategoryTimelineMetrics
+    StateCategoryTimelineMetrics,
+    NeighborhoodTimelineMetrics
 )
 from models.business import Business
 
@@ -359,6 +360,86 @@ class MetricsRepository:
 
         else:
             return []
+
+        return [
+            {
+                'period_start': metric.period_start.isoformat(),
+                'avg_sentiment_score': metric.avg_sentiment_score,
+                'avg_sentiment_expected': metric.avg_sentiment_expected,
+                'review_count': metric.review_count
+            }
+            for metric in metrics
+        ]
+
+    @staticmethod
+    async def get_neighborhood_ratings_timeline(
+        db: AsyncSession,
+        neighborhood: str,
+        city: str,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date_type] = None,
+        end_date: Optional[date_type] = None
+    ) -> List[Dict[str, Any]]:
+        """Get pre-computed ratings timeline for a neighborhood"""
+        query = select(NeighborhoodTimelineMetrics).where(
+            and_(
+                NeighborhoodTimelineMetrics.state == state.upper(),
+                NeighborhoodTimelineMetrics.city.ilike(city),
+                NeighborhoodTimelineMetrics.neighborhood.ilike(neighborhood),
+                NeighborhoodTimelineMetrics.period_type == period
+            )
+        )
+
+        if start_date:
+            query = query.where(NeighborhoodTimelineMetrics.period_start >= start_date)
+        if end_date:
+            query = query.where(NeighborhoodTimelineMetrics.period_start <= end_date)
+
+        query = query.order_by(NeighborhoodTimelineMetrics.period_start)
+
+        result = await db.execute(query)
+        metrics = result.scalars().all()
+
+        return [
+            {
+                'period_start': metric.period_start.isoformat(),
+                'avg_rating': metric.avg_rating,
+                'review_count': metric.review_count,
+                'business_count': metric.business_count
+            }
+            for metric in metrics
+        ]
+
+    @staticmethod
+    async def get_neighborhood_sentiment_timeline(
+        db: AsyncSession,
+        neighborhood: str,
+        city: str,
+        state: str,
+        period: str = 'month',
+        start_date: Optional[date_type] = None,
+        end_date: Optional[date_type] = None
+    ) -> List[Dict[str, Any]]:
+        """Get pre-computed sentiment timeline for a neighborhood"""
+        query = select(NeighborhoodTimelineMetrics).where(
+            and_(
+                NeighborhoodTimelineMetrics.state == state.upper(),
+                NeighborhoodTimelineMetrics.city.ilike(city),
+                NeighborhoodTimelineMetrics.neighborhood.ilike(neighborhood),
+                NeighborhoodTimelineMetrics.period_type == period
+            )
+        )
+
+        if start_date:
+            query = query.where(NeighborhoodTimelineMetrics.period_start >= start_date)
+        if end_date:
+            query = query.where(NeighborhoodTimelineMetrics.period_start <= end_date)
+
+        query = query.order_by(NeighborhoodTimelineMetrics.period_start)
+
+        result = await db.execute(query)
+        metrics = result.scalars().all()
 
         return [
             {
