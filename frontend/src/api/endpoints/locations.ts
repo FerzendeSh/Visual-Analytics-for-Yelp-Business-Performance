@@ -21,6 +21,15 @@ export const getCitiesByState = (state: string): Promise<string[]> => {
 };
 
 /**
+ * Get city boundary as GeoJSON
+ */
+export const getCityBoundary = (city: string, state: string): Promise<GeoJSON.FeatureCollection> => {
+  return get<GeoJSON.FeatureCollection>('/api/cities/boundaries', {
+    params: { city, state },
+  });
+};
+
+/**
  * Get neighborhood boundaries as GeoJSON
  */
 export const getNeighborhoodBoundaries = (city: string, state: string): Promise<GeoJSON.FeatureCollection> => {

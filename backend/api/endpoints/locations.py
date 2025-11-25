@@ -72,8 +72,9 @@ async def get_neighborhood_boundaries(
 
     Returns a GeoJSON FeatureCollection with neighborhood boundaries if available.
     """
-    # Construct the path to the neighborhood geojson file in public directory
-    city_state_key = f"{city.lower().replace(' ', '_')}_{state.lower()}"
+    # Normalize city name to match file naming convention
+    normalized_city = city.lower().replace(' ', '_').replace('.', '').replace('/', '_').replace('-', '_').replace("'", '')
+    city_state_key = f"{normalized_city}_{state.lower()}"
     geojson_path = Path(__file__).parent.parent.parent / "public" / "neighborhoods" / f"{city_state_key}.geojson"
 
     if not geojson_path.exists():
@@ -103,8 +104,9 @@ async def get_city_boundaries(
 
     Returns a GeoJSON FeatureCollection with the city boundary polygon.
     """
-    # Construct the path to the city boundary geojson file
-    city_state_key = f"{city.lower().replace(' ', '_')}_{state.lower()}"
+    # Normalize city name to match file naming convention
+    normalized_city = city.lower().replace(' ', '_').replace('.', '').replace('/', '_').replace('-', '_').replace("'", '')
+    city_state_key = f"{normalized_city}_{state.lower()}"
     geojson_path = Path(__file__).parent.parent.parent / "public" / "cities" / f"{city_state_key}.geojson"
 
     if not geojson_path.exists():
