@@ -31,7 +31,7 @@ async def clear_metrics_tables(session: AsyncSession):
     await session.execute(delete(CityCategoryTimelineMetrics))
     await session.execute(delete(StateCategoryTimelineMetrics))
     await session.commit()
-    print("✅ Cleared old metrics")
+    print(" Cleared old metrics")
 
 
 async def populate_business_metrics(session: AsyncSession, period_type: str):
@@ -77,7 +77,7 @@ async def populate_business_metrics(session: AsyncSession, period_type: str):
         session.add_all(metrics)
         await session.commit()
 
-    print(f"✅ Inserted {len(metrics):,} business {period_type}ly metrics")
+    print(f" Inserted {len(metrics):,} business {period_type}ly metrics")
 
 
 async def populate_city_metrics(session: AsyncSession, period_type: str):
@@ -128,7 +128,7 @@ async def populate_city_metrics(session: AsyncSession, period_type: str):
         session.add_all(metrics)
         await session.commit()
 
-    print(f"✅ Inserted {len(metrics):,} city {period_type}ly metrics")
+    print(f" Inserted {len(metrics):,} city {period_type}ly metrics")
 
 
 async def populate_state_metrics(session: AsyncSession, period_type: str):
@@ -175,7 +175,7 @@ async def populate_state_metrics(session: AsyncSession, period_type: str):
         session.add_all(metrics)
         await session.commit()
 
-    print(f"✅ Inserted {len(metrics):,} state {period_type}ly metrics")
+    print(f" Inserted {len(metrics):,} state {period_type}ly metrics")
 
 
 async def populate_city_category_metrics(session: AsyncSession, period_type: str):
@@ -271,7 +271,7 @@ async def populate_city_category_metrics(session: AsyncSession, period_type: str
             await session.commit()
             print(f"  Inserted batch {i//batch_size + 1} ({len(batch)} records)")
 
-    print(f"✅ Inserted {len(metrics):,} city+category {period_type}ly metrics")
+    print(f" Inserted {len(metrics):,} city+category {period_type}ly metrics")
 
 
 async def populate_state_category_metrics(session: AsyncSession, period_type: str):
@@ -359,7 +359,7 @@ async def populate_state_category_metrics(session: AsyncSession, period_type: st
             session.add_all(batch)
             await session.commit()
 
-    print(f"✅ Inserted {len(metrics):,} state+category {period_type}ly metrics")
+    print(f" Inserted {len(metrics):,} state+category {period_type}ly metrics")
 
 
 async def main():
@@ -391,7 +391,7 @@ async def main():
     duration = (end_time - start_time).total_seconds()
 
     print("\n" + "=" * 60)
-    print("✅ AGGREGATION COMPLETE!")
+    print(" AGGREGATION COMPLETE!")
     print("=" * 60)
     print(f"Duration: {duration:.1f} seconds ({duration/60:.1f} minutes)")
     print(f"End time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")

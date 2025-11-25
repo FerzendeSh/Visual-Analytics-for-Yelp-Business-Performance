@@ -35,7 +35,7 @@ async def create_metrics_tables():
             StateCategoryTimelineMetrics.__table__,
         ])
 
-    print("\n✅ Successfully created 5 metrics tables:")
+    print("\n Successfully created 5 metrics tables:")
     print("  1. business_timeline_metrics")
     print("  2. city_timeline_metrics")
     print("  3. state_timeline_metrics")
