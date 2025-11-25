@@ -1,0 +1,113 @@
+{
+  "mapping": [
+    {
+      "original": "TAMPA",
+      "state": "FL",
+      "canonical": "Tampa"
+    },
+    {
+      "original": "CLEARWATER",
+      "state": "FL",
+      "canonical": "Clearwater"
+    },
+    {
+      "original": "St Petersburg",
+      "state": "FL",
+      "canonical": "St. Petersburg"
+    },
+    {
+      "original": "BRANDON",
+      "state": "FL",
+      "canonical": "Brandon"
+    },
+    {
+      "original": "Tarpon springs",
+      "state": "FL",
+      "canonical": "Tarpon Springs"
+    },
+    {
+      "original": "Land o lakes",
+      "state": "FL",
+      "canonical": "Land O Lakes"
+    },
+    {
+      "original": "St Pete Beach",
+      "state": "FL",
+      "canonical": "St. Pete Beach"
+    },
+    {
+      "original": "ST. PETE BEACH",
+      "state": "FL",
+      "canonical": "St. Pete Beach"
+    },
+    {
+      "original": "Indianapolis ",
+      "state": "IN",
+      "canonical": "Indianapolis"
+    },
+    {
+      "original": "NEW ORLEANS",
+      "state": "LA",
+      "canonical": "New Orleans"
+    },
+    {
+      "original": "Town and Country",
+      "state": "MO",
+      "canonical": "Town And Country"
+    },
+    {
+      "original": "Town and Country ",
+      "state": "MO",
+      "canonical": "Town And Country"
+    },
+    {
+      "original": "St Louis",
+      "state": "MO",
+      "canonical": "St. Louis"
+    },
+    {
+      "original": "ST LOUIS",
+      "state": "MO",
+      "canonical": "St. Louis"
+    },
+    {
+      "original": "St Charles",
+      "state": "MO",
+      "canonical": "St. Charles"
+    },
+    {
+      "original": "Mt Laurel",
+      "state": "NJ",
+      "canonical": "Mt. Laurel"
+    },
+    {
+      "original": "Philadelphia ",
+      "state": "PA",
+      "canonical": "Philadelphia"
+    },
+    {
+      "original": "philadelphia",
+      "state": "PA",
+      "canonical": "Philadelphia"
+    },
+    {
+      "original": "King of Prussia",
+      "state": "PA",
+      "canonical": "King Of Prussia"
+    },
+    {
+      "original": "Lansdale ",
+      "state": "PA",
+      "canonical": "Lansdale"
+    },
+    {
+      "original": "Mt Juliet",
+      "state": "TN",
+      "canonical": "Mt. Juliet"
+    }
+  ],
+  "stats": {
+    "total_issues": 17,
+    "total_affected": 3430
+  }
+}
