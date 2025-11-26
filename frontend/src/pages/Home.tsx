@@ -185,7 +185,7 @@ const Home: React.FC = () => {
                     <BusinessMap
                       useViewportLoading={true}
                       targetLocation={cityCenter}
-                      selectedCity={selectedCity}
+                      selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
                       selectedNeighborhood={selectedNeighborhood}
                       selectedCategory={selectedCategory}
                       selectedRating={selectedRating}
@@ -290,6 +290,7 @@ const Home: React.FC = () => {
                       period={period}
                       ratingsData={(timelineData as any)?.business_ratings || (timelineData as any)?.neighborhood_ratings || (timelineData as any)?.city_ratings || null}
                       cityRatingsData={(timelineData as any)?.city_ratings || null}
+                      neighborhoodRatingsData={(timelineData as any)?.neighborhood_ratings || null}
                       categoryRatingsData={(timelineData as any)?.category_ratings || null}
                       isLoading={timelineLoading}
                       error={timelineError}
@@ -337,6 +338,7 @@ const Home: React.FC = () => {
                       period={period}
                       sentimentData={(timelineData as any)?.business_sentiment || (timelineData as any)?.neighborhood_sentiment || (timelineData as any)?.city_sentiment || null}
                       citySentimentData={(timelineData as any)?.city_sentiment || null}
+                      neighborhoodSentimentData={(timelineData as any)?.neighborhood_sentiment || null}
                       categorySentimentData={(timelineData as any)?.category_sentiment || null}
                       isLoading={timelineLoading}
                       error={timelineError}

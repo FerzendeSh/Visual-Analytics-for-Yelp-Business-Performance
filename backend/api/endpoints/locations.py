@@ -86,6 +86,11 @@ async def get_neighborhood_boundaries(
     try:
         with open(geojson_path, 'r', encoding='utf-8') as f:
             geojson_data = json.load(f)
+
+        # Remove CRS property as MapLibre GL doesn't support it
+        if 'crs' in geojson_data:
+            del geojson_data['crs']
+
         return geojson_data
     except Exception as e:
         raise HTTPException(
@@ -118,6 +123,11 @@ async def get_city_boundaries(
     try:
         with open(geojson_path, 'r', encoding='utf-8') as f:
             geojson_data = json.load(f)
+
+        # Remove CRS property as MapLibre GL doesn't support it
+        if 'crs' in geojson_data:
+            del geojson_data['crs']
+
         return geojson_data
     except Exception as e:
         raise HTTPException(

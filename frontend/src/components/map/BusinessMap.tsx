@@ -4,7 +4,7 @@ import Supercluster from 'supercluster';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './BusinessMap.css';
 import { useViewportBusinesses } from '../../hooks/useViewportBusinesses';
-import { getNeighborhoodBoundaries } from '../../api/endpoints/locations';
+import { getNeighborhoodBoundaries, getCityBoundary } from '../../api/endpoints/locations';
 
 interface Business {
   business_id: string;
@@ -77,6 +77,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   const [accumulatedBusinesses, setAccumulatedBusinesses] = useState<Map<string, Business>>(new Map());
   const loadedBoundsRef = useRef<Set<string>>(new Set());
   const [neighborhoodBoundaries, setNeighborhoodBoundaries] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [cityBoundary, setCityBoundary] = useState<GeoJSON.FeatureCollection | null>(null);
 
   const [debouncedBounds, setDebouncedBounds] = useState<{
     south: number;
@@ -93,6 +94,19 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     return 1500;
   }, [viewport.zoom]);
 
+  // Parse city and state from selectedCity format "City|State"
+  const parsedCity = useMemo(() => {
+    if (!selectedCity) return undefined;
+    const [city] = selectedCity.split('|');
+    return city || undefined;
+  }, [selectedCity]);
+
+  const parsedState = useMemo(() => {
+    if (!selectedCity) return undefined;
+    const [, state] = selectedCity.split('|');
+    return state || undefined;
+  }, [selectedCity]);
+
   const { data: viewportBusinesses, isLoading: viewportLoading } = useViewportBusinesses({
     bounds: debouncedBounds || {
       south: initialViewState.latitude - 0.2,
@@ -101,7 +115,8 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       east: initialViewState.longitude + 0.2,
     },
     filters: {
-      city: selectedCity || undefined,
+      state: parsedState || undefined,
+      city: parsedCity || undefined,
       neighborhood: selectedNeighborhood || undefined,
       category: selectedCategory || undefined,
       min_rating: selectedRating || undefined,
@@ -127,6 +142,16 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     if (useViewportLoading) {
       setAccumulatedBusinesses(new Map());
       loadedBoundsRef.current.clear();
+      // Force a viewport update to refetch businesses with new filters
+      const bounds = mapRef.current?.getBounds();
+      if (bounds) {
+        setDebouncedBounds({
+          south: bounds.getSouth(),
+          north: bounds.getNorth(),
+          west: bounds.getWest(),
+          east: bounds.getEast(),
+        });
+      }
     }
   }, [selectedCity, selectedNeighborhood, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
 
@@ -258,26 +283,83 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     previousCityRef.current = selectedCity;
   }, [selectedCity, businesses, initialViewState, targetLocation]);
 
-  // Fetch neighborhood boundaries when city changes
+  // Fetch neighborhood and city boundaries when city changes
   useEffect(() => {
     if (selectedCity) {
       const [city, state] = selectedCity.split('|');
+
       if (city && state) {
+        // Fetch city boundary
+        getCityBoundary(city, state)
+          .then((data) => {
+            setCityBoundary(data);
+          })
+          .catch(() => {
+            setCityBoundary(null);
+          });
+
+        // Fetch neighborhood boundaries
         getNeighborhoodBoundaries(city, state)
           .then((data) => {
             setNeighborhoodBoundaries(data);
           })
-          .catch((err) => {
-            console.log('Neighborhood boundaries not available for this city');
+          .catch(() => {
             setNeighborhoodBoundaries(null);
           });
       } else {
         setNeighborhoodBoundaries(null);
+        setCityBoundary(null);
       }
     } else {
       setNeighborhoodBoundaries(null);
+      setCityBoundary(null);
     }
   }, [selectedCity]);
+
+  // Focus on neighborhood boundary when neighborhood is selected
+  useEffect(() => {
+    if (selectedNeighborhood && neighborhoodBoundaries && neighborhoodBoundaries.features) {
+      // Normalize the selected neighborhood name for matching
+      // Convert from underscore format to title case (e.g., "downtown_eagle" -> "Downtown Eagle")
+      const normalizedSelected = selectedNeighborhood
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+
+      // Find the feature for the selected neighborhood
+      const selectedFeature = neighborhoodBoundaries.features.find(
+        (feature: any) => feature.properties?.NAME === normalizedSelected
+      );
+
+      if (selectedFeature && selectedFeature.geometry && (selectedFeature.geometry as any).coordinates) {
+        // Calculate bounds from the neighborhood feature
+        let minLng = Infinity, maxLng = -Infinity;
+        let minLat = Infinity, maxLat = -Infinity;
+
+        const coordinates = (selectedFeature.geometry as any).coordinates[0] || [];
+        coordinates.forEach((coord: [number, number]) => {
+          minLng = Math.min(minLng, coord[0]);
+          maxLng = Math.max(maxLng, coord[0]);
+          minLat = Math.min(minLat, coord[1]);
+          maxLat = Math.max(maxLat, coord[1]);
+        });
+
+        if (minLng !== Infinity && maxLng !== -Infinity && minLat !== Infinity && maxLat !== -Infinity) {
+          isProgrammaticMoveRef.current = true;
+          mapRef.current?.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat]
+            ],
+            {
+              padding: 60,
+              duration: 700,
+            }
+          );
+        }
+      }
+    }
+  }, [selectedNeighborhood, neighborhoodBoundaries]);
 
 useEffect(() => {
   if (selectedBusiness === null) {
@@ -463,26 +545,88 @@ useEffect(() => {
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://tiles.openfreemap.org/styles/positron"
       >
-        {neighborhoodBoundaries && (
-          <Source id="neighborhood-boundaries" type="geojson" data={neighborhoodBoundaries}>
+        {cityBoundary && cityBoundary.features && cityBoundary.features.length > 0 && (
+          <Source id="city-boundary" type="geojson" data={cityBoundary}>
             <Layer
-              id="neighborhood-fill"
+              id="city-fill"
               type="fill"
+              source="city-boundary"
               paint={{
-                'fill-color': '#3b82f6',
-                'fill-opacity': selectedNeighborhood ? 0.15 : 0.08,
+                'fill-color': '#ef4444',
+                'fill-opacity': selectedNeighborhood ? 0.05 : 0.15,
               }}
-              filter={selectedNeighborhood ? ['==', ['get', 'NAME'], selectedNeighborhood.toUpperCase()] : undefined}
             />
             <Layer
-              id="neighborhood-outline"
+              id="city-outline"
               type="line"
+              source="city-boundary"
               paint={{
-                'line-color': selectedNeighborhood ? '#2563eb' : '#94a3b8',
-                'line-width': selectedNeighborhood ? 3 : 1,
-                'line-opacity': selectedNeighborhood ? 0.8 : 0.4,
+                'line-color': '#dc2626',
+                'line-width': selectedNeighborhood ? 1 : 3,
+                'line-opacity': selectedNeighborhood ? 0.3 : 0.9,
               }}
-              filter={selectedNeighborhood ? ['==', ['get', 'NAME'], selectedNeighborhood.toUpperCase()] : undefined}
+              layout={{
+                'line-join': 'round',
+                'line-cap': 'round',
+              }}
+            />
+          </Source>
+        )}
+
+        {neighborhoodBoundaries && selectedNeighborhood && (() => {
+          // Normalize neighborhood name for filter matching
+          const normalizedNeighborhood = selectedNeighborhood
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+
+          return (
+            <Source id="neighborhood-boundaries" type="geojson" data={neighborhoodBoundaries}>
+              <Layer
+                id="neighborhood-fill"
+                type="fill"
+                source="neighborhood-boundaries"
+                paint={{
+                  'fill-color': '#3b82f6',
+                  'fill-opacity': 0.2,
+                }}
+                filter={['==', ['get', 'NAME'], normalizedNeighborhood]}
+              />
+              <Layer
+                id="neighborhood-outline"
+                type="line"
+                source="neighborhood-boundaries"
+                paint={{
+                  'line-color': '#1e40af',
+                  'line-width': 4,
+                  'line-opacity': 1,
+                }}
+                filter={['==', ['get', 'NAME'], normalizedNeighborhood]}
+              />
+            </Source>
+          );
+        })()}
+
+        {neighborhoodBoundaries && !selectedNeighborhood && (
+          <Source id="neighborhood-boundaries-all" type="geojson" data={neighborhoodBoundaries}>
+            <Layer
+              id="neighborhood-fill-all"
+              type="fill"
+              source="neighborhood-boundaries-all"
+              paint={{
+                'fill-color': '#3b82f6',
+                'fill-opacity': 0.08,
+              }}
+            />
+            <Layer
+              id="neighborhood-outline-all"
+              type="line"
+              source="neighborhood-boundaries-all"
+              paint={{
+                'line-color': '#94a3b8',
+                'line-width': 1,
+                'line-opacity': 0.4,
+              }}
             />
           </Source>
         )}

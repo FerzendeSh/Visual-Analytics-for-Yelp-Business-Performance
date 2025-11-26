@@ -4,7 +4,7 @@ import { CHART_COLORS, formatPercentChange } from './chartConstants';
 
 interface CompetitivePositionBadgeProps {
   position: CompetitivePosition | null;
-  comparisonType: 'city' | 'category';
+  comparisonType: 'city' | 'category' | 'neighborhood';
   comparisonName?: string;
   className?: string;
 }

@@ -166,9 +166,7 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
           Competitive Market Positioning
         </h3>
         <p style={{ margin: '0.4rem 0 0.75rem 0', fontSize: '0.9rem', color: CHART_COLORS.textSecondary }}>
-          {data.filters.neighborhood
-            ? `${data.filters.category ? data.filters.category + ' in ' : ''}${data.filters.neighborhood.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}, ${data.filters.city}`
-            : data.filters.city && data.filters.state
+          {data.filters.city && data.filters.state
             ? `${data.filters.category ? data.filters.category + ' in ' : ''}${data.filters.city}, ${data.filters.state}`
             : data.filters.category || 'Market Overview'}
         </p>

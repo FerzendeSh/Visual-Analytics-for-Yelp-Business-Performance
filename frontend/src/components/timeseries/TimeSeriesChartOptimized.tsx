@@ -69,6 +69,8 @@ interface TimeSeriesChartOptimizedProps {
   sentimentData?: SentimentTimeline | null;
   cityRatingsData?: RatingsTimeline | null;
   citySentimentData?: SentimentTimeline | null;
+  neighborhoodRatingsData?: RatingsTimeline | null;
+  neighborhoodSentimentData?: SentimentTimeline | null;
   categoryRatingsData?: RatingsTimeline | null;
   categorySentimentData?: SentimentTimeline | null;
   isLoading?: boolean;
@@ -89,52 +91,76 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
   sentimentData,
   cityRatingsData,
   citySentimentData,
+  neighborhoodRatingsData,
+  neighborhoodSentimentData,
   categoryRatingsData,
   categorySentimentData,
   isLoading = false,
   error = null,
 }) => {
+  // Determine which comparison data to use: neighborhood if selected, otherwise city
+  const comparisonRatingsData = selectedNeighborhood && business ? neighborhoodRatingsData : cityRatingsData;
+
   const mergedRatingsData = useMemo(() => {
     if (!ratingsData?.data) return null;
 
+    // Get all unique periods from both datasets
+    const allPeriods = new Set<string>();
+    ratingsData.data.forEach(p => allPeriods.add(p.period_start));
+    comparisonRatingsData?.data?.forEach(p => allPeriods.add(p.period_start));
+    categoryRatingsData?.data?.forEach(p => allPeriods.add(p.period_start));
+
+    const sortedPeriods = Array.from(allPeriods).sort();
+
     return {
       ...ratingsData,
-      data: ratingsData.data.map((point) => {
-        const cityPoint = cityRatingsData?.data?.find(
-          (cp) => cp.period_start === point.period_start
-        );
-        const categoryPoint = categoryRatingsData?.data?.find(
-          (cp) => cp.period_start === point.period_start
-        );
+      data: sortedPeriods.map((period) => {
+        const ratingPoint = ratingsData.data.find(p => p.period_start === period);
+        const comparisonPoint = comparisonRatingsData?.data?.find(p => p.period_start === period);
+        const categoryPoint = categoryRatingsData?.data?.find(p => p.period_start === period);
+
         return {
-          ...point,
-          city_avg_rating: cityPoint?.avg_rating || 0,
+          period_start: period,
+          avg_rating: ratingPoint?.avg_rating || 0,
+          review_count: ratingPoint?.review_count || 0,
+          city_avg_rating: comparisonPoint?.avg_rating || 0,
           category_avg_rating: categoryPoint?.avg_rating || 0,
         };
       }),
     };
-  }, [ratingsData, cityRatingsData, categoryRatingsData]);
+  }, [ratingsData, comparisonRatingsData, categoryRatingsData]);
+
+  // Determine which comparison data to use: neighborhood if selected, otherwise city
+  const comparisonSentimentData = selectedNeighborhood && business ? neighborhoodSentimentData : citySentimentData;
 
   const mergedSentimentData = useMemo(() => {
     if (!sentimentData?.data) return null;
 
+    // Get all unique periods from both datasets
+    const allPeriods = new Set<string>();
+    sentimentData.data.forEach(p => allPeriods.add(p.period_start));
+    comparisonSentimentData?.data?.forEach(p => allPeriods.add(p.period_start));
+    categorySentimentData?.data?.forEach(p => allPeriods.add(p.period_start));
+
+    const sortedPeriods = Array.from(allPeriods).sort();
+
     return {
       ...sentimentData,
-      data: sentimentData.data.map((point) => {
-        const cityPoint = citySentimentData?.data?.find(
-          (cp) => cp.period_start === point.period_start
-        );
-        const categoryPoint = categorySentimentData?.data?.find(
-          (cp) => cp.period_start === point.period_start
-        );
+      data: sortedPeriods.map((period) => {
+        const sentimentPoint = sentimentData.data.find(p => p.period_start === period);
+        const comparisonPoint = comparisonSentimentData?.data?.find(p => p.period_start === period);
+        const categoryPoint = categorySentimentData?.data?.find(p => p.period_start === period);
+
         return {
-          ...point,
-          city_avg_sentiment_score: cityPoint?.avg_sentiment_score || 0,
+          period_start: period,
+          avg_sentiment_score: sentimentPoint?.avg_sentiment_score || 0,
+          review_count: sentimentPoint?.review_count || 0,
+          city_avg_sentiment_score: comparisonPoint?.avg_sentiment_score || 0,
           category_avg_sentiment_score: categoryPoint?.avg_sentiment_score || 0,
         };
       }),
     };
-  }, [sentimentData, citySentimentData, categorySentimentData]);
+  }, [sentimentData, comparisonSentimentData, categorySentimentData]);
 
   // Calculate shared x-axis domain for both charts
   const sharedXAxisDomain = useMemo(() => {
@@ -174,22 +200,22 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
   }, [mergedSentimentData]);
 
   const ratingCompetitivePosition: CompetitivePosition | null = useMemo(() => {
-    if (!mergedRatingsData?.data || !cityRatingsData?.data) return null;
+    if (!mergedRatingsData?.data || !comparisonRatingsData?.data) return null;
     return calculateCompetitivePosition(
       mergedRatingsData.data,
-      cityRatingsData.data,
+      comparisonRatingsData.data,
       'avg_rating'
     );
-  }, [mergedRatingsData, cityRatingsData]);
+  }, [mergedRatingsData, comparisonRatingsData]);
 
   const sentimentCompetitivePosition: CompetitivePosition | null = useMemo(() => {
-    if (!mergedSentimentData?.data || !citySentimentData?.data) return null;
+    if (!mergedSentimentData?.data || !comparisonSentimentData?.data) return null;
     return calculateCompetitivePosition(
       mergedSentimentData.data,
-      citySentimentData.data,
+      comparisonSentimentData.data,
       'avg_sentiment_score'
     );
-  }, [mergedSentimentData, citySentimentData]);
+  }, [mergedSentimentData, comparisonSentimentData]);
 
   const ratingInsight = useMemo(() => {
     return generateRatingInsight(
@@ -307,8 +333,8 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                   {business && ratingCompetitivePosition && (
                     <CompetitivePositionBadge
                       position={ratingCompetitivePosition}
-                      comparisonType="city"
-                      comparisonName={business.city}
+                      comparisonType={selectedNeighborhood ? "neighborhood" : "city"}
+                      comparisonName={selectedNeighborhood ? selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : business.city}
                     />
                   )}
                 </div>
@@ -413,7 +439,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         strokeOpacity={LINE_STYLES.city.opacity}
                         dot={false}
                         activeDot={{ r: 6 }}
-                        name={`${business.city} Avg`}
+                        name={selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Avg` : `${business.city} Avg`}
                         isAnimationActive={false}
                       />
                     )}
@@ -449,8 +475,8 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                   {business && sentimentCompetitivePosition && (
                     <CompetitivePositionBadge
                       position={sentimentCompetitivePosition}
-                      comparisonType="city"
-                      comparisonName={business.city}
+                      comparisonType={selectedNeighborhood ? "neighborhood" : "city"}
+                      comparisonName={selectedNeighborhood ? selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : business.city}
                     />
                   )}
                 </div>
@@ -536,7 +562,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         strokeOpacity={LINE_STYLES.city.opacity}
                         dot={false}
                         activeDot={{ r: 6 }}
-                        name={`${business.city} Sentiment Avg`}
+                        name={selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Sentiment Avg` : `${business.city} Sentiment Avg`}
                         isAnimationActive={false}
                       />
                     )}
