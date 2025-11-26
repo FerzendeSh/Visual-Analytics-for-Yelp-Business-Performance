@@ -66,21 +66,29 @@ async def get_neighborhoods(
 async def get_neighborhood_boundaries(
     state: str = Query(..., min_length=2, max_length=2, description="State code (e.g., 'PA', 'CA')"),
     city: str = Query(..., min_length=1, description="City name"),
+    db: AsyncSession = Depends(get_async_session)
 ):
     """
     Get GeoJSON boundaries for neighborhoods in a specific city.
 
     Returns a GeoJSON FeatureCollection with neighborhood boundaries if available.
     """
-    # Normalize city name to match file naming convention
-    normalized_city = city.lower().replace(' ', '_').replace('.', '').replace('/', '_').replace('-', '_').replace("'", '')
-    city_state_key = f"{normalized_city}_{state.lower()}"
-    geojson_path = Path(__file__).parent.parent.parent / "public" / "neighborhoods" / f"{city_state_key}.geojson"
+    # Get the geojson filename from the database
+    repo = BusinessRepository(db)
+    geojson_filename = await repo.get_neighborhood_geojson_filename(state.upper(), city)
+
+    if not geojson_filename:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Neighborhood boundaries not available for {city}, {state}"
+        )
+
+    geojson_path = Path(__file__).parent.parent.parent / "public" / "neighborhoods" / geojson_filename
 
     if not geojson_path.exists():
         raise HTTPException(
             status_code=404,
-            detail=f"Neighborhood boundaries not available for {city}, {state}"
+            detail=f"Neighborhood boundaries file not found for {city}, {state}"
         )
 
     try:

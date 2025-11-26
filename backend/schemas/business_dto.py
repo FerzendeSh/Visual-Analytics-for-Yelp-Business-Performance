@@ -9,6 +9,7 @@ class BusinessDTO(BaseModel):
     city: str = Field(..., description="City where business is located")
     state: str = Field(..., description="State where business is located")
     neighborhood: Optional[str] = Field(None, description="Neighborhood where business is located")
+    neighborhood_geojson_file: Optional[str] = Field(None, description="Filename of the neighborhood boundary GeoJSON")
     latitude: float = Field(..., description="Latitude coordinate")
     longitude: float = Field(..., description="Longitude coordinate")
     review_count: int = Field(..., description="Total number of reviews")

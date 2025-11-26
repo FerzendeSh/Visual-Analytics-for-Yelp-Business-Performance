@@ -22,6 +22,7 @@ class Business(Base):
     city: Mapped[str] = mapped_column(String(100), index=True)
     state: Mapped[str] = mapped_column(String(50), index=True)
     neighborhood: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    neighborhood_geojson_file: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # Location data
     latitude: Mapped[float] = mapped_column(Float)

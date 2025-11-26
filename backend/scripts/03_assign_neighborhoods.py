@@ -13,7 +13,7 @@ import argparse
 import sys
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import geopandas as gpd
 from shapely.geometry import Point
@@ -48,7 +48,7 @@ async def get_businesses_by_city(state: str, city: str):
     async with async_session_maker() as session:
         result = await session.execute(
             text("""
-                SELECT business_id, city, latitude, longitude, neighborhood
+                SELECT business_id, city, latitude, longitude, neighborhood, neighborhood_geojson_file
                 FROM businesses
                 WHERE state = :state
                   AND city = :city
@@ -65,7 +65,7 @@ async def get_state_businesses(state: str):
     async with async_session_maker() as session:
         result = await session.execute(
             text("""
-                SELECT business_id, city, latitude, longitude, neighborhood
+                SELECT business_id, city, latitude, longitude, neighborhood, neighborhood_geojson_file
                 FROM businesses
                 WHERE state = :state
                   AND latitude IS NOT NULL
@@ -93,25 +93,58 @@ async def get_cities_in_state(state: str):
         return [row[0] for row in result.all()]
 
 
-def normalize_city_name(city: str) -> str:
-    """Normalize city name for filename matching."""
-    return city.lower().replace(' ', '_').replace('.', '').replace('/', '_').replace('-', '_').replace("'", '')
+def find_geojson_file(directory: Path, city: str, state: str) -> Optional[Path]:
+    """
+    Try to find a GeoJSON file using various naming conventions.
+    """
+    state_lower = state.lower()
+    
+    # Base normalization
+    normalized = city.lower().replace(' ', '_').replace('.', '').replace('/', '_').replace('-', '_').replace("'", '')
+    
+    # Generate candidates
+    candidates = [normalized]
+    
+    # Handle St. / Saint variations
+    if normalized.startswith('st_'):
+        candidates.append(normalized.replace('st_', 'saint_', 1))
+        candidates.append(normalized.replace('st_', 'st._', 1))
+    elif normalized.startswith('saint_'):
+        candidates.append(normalized.replace('saint_', 'st_', 1))
+        candidates.append(normalized.replace('saint_', 'st._', 1))
+        
+    # Handle hyphenated or multi-word cities (try first part)
+    if '_' in normalized:
+        candidates.append(normalized.split('_')[0])
+
+    # Check strict existence first
+    for candidate in candidates:
+        # Try single underscore
+        p1 = directory / f"{candidate}_{state_lower}.geojson"
+        if p1.exists():
+            return p1
+            
+        # Try double underscore (some files have this)
+        p2 = directory / f"{candidate}__{state_lower}.geojson"
+        if p2.exists():
+            return p2
+
+        # Try dot variation for St. (st._louis) if not already covered
+        if 'st_' in candidate:
+             p3 = directory / f"{candidate.replace('st_', 'st._')}_{state_lower}.geojson"
+             if p3.exists():
+                 return p3
+
+    return None
 
 
-def load_neighborhoods_for_city(city: str, state: str) -> Optional[gpd.GeoDataFrame]:
+def load_neighborhoods_for_city(city: str, state: str) -> Tuple[Optional[gpd.GeoDataFrame], Optional[str]]:
     """Load neighborhood boundaries for a specific city."""
-    city_normalized = normalize_city_name(city)
-    state_normalized = state.lower()
+    
+    neighborhood_file = find_geojson_file(NEIGHBORHOODS_DIR, city, state)
 
-    # Try exact match first
-    neighborhood_file = NEIGHBORHOODS_DIR / f"{city_normalized}_{state_normalized}.geojson"
-
-    # Also try with double underscore (some files have this)
-    if not neighborhood_file.exists():
-        neighborhood_file = NEIGHBORHOODS_DIR / f"{city_normalized}__{state_normalized}.geojson"
-
-    if not neighborhood_file.exists():
-        return None
+    if not neighborhood_file:
+        return None, None
 
     try:
         gdf = gpd.read_file(neighborhood_file)
@@ -120,10 +153,10 @@ def load_neighborhoods_for_city(city: str, state: str) -> Optional[gpd.GeoDataFr
             gdf.set_crs("EPSG:4326", inplace=True)
         elif gdf.crs.to_epsg() != 4326:
             gdf = gdf.to_crs("EPSG:4326")
-        return gdf
+        return gdf, neighborhood_file.name
     except Exception as e:
         print(f"    ERROR loading {neighborhood_file}: {e}")
-        return None
+        return None, None
 
 
 async def update_neighborhoods(dry_run: bool = False, batch_size: int = 100):
@@ -159,13 +192,13 @@ async def update_neighborhoods(dry_run: bool = False, batch_size: int = 100):
             cities_processed += 1
 
             # Load neighborhood data for this city
-            neighborhoods = load_neighborhoods_for_city(city, state)
+            neighborhoods, filename = load_neighborhoods_for_city(city, state)
 
             if neighborhoods is None:
                 print(f"  [{city}] No neighborhood data available, skipping")
                 continue
 
-            print(f"  [{city}] Loaded {len(neighborhoods)} neighborhoods")
+            print(f"  [{city}] Loaded {len(neighborhoods)} neighborhoods from {filename}")
             cities_with_data += 1
 
             # Get businesses for this city
@@ -184,6 +217,7 @@ async def update_neighborhoods(dry_run: bool = False, batch_size: int = 100):
                 lat = biz.latitude
                 lon = biz.longitude
                 current_neighborhood = biz.neighborhood
+                current_file = biz.neighborhood_geojson_file
 
                 # Create point
                 point = Point(lon, lat)
@@ -195,28 +229,33 @@ async def update_neighborhoods(dry_run: bool = False, batch_size: int = 100):
                     not_found_count += 1
                     continue
 
-                # Get neighborhood name (handle both 'neighborhood' and 'NAME' properties)
+                # Get neighborhood name (handle various naming conventions)
                 if 'neighborhood' in matches.iloc[0]:
                     new_neighborhood = matches.iloc[0]['neighborhood']
                 elif 'NAME' in matches.iloc[0]:
                     new_neighborhood = matches.iloc[0]['NAME']
+                elif 'Name' in matches.iloc[0]:
+                    new_neighborhood = matches.iloc[0]['Name']
+                elif 'name' in matches.iloc[0]:
+                    new_neighborhood = matches.iloc[0]['name']
                 else:
                     # Skip if no recognizable neighborhood property
                     not_found_count += 1
                     continue
 
-                # Skip if already correct
-                if current_neighborhood == new_neighborhood:
+                # Skip if already correct (both name AND file)
+                if current_neighborhood == new_neighborhood and current_file == filename:
                     continue
 
                 # Update
                 if dry_run:
                     if updated_count < 10:  # Show first 10 per city
-                        print(f"    [{i}] {business_id}: '{current_neighborhood}' -> '{new_neighborhood}'")
+                        print(f"    [{i}] {business_id}: '{current_neighborhood}' ({current_file}) -> '{new_neighborhood}' ({filename})")
                 else:
                     batch.append({
                         'business_id': business_id,
-                        'neighborhood': new_neighborhood
+                        'neighborhood': new_neighborhood,
+                        'neighborhood_geojson_file': filename
                     })
 
                     if len(batch) >= batch_size:
@@ -257,12 +296,14 @@ async def execute_batch_update(batch):
             await session.execute(
                 text("""
                     UPDATE businesses
-                    SET neighborhood = :neighborhood
+                    SET neighborhood = :neighborhood,
+                        neighborhood_geojson_file = :neighborhood_geojson_file
                     WHERE business_id = :business_id
                 """),
                 item
             )
         await session.commit()
+
 
 
 def main():

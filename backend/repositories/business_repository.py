@@ -284,3 +284,29 @@ class BusinessRepository(BusinessRepositoryInterface):
 
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_neighborhood_geojson_filename(self, state: str, city: str) -> Optional[str]:
+        """
+        Get the neighborhood geojson filename for a specific city.
+
+        Args:
+            state: State code (e.g., 'PA', 'CA')
+            city: City name
+
+        Returns:
+            Geojson filename if available, None otherwise
+        """
+        stmt = (
+            select(Business.neighborhood_geojson_file)
+            .where(
+                and_(
+                    Business.state == state,
+                    Business.city == city,
+                    Business.neighborhood_geojson_file.isnot(None)
+                )
+            )
+            .limit(1)
+        )
+
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()

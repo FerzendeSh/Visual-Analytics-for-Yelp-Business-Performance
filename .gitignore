@@ -126,3 +126,6 @@ backend/scripts/*/
 
 # Public data directory
 backend/public/
+backend/public_old/
+
+data/
