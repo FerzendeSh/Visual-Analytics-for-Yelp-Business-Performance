@@ -25,6 +25,10 @@ export const CATEGORICAL_COLORS = {
   categorical10: '#a84401', // Dark orange
   categorical11: '#273ea5', // Navy blue
   categorical12: '#780d35', // Burgundy
+  categorical13: '#ff0055ff',  // Dark purple
+  categorical14: '#00fc26ff', // Dark orange
+  categorical15: '#1038ebff', // Navy blue
+  categorical16: '#916c80ff', // Burgundy
 } as const;
 
 /**

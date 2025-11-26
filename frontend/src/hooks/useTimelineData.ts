@@ -74,7 +74,7 @@ export const useTimelineData = ({
       endDate || undefined,
       selectedCategory || undefined
     ),
-    enabled: !business && !selectedNeighborhood && !!selectedCity && !!selectedState,
+    enabled: !selectedNeighborhood && !!selectedCity && !!selectedState,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -86,7 +86,7 @@ export const useTimelineData = ({
   });
 
   if (business?.business_id) {
-    // When business is selected, combine business data with neighborhood data if available
+    // When business is selected, combine business data with neighborhood/city data if available
     if (selectedNeighborhood && neighborhoodQuery.data) {
       return {
         isLoading: businessQuery.isLoading || neighborhoodQuery.isLoading,
@@ -95,6 +95,19 @@ export const useTimelineData = ({
           ...businessQuery.data,
           neighborhood_ratings: neighborhoodQuery.data.neighborhood_ratings,
           neighborhood_sentiment: neighborhoodQuery.data.neighborhood_sentiment,
+        } : null,
+        primaryCategory: business.categories ? business.categories.split(',')[0].trim() : '',
+      };
+    }
+    // Include city data if a city is selected
+    if (selectedCity && selectedState && cityQuery.data) {
+      return {
+        isLoading: businessQuery.isLoading || cityQuery.isLoading,
+        error: businessQuery.error || cityQuery.error,
+        data: businessQuery.data ? {
+          ...businessQuery.data,
+          city_ratings: cityQuery.data.city_ratings,
+          city_sentiment: cityQuery.data.city_sentiment,
         } : null,
         primaryCategory: business.categories ? business.categories.split(',')[0].trim() : '',
       };

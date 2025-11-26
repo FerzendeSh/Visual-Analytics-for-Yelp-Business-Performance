@@ -21,7 +21,7 @@ import {
   Cell,
 } from 'recharts';
 import { CompetitiveSnapshot } from '../../api/endpoints/analytics';
-import { CHART_COLORS } from '../timeseries/chartConstants';
+import { CHART_COLORS, COMPARISON_COLORS } from '../timeseries/chartConstants';
 import { USE_CASE_COLORS } from '../../theme/cloudscapeColors';
 import { CARD_STYLE } from '../../theme/sharedStyles';
 
@@ -29,6 +29,8 @@ interface CompetitivePositioningChartProps {
   data: CompetitiveSnapshot | null;
   onBusinessSelect?: (businessId: string) => void;
   selectedBusinessId?: string | null;
+  comparisonBusinessIds?: string[];
+  myBusinessId?: string;
 }
 
 const getBusinessColor = (
@@ -36,10 +38,15 @@ const getBusinessColor = (
   reviewCount: number,
   avgRating: number,
   medianReviewCount: number,
-  isSelected: boolean
+  isMyBusiness: boolean,
+  isComparison: boolean
 ): string => {
-  if (isSelected) return CHART_COLORS.business;
+  // Highlight own business in primary color
+  if (isMyBusiness) return CHART_COLORS.business;
+  // Highlight comparison businesses in secondary color
+  if (isComparison) return USE_CASE_COLORS.primarySeries;
 
+  // Quadrant-based colors for other businesses
   if (rating >= avgRating && reviewCount >= medianReviewCount) {
     return USE_CASE_COLORS.marketLeader;
   } else if (rating >= avgRating && reviewCount < medianReviewCount) {
@@ -68,24 +75,51 @@ const getQuadrantLabel = (
   }
 };
 
+// Get comparison business stroke color by index (matches time series line colors)
+const getComparisonStrokeColor = (index: number): string => {
+  return COMPARISON_COLORS[index % COMPARISON_COLORS.length];
+};
+
 export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartProps> = ({
   data,
   onBusinessSelect,
   selectedBusinessId,
+  comparisonBusinessIds = [],
+  myBusinessId,
 }) => {
   const chartData = useMemo(() => {
     if (!data || !data.businesses) return [];
 
-    return data.businesses
+    let businesses = data.businesses
       .filter(b => b.stars !== undefined && b.stars !== null && b.review_count > 0)
       .map(b => ({
         x: Math.log10(b.review_count + 1), // Log scale for better distribution
         y: b.stars,
         rawReviewCount: b.review_count,
         business: b,
-        isSelected: b.business_id === selectedBusinessId,
+        isMyBusiness: b.business_id === myBusinessId,
+        isComparison: comparisonBusinessIds.includes(b.business_id),
       }));
-  }, [data, selectedBusinessId]);
+
+    // If myBusiness exists but is not in the current data (e.g., different city),
+    // add it to the chart for reference (not part of calculations)
+    if (myBusinessId && data.selected_business &&
+        !businesses.some(b => b.business.business_id === myBusinessId)) {
+      const myBiz = data.selected_business;
+      if (myBiz.stars !== undefined && myBiz.stars !== null && myBiz.review_count > 0) {
+        businesses.push({
+          x: Math.log10(myBiz.review_count + 1),
+          y: myBiz.stars,
+          rawReviewCount: myBiz.review_count,
+          business: myBiz,
+          isMyBusiness: true,
+          isComparison: false,
+        });
+      }
+    }
+
+    return businesses;
+  }, [data, myBusinessId, comparisonBusinessIds]);
 
   if (!data || chartData.length === 0) {
     return (
@@ -124,6 +158,9 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
         avgRating,
         medianReviewCount
       );
+      const isComparison = comparisonBusinessIds.includes(business.business_id);
+
+      const isMyBusiness = business.business_id === myBusinessId;
 
       return (
         <div
@@ -136,7 +173,19 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
           }}
         >
-          <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>{business.name}</p>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem' }}>
+            {business.name}
+            {isMyBusiness && (
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: CHART_COLORS.business }}>
+                ★ Your Business
+              </span>
+            )}
+            {isComparison && (
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: USE_CASE_COLORS.primarySeries }}>
+                ★ Comparison
+              </span>
+            )}
+          </p>
           <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: CHART_COLORS.textSecondary }}>
             {business.city}, {business.state}
           </p>
@@ -149,7 +198,7 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
               <span style={{ color: CHART_COLORS.textSecondary }}>Reviews:</span>{' '}
               <span style={{ fontWeight: 600 }}>{business.review_count.toLocaleString()}</span>
             </p>
-            <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', fontStyle: 'italic', color: getBusinessColor(business.stars, business.review_count, avgRating, medianReviewCount, false) }}>
+            <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', fontStyle: 'italic', color: getBusinessColor(business.stars, business.review_count, avgRating, medianReviewCount, isMyBusiness, isComparison) }}>
               {quadrant}
             </p>
           </div>
@@ -285,17 +334,56 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
                   entry.rawReviewCount,
                   avgRating,
                   medianReviewCount,
-                  entry.isSelected
+                  entry.isMyBusiness,
+                  entry.isComparison
                 );
+
+                const isSelected = selectedBusinessId === entry.business.business_id;
+                const hasSelection = !!selectedBusinessId;
+
+                // Get comparison index from comparisonBusinessIds
+                const comparisonIndex = entry.isComparison
+                  ? comparisonBusinessIds.findIndex(id => id === entry.business.business_id)
+                  : -1;
+
+                // Determine size and stroke based on state
+                let radius = entry.isMyBusiness ? 12 : (entry.isComparison ? 9 : 6);
+                let opacity = entry.isMyBusiness ? 1 : (entry.isComparison ? 0.85 : 0.6);
+                let stroke = entry.isMyBusiness ? '#FFD700' : 'none';
+                let strokeWidth = entry.isMyBusiness ? 3 : 0;
+                let filter = 'none';
+
+                // If a business is selected, fade out non-selected, non-my-business, non-comparison dots
+                if (hasSelection && !isSelected && !entry.isMyBusiness && !entry.isComparison) {
+                  opacity = opacity * 0.25;  // Make unselected dots pale
+                }
+
+                // For comparison businesses: add stroke matching their time series line color and glow effect
+                if (entry.isComparison && comparisonIndex >= 0) {
+                  stroke = getComparisonStrokeColor(comparisonIndex);
+                  strokeWidth = 2.5;
+                  // Add glow/shadow effect
+                  filter = `drop-shadow(0 0 8px ${stroke}) drop-shadow(0 0 4px ${stroke}40)`;
+                }
+
+                // For selected businesses: add glow effect
+                if (isSelected && !entry.isMyBusiness && !entry.isComparison) {
+                  radius = 10;
+                  stroke = CHART_COLORS.business;  // Purple - matches main business line in time series
+                  strokeWidth = 2.5;
+                  opacity = 1;
+                  filter = `drop-shadow(0 0 10px ${CHART_COLORS.business}) drop-shadow(0 0 6px ${CHART_COLORS.business}60)`;
+                }
+
                 return (
                   <Cell
                     key={`cell-${index}`}
                     fill={color}
-                    r={entry.isSelected ? 12 : 6}
-                    opacity={entry.isSelected ? 1 : 0.6}
-                    stroke={entry.isSelected ? color : 'none'}
-                    strokeWidth={entry.isSelected ? 2 : 0}
-                    style={{ cursor: 'pointer' }}
+                    r={radius}
+                    opacity={opacity}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    style={{ cursor: 'pointer', filter }}
                     onClick={() => {
                       if (onBusinessSelect && entry.business) {
                         onBusinessSelect(entry.business.business_id);

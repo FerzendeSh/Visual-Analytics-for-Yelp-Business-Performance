@@ -16,7 +16,7 @@ import {
   SentimentTimeline,
 } from '../../api/endpoints/analytics';
 
-import { CHART_COLORS, LINE_STYLES, CHART_CONFIG } from './chartConstants';
+import { CHART_COLORS, LINE_STYLES, CHART_CONFIG, COMPARISON_COLORS } from './chartConstants';
 import {
   calculateTrend,
   calculateCompetitivePosition,
@@ -55,6 +55,17 @@ function formatDateForPeriod(dateString: string, period: 'month' | 'year'): stri
   }
 }
 
+// Get color and stroke style for comparison business by index
+function getComparisonBusinessColor(index: number): { color: string; opacity: number; strokeWidth: number; strokeDasharray: string | undefined } {
+  const style = LINE_STYLES.comparison[index % LINE_STYLES.comparison.length];
+  return {
+    color: COMPARISON_COLORS[index % COMPARISON_COLORS.length],
+    opacity: 0.85,
+    strokeWidth: style.strokeWidth,
+    strokeDasharray: style.strokeDasharray,
+  };
+}
+
 interface TimeSeriesChartOptimizedProps {
   business: Business | null;
   selectedCity?: string;
@@ -75,6 +86,9 @@ interface TimeSeriesChartOptimizedProps {
   categorySentimentData?: SentimentTimeline | null;
   isLoading?: boolean;
   error?: any;
+  comparisonBusinesses?: Business[];
+  comparisonRatingsDataArray?: (RatingsTimeline | null)[];
+  comparisonSentimentDataArray?: (SentimentTimeline | null)[];
 }
 
 const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
@@ -97,18 +111,24 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
   categorySentimentData,
   isLoading = false,
   error = null,
+  comparisonBusinesses = [],
+  comparisonRatingsDataArray = [],
+  comparisonSentimentDataArray = [],
 }) => {
   // Determine which comparison data to use: neighborhood if selected, otherwise city
-  const comparisonRatingsData = selectedNeighborhood && business ? neighborhoodRatingsData : cityRatingsData;
+  const comparisonRatingsData = selectedNeighborhood ? neighborhoodRatingsData : cityRatingsData;
 
   const mergedRatingsData = useMemo(() => {
     if (!ratingsData?.data) return null;
 
-    // Get all unique periods from both datasets
+    // Get all unique periods from all datasets
     const allPeriods = new Set<string>();
     ratingsData.data.forEach(p => allPeriods.add(p.period_start));
     comparisonRatingsData?.data?.forEach(p => allPeriods.add(p.period_start));
     categoryRatingsData?.data?.forEach(p => allPeriods.add(p.period_start));
+    comparisonRatingsDataArray?.forEach(data => {
+      data?.data?.forEach(p => allPeriods.add(p.period_start));
+    });
 
     const sortedPeriods = Array.from(allPeriods).sort();
 
@@ -119,28 +139,40 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
         const comparisonPoint = comparisonRatingsData?.data?.find(p => p.period_start === period);
         const categoryPoint = categoryRatingsData?.data?.find(p => p.period_start === period);
 
-        return {
+        const dataPoint: any = {
           period_start: period,
           avg_rating: ratingPoint?.avg_rating || 0,
           review_count: ratingPoint?.review_count || 0,
           city_avg_rating: comparisonPoint?.avg_rating || 0,
           category_avg_rating: categoryPoint?.avg_rating || 0,
         };
+
+        // Add comparison business ratings
+        comparisonRatingsDataArray?.forEach((data, index) => {
+          const point = data?.data?.find(p => p.period_start === period);
+          dataPoint[`comparison_${index}_avg_rating`] = point?.avg_rating || 0;
+          dataPoint[`comparison_${index}_review_count`] = point?.review_count || 0;
+        });
+
+        return dataPoint;
       }),
     };
-  }, [ratingsData, comparisonRatingsData, categoryRatingsData]);
+  }, [ratingsData, comparisonRatingsData, categoryRatingsData, comparisonRatingsDataArray]);
 
   // Determine which comparison data to use: neighborhood if selected, otherwise city
-  const comparisonSentimentData = selectedNeighborhood && business ? neighborhoodSentimentData : citySentimentData;
+  const comparisonSentimentData = selectedNeighborhood ? neighborhoodSentimentData : citySentimentData;
 
   const mergedSentimentData = useMemo(() => {
     if (!sentimentData?.data) return null;
 
-    // Get all unique periods from both datasets
+    // Get all unique periods from all datasets
     const allPeriods = new Set<string>();
     sentimentData.data.forEach(p => allPeriods.add(p.period_start));
     comparisonSentimentData?.data?.forEach(p => allPeriods.add(p.period_start));
     categorySentimentData?.data?.forEach(p => allPeriods.add(p.period_start));
+    comparisonSentimentDataArray?.forEach(data => {
+      data?.data?.forEach(p => allPeriods.add(p.period_start));
+    });
 
     const sortedPeriods = Array.from(allPeriods).sort();
 
@@ -151,16 +183,25 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
         const comparisonPoint = comparisonSentimentData?.data?.find(p => p.period_start === period);
         const categoryPoint = categorySentimentData?.data?.find(p => p.period_start === period);
 
-        return {
+        const dataPoint: any = {
           period_start: period,
           avg_sentiment_score: sentimentPoint?.avg_sentiment_score || 0,
           review_count: sentimentPoint?.review_count || 0,
           city_avg_sentiment_score: comparisonPoint?.avg_sentiment_score || 0,
           category_avg_sentiment_score: categoryPoint?.avg_sentiment_score || 0,
         };
+
+        // Add comparison business sentiment scores
+        comparisonSentimentDataArray?.forEach((data, index) => {
+          const point = data?.data?.find(p => p.period_start === period);
+          dataPoint[`comparison_${index}_avg_sentiment_score`] = point?.avg_sentiment_score || 0;
+          dataPoint[`comparison_${index}_review_count`] = point?.review_count || 0;
+        });
+
+        return dataPoint;
       }),
     };
-  }, [sentimentData, comparisonSentimentData, categorySentimentData]);
+  }, [sentimentData, comparisonSentimentData, categorySentimentData, comparisonSentimentDataArray]);
 
   // Calculate shared x-axis domain for both charts
   const sharedXAxisDomain = useMemo(() => {
@@ -439,7 +480,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         strokeOpacity={LINE_STYLES.city.opacity}
                         dot={false}
                         activeDot={{ r: 6 }}
-                        name={selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Avg` : `${business.city} Avg`}
+                        name={selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Avg` : `${selectedCity || business.city} Avg`}
                         isAnimationActive={false}
                       />
                     )}
@@ -458,6 +499,25 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         isAnimationActive={false}
                       />
                     )}
+                    {comparisonBusinesses.map((compBusiness, index) => {
+                      const colorInfo = getComparisonBusinessColor(index);
+                      return (
+                        <Line
+                          key={`comparison-rating-${index}`}
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey={`comparison_${index}_avg_rating`}
+                          stroke={colorInfo.color}
+                          strokeWidth={colorInfo.strokeWidth}
+                          strokeDasharray={colorInfo.strokeDasharray}
+                          strokeOpacity={colorInfo.opacity}
+                          dot={false}
+                          activeDot={{ r: 6 }}
+                          name={compBusiness.name}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -562,7 +622,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         strokeOpacity={LINE_STYLES.city.opacity}
                         dot={false}
                         activeDot={{ r: 6 }}
-                        name={selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Sentiment Avg` : `${business.city} Sentiment Avg`}
+                        name={selectedNeighborhood ? `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Sentiment Avg` : `${selectedCity || business.city} Sentiment Avg`}
                         isAnimationActive={false}
                       />
                     )}
@@ -580,6 +640,24 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         isAnimationActive={false}
                       />
                     )}
+                    {comparisonBusinesses.map((compBusiness, index) => {
+                      const colorInfo = getComparisonBusinessColor(index);
+                      return (
+                        <Line
+                          key={`comparison-sentiment-${index}`}
+                          type="monotone"
+                          dataKey={`comparison_${index}_avg_sentiment_score`}
+                          stroke={colorInfo.color}
+                          strokeWidth={colorInfo.strokeWidth}
+                          strokeDasharray={colorInfo.strokeDasharray}
+                          strokeOpacity={colorInfo.opacity}
+                          dot={false}
+                          activeDot={{ r: 6 }}
+                          name={compBusiness.name}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
