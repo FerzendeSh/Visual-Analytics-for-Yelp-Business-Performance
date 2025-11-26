@@ -60,6 +60,12 @@
 .header-actions {
   display: flex;
   gap: 1rem;
+  align-items: center;
+}
+
+.header-search-wrapper {
+  display: flex;
+  align-items: center;
 }
 
 .header-button {

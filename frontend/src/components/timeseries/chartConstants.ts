@@ -1,9 +1,9 @@
 import { CATEGORICAL_COLORS, STATUS_COLORS, withAlpha } from '../../theme/cloudscapeColors';
 
 export const CHART_COLORS = {
-  business: CATEGORICAL_COLORS.categorical1,
-  city: CATEGORICAL_COLORS.categorical3,
-  category: CATEGORICAL_COLORS.categorical2,
+  business: CATEGORICAL_COLORS.categorical4,  // Purple - distinct from scatter plot quadrants
+  city: CATEGORICAL_COLORS.categorical5,      // Orange - distinct from scatter plot quadrants
+  category: CATEGORICAL_COLORS.categorical3,  // Teal - distinct from scatter plot quadrants
   improving: STATUS_COLORS.positive,
   declining: STATUS_COLORS.high,
   stable: STATUS_COLORS.neutral,
@@ -14,6 +14,20 @@ export const CHART_COLORS = {
   textSecondary: '#d2d2d4ff',
   textMuted: '#aaccff',
 } as const;
+
+// Comparison business colors - distinct and distinguishable from Cloudscape palette
+// Carefully selected to avoid conflicts with CHART_COLORS (business=purple, city=orange, category=teal)
+export const COMPARISON_COLORS = [
+  CATEGORICAL_COLORS.categorical2,   // Pink
+  CATEGORICAL_COLORS.categorical6,   // Dark Blue
+  CATEGORICAL_COLORS.categorical7,   // Dark Pink
+  CATEGORICAL_COLORS.categorical8,   // Dark Teal
+  CATEGORICAL_COLORS.categorical9,   // Dark Purple
+  CATEGORICAL_COLORS.categorical10,  // Dark Orange
+  CATEGORICAL_COLORS.categorical11,  // Navy Blue
+  CATEGORICAL_COLORS.categorical12,  // Burgundy
+] as const;
+
 export const LINE_STYLES = {
   business: {
     strokeWidth: 3,
@@ -30,6 +44,17 @@ export const LINE_STYLES = {
     strokeDasharray: undefined,
     opacity: 0.8,
   },
+  // Comparison business line styles - all solid lines
+  comparison: [
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+    { strokeWidth: 2.5, strokeDasharray: undefined, opacity: 0.9 },      // Solid
+  ] as const,
 } as const;
 export const CHART_CONFIG = {
   height: 300,

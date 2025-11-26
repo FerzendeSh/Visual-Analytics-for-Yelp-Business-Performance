@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useMyBusiness } from '../../context/BusinessContext';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -9,22 +10,13 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
   const location = useLocation();
+  const { myBusiness } = useMyBusiness();
 
   const menuItems = [
     {
       path: '/',
       label: 'Home',
       icon: '🏠'
-    },
-    {
-      path: '/dashboard',
-      label: 'Dashboard',
-      icon: '📊'
-    },
-    {
-      path: '/analytics',
-      label: 'Analytics',
-      icon: '📈'
     }
   ];
 
@@ -60,6 +52,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed = false, onToggle }) => {
       {!isCollapsed && (
         <div className="sidebar-footer">
           <div className="sidebar-info">
+            <div className="my-business-info">
+              <p className="my-business-label">My Business</p>
+              <p className="my-business-name">{myBusiness?.name || 'Loading...'}</p>
+            </div>
             <p className="sidebar-version">v1.0.0</p>
           </div>
         </div>

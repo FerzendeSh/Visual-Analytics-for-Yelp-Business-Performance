@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './BusinessMap.css';
 import { useViewportBusinesses } from '../../hooks/useViewportBusinesses';
 import { getNeighborhoodBoundaries, getCityBoundary } from '../../api/endpoints/locations';
+import { STATUS_COLORS, BLUE_SCALE } from '../../theme/cloudscapeColors';
 
 interface Business {
   business_id: string;
@@ -35,6 +36,11 @@ interface BusinessMapProps {
   } | null;
   onBusinessSelect?: (business: Business) => void;
   onMapCityChange?: (city: string, state: string) => void; // NEW: Called when map viewport changes to a different city
+  onAddComparison?: (business: Business) => void;
+  onRemoveComparison?: (businessId: string) => void;
+  myBusinessId?: string;
+  comparisonBusinessIds?: string[];
+  maxComparisons?: number;
   selectedCity?: string;
   selectedNeighborhood?: string;
   selectedCategory?: string;
@@ -59,6 +65,11 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   targetLocation = null,
   onBusinessSelect,
   onMapCityChange,
+  onAddComparison,
+  onRemoveComparison,
+  myBusinessId,
+  comparisonBusinessIds = [],
+  maxComparisons = 5,
   selectedCity = "",
   selectedNeighborhood = "",
   selectedCategory = "",
@@ -552,7 +563,7 @@ useEffect(() => {
               type="fill"
               source="city-boundary"
               paint={{
-                'fill-color': '#ef4444',
+                'fill-color': STATUS_COLORS.high,
                 'fill-opacity': selectedNeighborhood ? 0.05 : 0.15,
               }}
             />
@@ -561,7 +572,7 @@ useEffect(() => {
               type="line"
               source="city-boundary"
               paint={{
-                'line-color': '#dc2626',
+                'line-color': STATUS_COLORS.high,
                 'line-width': selectedNeighborhood ? 1 : 3,
                 'line-opacity': selectedNeighborhood ? 0.3 : 0.9,
               }}
@@ -587,7 +598,7 @@ useEffect(() => {
                 type="fill"
                 source="neighborhood-boundaries"
                 paint={{
-                  'fill-color': '#3b82f6',
+                  'fill-color': BLUE_SCALE.blue500,
                   'fill-opacity': 0.2,
                 }}
                 filter={['==', ['get', 'NAME'], normalizedNeighborhood]}
@@ -597,7 +608,7 @@ useEffect(() => {
                 type="line"
                 source="neighborhood-boundaries"
                 paint={{
-                  'line-color': '#1e40af',
+                  'line-color': BLUE_SCALE.blue900,
                   'line-width': 4,
                   'line-opacity': 1,
                 }}
@@ -614,7 +625,7 @@ useEffect(() => {
               type="fill"
               source="neighborhood-boundaries-all"
               paint={{
-                'fill-color': '#3b82f6',
+                'fill-color': BLUE_SCALE.blue500,
                 'fill-opacity': 0.08,
               }}
             />
@@ -684,6 +695,12 @@ useEffect(() => {
                 <div
                   className={`marker-pin ${business.is_open ? "open" : "closed"}`}
                   title={business.name}
+                  style={{
+                    borderWidth: business.business_id === myBusinessId ? '4px' :
+                                 comparisonBusinessIds.includes(business.business_id) ? '3px' : '0px',
+                    borderColor: business.business_id === myBusinessId ? '#FFD700' : 'rgba(255, 255, 255, 0.8)',
+                    boxSizing: 'border-box'
+                  }}
                 >
                   <span className="marker-star">{business.stars}</span>
                 </div>
@@ -721,6 +738,37 @@ useEffect(() => {
                   </p>
                 )}
               </div>
+              {popupInfo.business_id !== myBusinessId && (
+                <div className="popup-actions">
+                  {comparisonBusinessIds.includes(popupInfo.business_id) ? (
+                    <button
+                      className="popup-btn popup-btn-remove"
+                      onClick={() => {
+                        onRemoveComparison?.(popupInfo.business_id);
+                      }}
+                    >
+                      ✓ In Comparison
+                    </button>
+                  ) : comparisonBusinessIds.length >= maxComparisons ? (
+                    <button
+                      className="popup-btn popup-btn-disabled"
+                      disabled
+                      title="Maximum 5 businesses allowed"
+                    >
+                      Max 5 Reached
+                    </button>
+                  ) : (
+                    <button
+                      className="popup-btn popup-btn-add"
+                      onClick={() => {
+                        onAddComparison?.(popupInfo);
+                      }}
+                    >
+                      + Add to Comparison
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </Popup>
         )}

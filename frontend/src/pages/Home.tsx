@@ -4,14 +4,17 @@ import { BusinessMap } from '../components/map';
 import TimeSeriesChartOptimized from '../components/timeseries/TimeSeriesChartOptimized';
 import { FilterControlPanel } from '../components/controls';
 import CompetitivePositioningChart from '../components/competitive/CompetitivePositioningChart';
+import ComparisonBar from '../components/dashboard/ComparisonBar';
 import { Business } from '../api';
 import { useTimelineData } from '../hooks/useTimelineData';
 import { useBusinesses } from '../hooks/useBusinesses';
 import { useCompetitiveSnapshot } from '../hooks/useCompetitiveSnapshot';
+import { useMyBusiness } from '../context/BusinessContext';
+import { useComparisonTimelines } from '../hooks/useComparisonTimelines';
 import { CARD_STYLE } from '../theme/sharedStyles';
 
 const Home: React.FC = () => {
-  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const { myBusiness, comparisonBusinesses, addComparison, removeComparison, clearComparisons, maxComparisons, selectedBusiness, setSelectedBusiness } = useMyBusiness();
 
   const { data: businesses = [], isLoading: loading, error: queryError } = useBusinesses();
   const error = queryError ? (queryError as Error).message : null;
@@ -30,20 +33,17 @@ const Home: React.FC = () => {
       setSelectedCity("");
       setSelectedState("");
       setSelectedNeighborhood(""); // Clear neighborhood when city changes
-      setSelectedBusiness(null);
     } else {
       const [city, state] = cityState.split('|');
       setSelectedCity(city || "");
       setSelectedState(state || "");
       setSelectedNeighborhood(""); // Clear neighborhood when city changes
-      setSelectedBusiness(null);
     }
   }, []);
 
   const handleMapCityChange = useCallback((city: string, state: string) => {
     setSelectedCity(city);
     setSelectedState(state);
-    setSelectedBusiness(null);
   }, []);
 
   const handleResetFilters = useCallback(() => {
@@ -57,15 +57,19 @@ const Home: React.FC = () => {
     setSelectedYear(new Date().getFullYear());
   }, []);
 
+  const handleScatterPlotSelect = useCallback((business: any) => {
+    setSelectedBusiness(business);
+  }, [setSelectedBusiness]);
+
   const timelineParams = useMemo(() => ({
-    business: selectedBusiness,
+    business: myBusiness,
     selectedCity: selectedCity || "",
-    selectedState: selectedBusiness?.state || selectedState || "PA",
+    selectedState: selectedState || "PA",
     selectedCategory: selectedCategory || "",
     selectedNeighborhood: selectedNeighborhood || "",
     period,
     selectedYear,
-  }), [selectedBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, selectedYear]);
+  }), [myBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, selectedYear]);
 
   const {
     isLoading: timelineLoading,
@@ -74,8 +78,8 @@ const Home: React.FC = () => {
     primaryCategory,
   } = useTimelineData(timelineParams);
 
-  const competitiveCity = selectedBusiness?.city || selectedCity || "";
-  const competitiveState = selectedBusiness?.state || selectedState || "PA";
+  const competitiveCity = selectedCity || myBusiness?.city || "";
+  const competitiveState = selectedState || myBusiness?.state || "PA";
 
   const {
     data: competitiveData,
@@ -86,7 +90,17 @@ const Home: React.FC = () => {
     state: competitiveState,
     neighborhood: selectedNeighborhood || "",
     category: selectedCategory || "",
-    businessId: selectedBusiness?.business_id || "",
+    businessId: myBusiness?.business_id || "",
+  });
+
+  // Fetch timeline data for comparison businesses
+  const {
+    ratingsDataArray: comparisonRatingsDataArray,
+    sentimentDataArray: comparisonSentimentDataArray,
+  } = useComparisonTimelines({
+    comparisonBusinesses,
+    selectedCategory,
+    period,
   });
 
   const cityCenter = useMemo(() => {
@@ -157,7 +171,11 @@ const Home: React.FC = () => {
                 onPeriodChange={setPeriod}
                 onYearChange={setSelectedYear}
                 onResetFilters={handleResetFilters}
-                onBusinessSelect={setSelectedBusiness}
+                onBusinessSelect={(business) => {
+                  if (business) {
+                    addComparison(business);
+                  }
+                }}
               />
 
               <div style={{
@@ -190,9 +208,14 @@ const Home: React.FC = () => {
                       selectedCategory={selectedCategory}
                       selectedRating={selectedRating}
                       selectedStatus={selectedStatus}
-                      selectedBusiness={selectedBusiness}
-                      onBusinessSelect={setSelectedBusiness}
                       onMapCityChange={handleMapCityChange}
+                      onAddComparison={addComparison}
+                      onRemoveComparison={removeComparison}
+                      onBusinessSelect={setSelectedBusiness}
+                      myBusinessId={myBusiness?.business_id}
+                      comparisonBusinessIds={comparisonBusinesses.map(b => b.business_id)}
+                      maxComparisons={maxComparisons}
+                      selectedBusiness={selectedBusiness}
                     />
                   </div>
                 </div>
@@ -216,37 +239,15 @@ const Home: React.FC = () => {
                   ) : (
                     <CompetitivePositioningChart
                       data={competitiveData || null}
-                      selectedBusinessId={selectedBusiness?.business_id}
+                      comparisonBusinessIds={comparisonBusinesses.map(b => b.business_id)}
+                      myBusinessId={myBusiness?.business_id}
                       onBusinessSelect={(businessId) => {
-                        // First try to find in loaded businesses
-                        let business = businesses.find(b => b.business_id === businessId);
-
-                        // If not found, look in competitive data and convert it
-                        if (!business && competitiveData?.businesses) {
-                          const competitiveBusiness = competitiveData.businesses.find(
-                            b => b.business_id === businessId
-                          );
-                          if (competitiveBusiness) {
-                            // Convert CompetitiveBusinessData to Business
-                            business = {
-                              business_id: competitiveBusiness.business_id,
-                              name: competitiveBusiness.name,
-                              city: competitiveBusiness.city,
-                              state: competitiveBusiness.state,
-                              latitude: competitiveBusiness.latitude,
-                              longitude: competitiveBusiness.longitude,
-                              review_count: competitiveBusiness.review_count,
-                              stars: competitiveBusiness.stars,
-                              categories: competitiveBusiness.categories,
-                              is_open: competitiveBusiness.is_open,
-                            };
-                          }
-                        }
-
+                        const business = competitiveData?.businesses?.find(b => b.business_id === businessId);
                         if (business) {
-                          setSelectedBusiness(business);
+                          handleScatterPlotSelect(business);
                         }
                       }}
+                      selectedBusinessId={selectedBusiness?.business_id}
                     />
                   )}
                 </div>
@@ -280,9 +281,9 @@ const Home: React.FC = () => {
                     minHeight: 0,
                   }}>
                     <TimeSeriesChartOptimized
-                      business={selectedBusiness}
+                      business={myBusiness}
                       selectedCity={selectedCity}
-                      selectedState={selectedBusiness?.state || "PA"}
+                      selectedState={selectedState || myBusiness?.state || "PA"}
                       selectedCategory={selectedCategory}
                       selectedNeighborhood={selectedNeighborhood}
                       primaryCategory={primaryCategory}
@@ -294,6 +295,9 @@ const Home: React.FC = () => {
                       categoryRatingsData={(timelineData as any)?.category_ratings || null}
                       isLoading={timelineLoading}
                       error={timelineError}
+                      comparisonBusinesses={comparisonBusinesses}
+                      comparisonRatingsDataArray={comparisonRatingsDataArray}
+                      comparisonSentimentDataArray={comparisonSentimentDataArray}
                     />
                   </div>
                 </div>
@@ -328,9 +332,9 @@ const Home: React.FC = () => {
                     minHeight: 0,
                   }}>
                     <TimeSeriesChartOptimized
-                      business={selectedBusiness}
+                      business={myBusiness}
                       selectedCity={selectedCity}
-                      selectedState={selectedBusiness?.state || "PA"}
+                      selectedState={selectedState || myBusiness?.state || "PA"}
                       selectedCategory={selectedCategory}
                       selectedNeighborhood={selectedNeighborhood}
                       primaryCategory={primaryCategory}
@@ -342,6 +346,9 @@ const Home: React.FC = () => {
                       categorySentimentData={(timelineData as any)?.category_sentiment || null}
                       isLoading={timelineLoading}
                       error={timelineError}
+                      comparisonBusinesses={comparisonBusinesses}
+                      comparisonRatingsDataArray={comparisonRatingsDataArray}
+                      comparisonSentimentDataArray={comparisonSentimentDataArray}
                     />
                   </div>
                 </div>
@@ -350,6 +357,12 @@ const Home: React.FC = () => {
           )}
         </section>
       </div>
+      <ComparisonBar
+        myBusiness={myBusiness}
+        comparisonBusinesses={comparisonBusinesses}
+        onRemove={removeComparison}
+        onClear={clearComparisons}
+      />
     </Layout>
   );
 };
