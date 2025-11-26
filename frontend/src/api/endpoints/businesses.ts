@@ -1,0 +1,80 @@
+/**
+ * Business API endpoints
+ */
+
+import { get } from '../apiClient';
+import { Business } from '../types';
+
+/**
+ * Get all businesses with optional filtering
+ */
+export const getBusinesses = (options?: {
+  state?: string;
+  city?: string;
+  skip?: number;
+  limit?: number;
+}): Promise<Business[]> => {
+  return get<Business[]>('/api/businesses/', {
+    params: {
+      state: options?.state,
+      city: options?.city,
+      skip: options?.skip || 0,
+      limit: options?.limit || 100,
+    },
+  });
+};
+
+/**
+ * Get businesses within map viewport bounds with optional filters
+ */
+export const getBusinessesInViewport = (bounds: {
+  south: number;
+  north: number;
+  west: number;
+  east: number;
+  state?: string;
+  city?: string;
+  category?: string;
+  min_rating?: number;
+  is_open?: number;
+  limit?: number;
+}): Promise<Business[]> => {
+  return get<Business[]>('/api/businesses/viewport', {
+    params: {
+      south: bounds.south,
+      north: bounds.north,
+      west: bounds.west,
+      east: bounds.east,
+      state: bounds.state,
+      city: bounds.city,
+      category: bounds.category,
+      min_rating: bounds.min_rating,
+      is_open: bounds.is_open,
+      limit: bounds.limit || 1000,
+    },
+  });
+};
+
+/**
+ * Get a single business by ID
+ */
+export const getBusinessById = (businessId: string): Promise<Business> => {
+  return get<Business>(`/api/businesses/${businessId}`);
+};
+
+/**
+ * Search businesses by query (name, city, state, categories)
+ * Supports fuzzy matching and multi-term search
+ */
+export const searchBusinesses = (query: string, options?: {
+  skip?: number;
+  limit?: number;
+}): Promise<Business[]> => {
+  return get<Business[]>('/api/businesses/search', {
+    params: {
+      q: query,
+      skip: options?.skip || 0,
+      limit: options?.limit || 20,
+    },
+  });
+};

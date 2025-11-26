@@ -13,13 +13,17 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@cloudscape-design/design-tokens": "^3.0.64",
     "@reduxjs/toolkit": "^2.9.1",
+    "@tanstack/react-query": "^5.90.9",
     "maplibre-gl": "^5.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-map-gl": "^8.1.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.4",
+    "react-search-input": "^0.11.3",
+    "recharts": "^2.10.3",
     "supercluster": "^8.0.1",
     "typescript": "^5.9.3"
   },

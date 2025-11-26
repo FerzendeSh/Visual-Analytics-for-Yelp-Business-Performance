@@ -36,9 +36,15 @@ class BusinessRepositoryInterface(ABC):
         north: float,
         west: float,
         east: float,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
+        neighborhood: Optional[str] = None,
+        category: Optional[str] = None,
+        min_rating: Optional[float] = None,
+        is_open: Optional[int] = None,
         limit: int = 1000
     ) -> List[Business]:
-        """Get businesses within a geographic viewport."""
+        """Get businesses within a geographic viewport with optional filters."""
         pass
 
     @abstractmethod
@@ -59,6 +65,11 @@ class BusinessRepositoryInterface(ABC):
     @abstractmethod
     async def get_cities_by_state(self, state: str) -> List[str]:
         """Get list of unique cities in a state."""
+        pass
+
+    @abstractmethod
+    async def get_neighborhoods_by_city(self, state: str, city: str) -> List[str]:
+        """Get list of unique neighborhoods in a city."""
         pass
 
 
@@ -207,6 +218,50 @@ class ReviewRepositoryInterface(ABC):
 
         Args:
             state: State code
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of dicts with keys: period_start, avg_sentiment_score, review_count, business_count
+        """
+        pass
+
+    @abstractmethod
+    async def get_category_ratings_over_time(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get average ratings over time for all businesses in a category.
+
+        Args:
+            category: Category name
+            period: Time period for aggregation ('day', 'week', 'month', 'year')
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of dicts with keys: period_start, avg_rating, review_count, business_count
+        """
+        pass
+
+    @abstractmethod
+    async def get_category_sentiment_over_time(
+        self,
+        category: str,
+        period: str = 'month',
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get average sentiment scores over time for all businesses in a category.
+
+        Args:
+            category: Category name
             period: Time period for aggregation ('day', 'week', 'month', 'year')
             start_date: Optional start date filter
             end_date: Optional end date filter

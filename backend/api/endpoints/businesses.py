@@ -44,20 +44,53 @@ async def get_businesses_in_viewport(
     north: float = Query(..., ge=-90, le=90, description="Northern latitude bound"),
     west: float = Query(..., ge=-180, le=180, description="Western longitude bound"),
     east: float = Query(..., ge=-180, le=180, description="Eastern longitude bound"),
+    state: Optional[str] = Query(None, min_length=2, max_length=2, description="Filter by state code (e.g., 'TN', 'PA')"),
+    city: Optional[str] = Query(None, min_length=1, description="Filter by city name"),
+    neighborhood: Optional[str] = Query(None, min_length=1, description="Filter by neighborhood name"),
+    category: Optional[str] = Query(None, min_length=1, description="Filter by category (partial match)"),
+    min_rating: Optional[float] = Query(None, ge=0, le=5, description="Filter by minimum star rating (0-5)"),
+    is_open: Optional[int] = Query(None, ge=0, le=1, description="Filter by open status (0=closed, 1=open)"),
     limit: int = Query(1000, ge=1, le=5000, description="Maximum number of businesses to return"),
     business_service: BusinessServiceInterface = Depends(get_business_service)
 ):
     """
-    Get businesses within a geographic viewport (bounding box).
+    Get businesses within a geographic viewport (bounding box) with optional filters.
 
-    Used for cross-state map panning. Returns businesses whose coordinates fall within
-    the specified latitude/longitude bounds.
+    **Primary use case**: Dynamic map loading - load only businesses visible in the current map view.
+
+    **Viewport bounds** (required):
+    - Define the geographic area to search within
+    - Automatically updates as user pans/zooms the map
+
+    **Optional filters** (combine for precise results):
+    - `state`: State code (e.g., 'TN', 'PA')
+    - `city`: City name (e.g., 'Nashville', 'Philadelphia')
+    - `category`: Category keyword (e.g., 'Restaurants', 'Coffee')
+    - `min_rating`: Minimum star rating (0-5)
+    - `is_open`: Business status (0=closed, 1=open)
+
+    **Performance**:
+    - Returns up to 5000 businesses per request
+    - Results ordered by rating and review count
+    - Much faster than loading all businesses and filtering client-side
+
+    **Examples**:
+    - Map viewport only: `?south=36.0&north=36.3&west=-87.0&east=-86.5`
+    - Restaurants in viewport: `?south=36.0&north=36.3&west=-87.0&east=-86.5&category=Restaurants`
+    - 4+ star open businesses: `?south=36.0&north=36.3&west=-87.0&east=-86.5&min_rating=4&is_open=1`
+    - Nashville only: `?south=36.0&north=36.3&west=-87.0&east=-86.5&city=Nashville&state=TN`
     """
     return await business_service.get_businesses_in_viewport(
         south=south,
         north=north,
         west=west,
         east=east,
+        state=state,
+        city=city,
+        neighborhood=neighborhood,
+        category=category,
+        min_rating=min_rating,
+        is_open=is_open,
         limit=limit
     )
 

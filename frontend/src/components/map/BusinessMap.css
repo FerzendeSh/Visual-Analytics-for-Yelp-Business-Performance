@@ -1,10 +1,10 @@
 .business-map-container {
   position: relative;
   width: 100%;
-  height: 600px;
+  height: 100%;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(1, 1, 27, 0.859);
 }
 
 .marker {
@@ -12,33 +12,35 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .marker-pin {
   width: 32px;
   height: 32px;
   border-radius: 50% 50% 50% 0;
-  background: #127017;
+  background: #67a353; /* Cloudscape status-positive (green for open) */
   position: relative;
   transform: rotate(-45deg);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s, background 0.2s;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
 .marker-pin:hover {
   transform: rotate(-45deg) scale(1.15);
-  background: #5568d3;
+  background: #688ae8; /* Cloudscape categorical-1 (blue) */
 }
 
+
 .marker-pin.closed {
-  background: #771f1f;
+  background: #ba2e0f; /* Cloudscape status-high (red for closed) */
 }
 
 .marker-pin.closed:hover {
-  background: #c53030;
+  background: #3759ce; /* Cloudscape blue-600 */
 }
 
 .marker-star {
@@ -91,12 +93,12 @@
 }
 
 .status-open {
-  color: #0c6f3a;
+  color: #67a353; /* Cloudscape status-positive */
   font-weight: 600;
 }
 
 .status-closed {
-  color: #e53e3e;
+  color: #ba2e0f; /* Cloudscape status-high */
   font-weight: 600;
 }
 
@@ -109,16 +111,66 @@
   font-style: italic;
 }
 
+.popup-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.popup-btn {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.popup-btn-add {
+  background: #688ae8;
+  color: white;
+  border-color: #688ae8;
+}
+
+.popup-btn-add:hover {
+  background: #5978e3;
+  border-color: #5978e3;
+  box-shadow: 0 2px 8px rgba(104, 138, 232, 0.3);
+}
+
+.popup-btn-remove {
+  background: #67a353;
+  color: white;
+  border-color: #67a353;
+}
+
+.popup-btn-remove:hover {
+  background: #41902c;
+  border-color: #41902c;
+  box-shadow: 0 2px 8px rgba(103, 163, 83, 0.3);
+}
+
+.popup-btn-disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  border-color: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .map-info {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: white;
-  padding: 8px 12px;
+  background: rgb(2, 7, 45);
+  padding: 4px 8px;
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-size: 13px;
-  color: #4a5568;
+  box-shadow: 0 2px 4px rgba(234, 232, 238, 0.1);
+  font-size: 11px;
+  color: #ebeef0;
   font-weight: 500;
   pointer-events: none;
 }
@@ -156,14 +208,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #687096 0%, #210551 100%);
-  color: white;
+  background: linear-gradient(135deg, #3759ce 0%, #1b2b88 100%); /* Cloudscape blue-600 to blue-1200 */
+  color: rgb(196, 196, 199);
   border-radius: 50%;
   font-weight: bold;
   font-size: 14px;
   cursor: pointer;
-  border: 3px solid white;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border: 3px solid #3759ce; /* Cloudscape blue-600 */
+  box-shadow: 0 4px 8px rgba(104, 138, 232, 0.3); /* Cloudscape categorical-1 with alpha */
   transition: transform 0.2s, box-shadow 0.2s;
   min-width: 30px;
   min-height: 30px;
@@ -171,8 +223,8 @@
 
 .cluster-marker:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(135deg, #191e38 0%, #06146d 100%);
+  box-shadow: 0 6px 12px rgba(104, 138, 232, 0.5); /* Cloudscape categorical-1 with alpha */
+  background: linear-gradient(135deg, #688ae8 0%, #3759ce 100%); /* Cloudscape categorical-1 to blue-600 */
 }
 
 .filters-container {
@@ -201,42 +253,118 @@
   border-color: #007bff;
 }
 
-.status-toggle-group {
+
+/* Map Controls */
+.map-controls {
+  position: absolute;
+  top: 70px;
+  left: 10px;
   display: flex;
-  gap: 0;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(115, 115, 231, 0.3);
+  padding: 10px;
+  z-index: 1000;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+}
+
+.map-control-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1.5px solid #d0d5dd;
   border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.status-toggle-btn {
-  padding: 10px 20px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  border: none;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(115, 115, 231, 0.2);
+  font-family: inherit;
 }
 
-.status-toggle-btn:last-child {
-  border-right: none;
+.map-control-btn:hover {
+  background: linear-gradient(135deg, #f0f2f5 0%, #e9ecef 100%);
+  border-color: #adb5bd;
+  box-shadow: 0 6px 16px rgba(115, 115, 231, 0.3);
+  transform: translateY(-2px);
 }
 
-.status-toggle-btn:hover:not(.active) {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
+.map-control-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) inset, inset 0 1px 0 rgba(0, 0, 0, 0.05);
 }
 
-.status-toggle-btn.active {
-  background: linear-gradient(135deg, #021147 0%, #031a20 100%);
-  color: #fff;
+.control-icon {
+  font-size: 18px;
   font-weight: 700;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(11, 3, 82, 0.4);
+  color: #212529;
+  line-height: 1;
 }
 
-.status-toggle-btn:active {
-  transform: scale(0.98);
+.orientation-icon {
+  width: 22px;
+  height: 22px;
+  color: #212529;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+.zoom-in-btn .control-icon {
+  color: #000000;
+  font-weight: 600;
+}
+
+.zoom-in-btn:hover .control-icon {
+  color: #1a1a1a;
+}
+
+.zoom-out-btn .control-icon {
+  color: #000000;
+  font-weight: 600;
+}
+
+.zoom-out-btn:hover .control-icon {
+  color: #1a1a1a;
+}
+
+.reset-orientation-btn .orientation-icon {
+  color: #67a353; /* Cloudscape status-positive */
+}
+
+.reset-orientation-btn:hover .orientation-icon {
+  color: #1a7302; /* Cloudscape green-600 */
+}
+
+.zoom-level-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1.5px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 8px 6px;
+  margin-top: 4px;
+  min-width: 44px;
+  box-shadow: 0 4px 12px rgba(115, 115, 231, 0.2);
+}
+
+.zoom-level-label {
+  font-size: 9px;
+  color: #000000;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.zoom-level-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000000;
+  line-height: 1;
 }

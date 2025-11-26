@@ -11,30 +11,11 @@ from repositories.interfaces import BusinessRepositoryInterface
 
 
 class BusinessRepository(BusinessRepositoryInterface):
-    """
-    Concrete implementation of business repository.
-    Handles all database operations for Business entities.
-    """
 
     def __init__(self, db: AsyncSession):
-        """
-        Initialize repository with database session.
-
-        Args:
-            db: Async database session
-        """
         self.db = db
 
     async def get_by_id(self, business_id: str) -> Optional[Business]:
-        """
-        Get a single business by ID.
-
-        Args:
-            business_id: Unique business identifier
-
-        Returns:
-            Business object or None if not found
-        """
         result = await self.db.execute(
             select(Business).where(Business.business_id == business_id)
         )
@@ -83,31 +64,62 @@ class BusinessRepository(BusinessRepositoryInterface):
         north: float,
         west: float,
         east: float,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
+        neighborhood: Optional[str] = None,
+        category: Optional[str] = None,
+        min_rating: Optional[float] = None,
+        is_open: Optional[int] = None,
         limit: int = 1000
     ) -> List[Business]:
         """
-        Get businesses within a geographic viewport (bounding box).
+        Get businesses within a geographic viewport (bounding box) with optional filters.
 
         Args:
             south: Southern latitude bound
             north: Northern latitude bound
             west: Western longitude bound
             east: Eastern longitude bound
+            state: Filter by state code (e.g., 'PA', 'CA')
+            city: Filter by city name
+            category: Filter by category (partial match, case-insensitive)
+            min_rating: Filter by minimum star rating
+            is_open: Filter by open status (0 = closed, 1 = open)
             limit: Maximum number of businesses to return
 
         Returns:
-            List of Business objects within the viewport
+            List of Business objects within the viewport matching filters
         """
+        # Build base viewport query
+        conditions = [
+            Business.latitude >= south,
+            Business.latitude <= north,
+            Business.longitude >= west,
+            Business.longitude <= east
+        ]
+
+        # Add optional filters
+        if state is not None:
+            conditions.append(Business.state == state)
+
+        if city is not None:
+            conditions.append(Business.city == city)
+
+        if neighborhood is not None:
+            conditions.append(Business.neighborhood == neighborhood)
+
+        if category is not None:
+            conditions.append(Business.categories.ilike(f"%{category}%"))
+
+        if min_rating is not None:
+            conditions.append(Business.stars >= min_rating)
+
+        if is_open is not None:
+            conditions.append(Business.is_open == is_open)
+
         stmt = (
             select(Business)
-            .where(
-                and_(
-                    Business.latitude >= south,
-                    Business.latitude <= north,
-                    Business.longitude >= west,
-                    Business.longitude <= east
-                )
-            )
+            .where(and_(*conditions))
             .order_by(Business.stars.desc(), Business.review_count.desc())
             .limit(limit)
         )
@@ -244,3 +256,57 @@ class BusinessRepository(BusinessRepositoryInterface):
 
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_neighborhoods_by_city(self, state: str, city: str) -> List[str]:
+        """
+        Get list of unique neighborhoods in a specific city.
+
+        Args:
+            state: State code (e.g., 'PA', 'CA')
+            city: City name
+
+        Returns:
+            List of neighborhood names sorted alphabetically
+        """
+        stmt = (
+            select(Business.neighborhood)
+            .where(
+                and_(
+                    Business.state == state,
+                    Business.city == city,
+                    Business.neighborhood.isnot(None),
+                    Business.neighborhood != ''
+                )
+            )
+            .distinct()
+            .order_by(Business.neighborhood)
+        )
+
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_neighborhood_geojson_filename(self, state: str, city: str) -> Optional[str]:
+        """
+        Get the neighborhood geojson filename for a specific city.
+
+        Args:
+            state: State code (e.g., 'PA', 'CA')
+            city: City name
+
+        Returns:
+            Geojson filename if available, None otherwise
+        """
+        stmt = (
+            select(Business.neighborhood_geojson_file)
+            .where(
+                and_(
+                    Business.state == state,
+                    Business.city == city,
+                    Business.neighborhood_geojson_file.isnot(None)
+                )
+            )
+            .limit(1)
+        )
+
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()

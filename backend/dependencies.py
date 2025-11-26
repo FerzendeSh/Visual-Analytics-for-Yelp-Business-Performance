@@ -69,7 +69,8 @@ def get_business_service(
 
 def get_analytics_service(
     review_repository: ReviewRepositoryInterface = Depends(get_review_repository),
-    business_repository: BusinessRepositoryInterface = Depends(get_business_repository)
+    business_repository: BusinessRepositoryInterface = Depends(get_business_repository),
+    db: AsyncSession = Depends(get_async_session)
 ) -> AnalyticsServiceInterface:
     """
     Get analytics service instance with all dependencies injected.
@@ -77,8 +78,9 @@ def get_analytics_service(
     Args:
         review_repository: Review repository dependency
         business_repository: Business repository dependency
+        db: Database session for metrics repository
 
     Returns:
         AnalyticsServiceInterface: Concrete service implementation
     """
-    return AnalyticsService(review_repository, business_repository)
+    return AnalyticsService(review_repository, business_repository, db)

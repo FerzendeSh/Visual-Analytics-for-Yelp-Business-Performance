@@ -42,9 +42,6 @@ venv.bak/
 *.code-workspace
 .history/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
 
 # Environment variables
 .env
@@ -123,3 +120,12 @@ backend/data/
 
 # Other
 commit_message_rules.md
+
+# Script data directories - ignore all directories inside scripts/
+backend/scripts/*/
+
+# Public data directory
+backend/public/
+backend/public_old/
+
+data/
