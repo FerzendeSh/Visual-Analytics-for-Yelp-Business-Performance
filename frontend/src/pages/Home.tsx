@@ -1,64 +1,132 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
-
-interface Business {
-  business_id: string;
-  name: string;
-  city: string;
-  state: string;
-  latitude: number;
-  longitude: number;
-  review_count: number;
-  stars: number;
-  categories: string;
-  is_open: number;
-}
+import TimeSeriesChartOptimized from '../components/timeseries/TimeSeriesChartOptimized';
+import { FilterControlPanel } from '../components/controls';
+import CompetitivePositioningChart from '../components/competitive/CompetitivePositioningChart';
+import ComparisonBar from '../components/dashboard/ComparisonBar';
+import { Business } from '../api';
+import { useTimelineData } from '../hooks/useTimelineData';
+import { useBusinesses } from '../hooks/useBusinesses';
+import { useCompetitiveSnapshot } from '../hooks/useCompetitiveSnapshot';
+import { useMyBusiness } from '../context/BusinessContext';
+import { useComparisonTimelines } from '../hooks/useComparisonTimelines';
+import { CARD_STYLE } from '../theme/sharedStyles';
 
 const Home: React.FC = () => {
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { myBusiness, comparisonBusinesses, addComparison, removeComparison, clearComparisons, maxComparisons, selectedBusiness, setSelectedBusiness } = useMyBusiness();
 
-  useEffect(() => {
-    const loadBusinesses = async () => {
-      try {
-        setLoading(true);
-        // Fetch from public directory
-        const response = await fetch('/subset_businesses.json');
+  const { data: businesses = [], isLoading: loading, error: queryError } = useBusinesses();
+  const error = queryError ? (queryError as Error).message : null;
 
-        if (!response.ok) {
-          throw new Error('Failed to load business data');
-        }
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
+  const [period, setPeriod] = useState<'month' | 'year'>('year');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-        const text = await response.text();
-        const lines = text.trim().split('\n');
-        const parsedBusinesses = lines.map(line => JSON.parse(line));
-
-        setBusinesses(parsedBusinesses);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading businesses:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load businesses');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadBusinesses();
+  const handleCityChange = useCallback((cityState: string) => {
+    if (!cityState) {
+      setSelectedCity("");
+      setSelectedState("");
+      setSelectedNeighborhood(""); // Clear neighborhood when city changes
+    } else {
+      const [city, state] = cityState.split('|');
+      setSelectedCity(city || "");
+      setSelectedState(state || "");
+      setSelectedNeighborhood(""); // Clear neighborhood when city changes
+    }
   }, []);
+
+  const handleMapCityChange = useCallback((city: string, state: string) => {
+    setSelectedCity(city);
+    setSelectedState(state);
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setSelectedCity("");
+    setSelectedState("");
+    setSelectedCategory("");
+    setSelectedNeighborhood("");
+    setSelectedRating(null);
+    setSelectedStatus(null);
+    setPeriod('year');
+    setSelectedYear(new Date().getFullYear());
+  }, []);
+
+  const handleScatterPlotSelect = useCallback((business: any) => {
+    setSelectedBusiness(business);
+  }, [setSelectedBusiness]);
+
+  const timelineParams = useMemo(() => ({
+    business: myBusiness,
+    selectedCity: selectedCity || "",
+    selectedState: selectedState || "PA",
+    selectedCategory: selectedCategory || "",
+    selectedNeighborhood: selectedNeighborhood || "",
+    period,
+    selectedYear,
+  }), [myBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, selectedYear]);
+
+  const {
+    isLoading: timelineLoading,
+    error: timelineError,
+    data: timelineData,
+    primaryCategory,
+  } = useTimelineData(timelineParams);
+
+  const competitiveCity = selectedCity || myBusiness?.city || "";
+  const competitiveState = selectedState || myBusiness?.state || "PA";
+
+  const {
+    data: competitiveData,
+    isLoading: competitiveLoading,
+    error: competitiveError,
+  } = useCompetitiveSnapshot({
+    city: competitiveCity,
+    state: competitiveState,
+    neighborhood: selectedNeighborhood || "",
+    category: selectedCategory || "",
+    businessId: myBusiness?.business_id || "",
+  });
+
+  // Fetch timeline data for comparison businesses
+  const {
+    ratingsDataArray: comparisonRatingsDataArray,
+    sentimentDataArray: comparisonSentimentDataArray,
+  } = useComparisonTimelines({
+    comparisonBusinesses,
+    selectedCategory,
+    period,
+  });
+
+  const cityCenter = useMemo(() => {
+    if (!competitiveData?.businesses || competitiveData.businesses.length === 0) {
+      return null;
+    }
+
+    const lats = competitiveData.businesses.map(b => b.latitude).filter(lat => !isNaN(lat));
+    const lngs = competitiveData.businesses.map(b => b.longitude).filter(lng => !isNaN(lng));
+
+    if (lats.length === 0 || lngs.length === 0) return null;
+
+    return {
+      latitude: lats.reduce((a, b) => a + b) / lats.length,
+      longitude: lngs.reduce((a, b) => a + b) / lngs.length,
+      zoom: selectedNeighborhood ? 14 : 11, // Zoom closer for neighborhoods
+    };
+  }, [competitiveData, selectedNeighborhood]);
 
   return (
     <Layout
       title="Yelp Business Analytics Dashboard"
-      subtitle="Explore businesses across the United States"
       showSidebar={true}
     >
-      <div style={{ padding: '1rem' }}>
-        <section style={{ marginBottom: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Business Locations Map</h3>
-
+      <div style={{ padding: '1.5rem' }}>
+        <section>
           {loading && (
             <div style={{
               padding: '2rem',
@@ -77,57 +145,224 @@ const Home: React.FC = () => {
               background: '#fff5f5',
               border: '1px solid #feb2b2',
               borderRadius: '8px',
-              color: '#c53030'
+              color: '#c53030',
+              marginBottom: '1rem'
             }}>
               Error: {error}
             </div>
           )}
 
           {!loading && !error && (
-            <BusinessMap businesses={businesses} />
+            <>
+              <FilterControlPanel
+                businesses={businesses}
+                selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
+                selectedCategory={selectedCategory}
+                selectedNeighborhood={selectedNeighborhood}
+                selectedRating={selectedRating}
+                selectedStatus={selectedStatus}
+                period={period}
+                selectedYear={selectedYear}
+                onCityChange={handleCityChange}
+                onCategoryChange={setSelectedCategory}
+                onNeighborhoodChange={setSelectedNeighborhood}
+                onRatingChange={setSelectedRating}
+                onStatusChange={setSelectedStatus}
+                onPeriodChange={setPeriod}
+                onYearChange={setSelectedYear}
+                onResetFilters={handleResetFilters}
+                onBusinessSelect={(business) => {
+                  if (business) {
+                    addComparison(business);
+                  }
+                }}
+              />
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1.3fr 1fr',
+                gridTemplateRows: '1fr 1fr',
+                gap: '0.8rem',
+                minHeight: '800px',
+              }}>
+                <div style={{
+                  gridRow: '1',
+                  gridColumn: '1',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: '1px solid #e2e8f0',
+                  background: '#fff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  <div style={{
+                    flex: 1,
+                    position: 'relative',
+                    width: '100%',
+                  }}>
+                    <BusinessMap
+                      useViewportLoading={true}
+                      targetLocation={cityCenter}
+                      selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
+                      selectedNeighborhood={selectedNeighborhood}
+                      selectedCategory={selectedCategory}
+                      selectedRating={selectedRating}
+                      selectedStatus={selectedStatus}
+                      onMapCityChange={handleMapCityChange}
+                      onAddComparison={addComparison}
+                      onRemoveComparison={removeComparison}
+                      onBusinessSelect={setSelectedBusiness}
+                      myBusinessId={myBusiness?.business_id}
+                      comparisonBusinessIds={comparisonBusinesses.map(b => b.business_id)}
+                      maxComparisons={maxComparisons}
+                      selectedBusiness={selectedBusiness}
+                    />
+                  </div>
+                </div>
+
+                <div style={{
+                  ...CARD_STYLE,
+                  gridRow: '2',
+                  gridColumn: '1',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  {competitiveLoading ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: '#718096' }}>
+                      Loading competitive data...
+                    </div>
+                  ) : competitiveError ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+                      Error loading competitive data
+                    </div>
+                  ) : (
+                    <CompetitivePositioningChart
+                      data={competitiveData || null}
+                      comparisonBusinessIds={comparisonBusinesses.map(b => b.business_id)}
+                      myBusinessId={myBusiness?.business_id}
+                      onBusinessSelect={(businessId) => {
+                        const business = competitiveData?.businesses?.find(b => b.business_id === businessId);
+                        if (business) {
+                          handleScatterPlotSelect(business);
+                        }
+                      }}
+                      selectedBusinessId={selectedBusiness?.business_id}
+                    />
+                  )}
+                </div>
+                <div style={{
+                  ...CARD_STYLE,
+                  gridRow: '1',
+                  gridColumn: '2',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderBottom: '1px solid #9b9c9eff',
+                    background: '#0f1b2a',
+                    flexShrink: 0,
+                  }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#ffffffff'
+                    }}>
+                      Rating Trends
+                    </h3>
+                  </div>
+                  <div style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    padding: '0.5rem',
+                    minHeight: 0,
+                  }}>
+                    <TimeSeriesChartOptimized
+                      business={myBusiness}
+                      selectedCity={selectedCity}
+                      selectedState={selectedState || myBusiness?.state || "PA"}
+                      selectedCategory={selectedCategory}
+                      selectedNeighborhood={selectedNeighborhood}
+                      primaryCategory={primaryCategory}
+                      isRatingsOnly={true}
+                      period={period}
+                      ratingsData={(timelineData as any)?.business_ratings || (timelineData as any)?.neighborhood_ratings || (timelineData as any)?.city_ratings || null}
+                      cityRatingsData={(timelineData as any)?.city_ratings || null}
+                      neighborhoodRatingsData={(timelineData as any)?.neighborhood_ratings || null}
+                      categoryRatingsData={(timelineData as any)?.category_ratings || null}
+                      isLoading={timelineLoading}
+                      error={timelineError}
+                      comparisonBusinesses={comparisonBusinesses}
+                      comparisonRatingsDataArray={comparisonRatingsDataArray}
+                      comparisonSentimentDataArray={comparisonSentimentDataArray}
+                    />
+                  </div>
+                </div>
+
+                <div style={{
+                  ...CARD_STYLE,
+                  gridRow: '2',
+                  gridColumn: '2',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderBottom: '1px solid #e2e8f0',
+                    background: '#0f1b2a ',
+                    flexShrink: 0,
+                  }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#ffffffff'
+                    }}>
+                      Sentiment Trends
+                    </h3>
+                  </div>
+                  <div style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    padding: '0.5rem',
+                    minHeight: 0,
+                  }}>
+                    <TimeSeriesChartOptimized
+                      business={myBusiness}
+                      selectedCity={selectedCity}
+                      selectedState={selectedState || myBusiness?.state || "PA"}
+                      selectedCategory={selectedCategory}
+                      selectedNeighborhood={selectedNeighborhood}
+                      primaryCategory={primaryCategory}
+                      isSentimentOnly={true}
+                      period={period}
+                      sentimentData={(timelineData as any)?.business_sentiment || (timelineData as any)?.neighborhood_sentiment || (timelineData as any)?.city_sentiment || null}
+                      citySentimentData={(timelineData as any)?.city_sentiment || null}
+                      neighborhoodSentimentData={(timelineData as any)?.neighborhood_sentiment || null}
+                      categorySentimentData={(timelineData as any)?.category_sentiment || null}
+                      isLoading={timelineLoading}
+                      error={timelineError}
+                      comparisonBusinesses={comparisonBusinesses}
+                      comparisonRatingsDataArray={comparisonRatingsDataArray}
+                      comparisonSentimentDataArray={comparisonSentimentDataArray}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </section>
-
-        <nav style={{ marginTop: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Quick Navigation</h3>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            <li style={{ marginBottom: '1rem' }}>
-              <Link
-                to="/dashboard"
-                style={{
-                  fontSize: '1.1rem',
-                  color: '#667eea',
-                  textDecoration: 'none',
-                  display: 'inline-block',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                  borderRadius: '4px',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Go to Dashboard →
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/analytics"
-                style={{
-                  fontSize: '1.1rem',
-                  color: '#667eea',
-                  textDecoration: 'none',
-                  display: 'inline-block',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                  borderRadius: '4px',
-                  transition: 'all 0.2s'
-                }}
-              >
-                View Analytics →
-              </Link>
-            </li>
-          </ul>
-        </nav>
       </div>
+      <ComparisonBar
+        myBusiness={myBusiness}
+        comparisonBusinesses={comparisonBusinesses}
+        onRemove={removeComparison}
+        onClear={clearComparisons}
+      />
     </Layout>
   );
 };

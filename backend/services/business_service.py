@@ -3,6 +3,7 @@ Business service layer.
 Contains business logic, validation, and orchestration between controller and repository.
 """
 from typing import List, Optional
+from datetime import datetime
 from fastapi import HTTPException, status
 
 from models.business import Business
@@ -10,34 +11,70 @@ from repositories.interfaces import BusinessRepositoryInterface
 from services.interfaces import BusinessServiceInterface
 
 
+def is_business_currently_open(hours: Optional[dict]) -> int:
+    """
+    Calculate if a business is currently open based on its operating hours.
+
+    Args:
+        hours: Dictionary with day names as keys and time ranges as values.
+               Example: {"Monday": "7:0-20:0", "Tuesday": "7:0-20:0", ...}
+
+    Returns:
+        1 if business is currently open, 0 if closed or hours are unavailable.
+    """
+    if not hours:
+        return 1
+
+    try:
+        current_time = datetime.now()
+        day_name = current_time.strftime("%A")
+        current_hour = current_time.hour
+        current_minute = current_time.minute
+
+        if day_name not in hours:
+            return 0
+
+        time_range = hours[day_name]
+
+        if not time_range or time_range.strip() == "":
+            return 0
+
+        parts = time_range.split("-")
+        if len(parts) != 2:
+            return 1
+
+        opening_str, closing_str = parts
+
+        opening_time = opening_str.split(":")
+        closing_time = closing_str.split(":")
+
+        if len(opening_time) < 2 or len(closing_time) < 2:
+            return 1
+
+        opening_hour = int(opening_time[0])
+        opening_minute = int(opening_time[1])
+        closing_hour = int(closing_time[0])
+        closing_minute = int(closing_time[1])
+
+        current_minutes = current_hour * 60 + current_minute
+        opening_minutes = opening_hour * 60 + opening_minute
+        closing_minutes = closing_hour * 60 + closing_minute
+
+        if opening_minutes <= current_minutes < closing_minutes:
+            return 1
+        else:
+            return 0
+
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return 1
+
+
 class BusinessService(BusinessServiceInterface):
-    """
-    Concrete implementation of business service.
-    Handles business logic and coordinates with repository layer.
-    """
 
     def __init__(self, business_repository: BusinessRepositoryInterface):
-        """
-        Initialize service with repository dependency.
-
-        Args:
-            business_repository: Repository for business data access
-        """
         self.business_repository = business_repository
 
     async def get_business_by_id(self, business_id: str) -> Business:
-        """
-        Get a single business by ID.
-
-        Args:
-            business_id: Unique business identifier
-
-        Returns:
-            Business object
-
-        Raises:
-            HTTPException: If business not found
-        """
         business = await self.business_repository.get_by_id(business_id)
 
         if not business:
@@ -46,6 +83,7 @@ class BusinessService(BusinessServiceInterface):
                 detail=f"Business with ID '{business_id}' not found"
             )
 
+        business.is_open = is_business_currently_open(business.hours)
         return business
 
     async def get_businesses(
@@ -55,26 +93,19 @@ class BusinessService(BusinessServiceInterface):
         skip: int = 0,
         limit: int = 100
     ) -> List[Business]:
-        """
-        Get list of businesses with optional filtering and pagination.
-
-        Args:
-            state: Filter by state code (e.g., 'PA', 'CA') - will be normalized to uppercase
-            city: Filter by city name
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-
-        Returns:
-            List of Business objects
-        """
         normalized_state = state.upper() if state else None
 
-        return await self.business_repository.get_all(
+        businesses = await self.business_repository.get_all(
             state=normalized_state,
             city=city,
             skip=skip,
             limit=limit
         )
+
+        for business in businesses:
+            business.is_open = is_business_currently_open(business.hours)
+
+        return businesses
 
     async def get_businesses_in_viewport(
         self,
@@ -82,26 +113,14 @@ class BusinessService(BusinessServiceInterface):
         north: float,
         west: float,
         east: float,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
+        neighborhood: Optional[str] = None,
+        category: Optional[str] = None,
+        min_rating: Optional[float] = None,
+        is_open: Optional[int] = None,
         limit: int = 1000
     ) -> List[Business]:
-        """
-        Get businesses within a geographic viewport (bounding box).
-
-        Validates bounds before querying.
-
-        Args:
-            south: Southern latitude bound
-            north: Northern latitude bound
-            west: Western longitude bound
-            east: Eastern longitude bound
-            limit: Maximum number of businesses to return
-
-        Returns:
-            List of Business objects within the viewport
-
-        Raises:
-            HTTPException: If bounds are invalid
-        """
         if south >= north:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -114,13 +133,30 @@ class BusinessService(BusinessServiceInterface):
                 detail="West longitude must be less than east longitude"
             )
 
-        return await self.business_repository.get_in_viewport(
+        # Normalize state to uppercase
+        normalized_state = state.upper() if state else None
+
+        businesses = await self.business_repository.get_in_viewport(
             south=south,
             north=north,
             west=west,
             east=east,
+            state=normalized_state,
+            city=city,
+            neighborhood=neighborhood,
+            category=category,
+            min_rating=min_rating,
+            is_open=None,
             limit=limit
         )
+
+        for business in businesses:
+            business.is_open = is_business_currently_open(business.hours)
+
+        if is_open is not None:
+            businesses = [b for b in businesses if b.is_open == is_open]
+
+        return businesses
 
     async def search_businesses(
         self,
@@ -128,19 +164,13 @@ class BusinessService(BusinessServiceInterface):
         skip: int = 0,
         limit: int = 20
     ) -> List[Business]:
-        """
-        Search businesses using advanced fuzzy matching.
-
-        Args:
-            query: Search query - supports multi-term and fuzzy matching
-            skip: Number of records to skip
-            limit: Maximum number of results to return
-
-        Returns:
-            List of Business objects ranked by relevance
-        """
-        return await self.business_repository.search(
+        businesses = await self.business_repository.search(
             query=query,
             skip=skip,
             limit=limit
         )
+
+        for business in businesses:
+            business.is_open = is_business_currently_open(business.hours)
+
+        return businesses

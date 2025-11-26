@@ -2,7 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './Header.css';
 
-const Header: React.FC = () => {
+interface HeaderProps {}
+
+const Header: React.FC<HeaderProps> = () => {
   return (
     <header className="header">
       <div className="header-content">

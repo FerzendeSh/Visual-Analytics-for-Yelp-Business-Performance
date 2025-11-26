@@ -25,6 +25,7 @@ from models.base import Base
 
 from models.business import Business
 from models.photo import Photo
+from models.cluster import ClusterRun, Cluster, BusinessCluster
 
 target_metadata = Base.metadata
 
