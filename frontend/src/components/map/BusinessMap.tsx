@@ -49,10 +49,10 @@ interface BusinessMapProps {
   selectedBusiness?: Business | null;
 }
 
-// Nashville, TN - default starting location
-const NASHVILLE_CENTER = {
-  longitude: -86.7816,
-  latitude: 36.1627,
+// Fallback default location - will be replaced by myBusiness location if available
+const FALLBACK_CENTER = {
+  longitude: -86.1312087,
+  latitude: 39.7716811,
   zoom: 12,
 };
 
@@ -61,7 +61,7 @@ type PointFeature = GeoJSON.Feature<GeoJSON.Point, Business>;
 const BusinessMap: React.FC<BusinessMapProps> = ({
   businesses: propBusinesses,
   useViewportLoading = true, // Default to viewport loading
-  initialViewState = NASHVILLE_CENTER, // Default to Nashville
+  initialViewState, // Will be computed from myBusiness if not provided
   targetLocation = null,
   onBusinessSelect,
   onMapCityChange,
@@ -77,11 +77,32 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   selectedStatus = null,
   selectedBusiness = null,
 }) => {
+  // Compute initial view state from myBusiness if not explicitly provided
+  const computedInitialViewState = useMemo(() => {
+    if (initialViewState) {
+      return initialViewState;
+    }
+
+    // Try to get location from myBusinessId in the businesses list
+    if (myBusinessId && propBusinesses && propBusinesses.length > 0) {
+      const myBiz = propBusinesses.find(b => b.business_id === myBusinessId);
+      if (myBiz && myBiz.latitude && myBiz.longitude) {
+        return {
+          longitude: myBiz.longitude,
+          latitude: myBiz.latitude,
+          zoom: 12,
+        };
+      }
+    }
+
+    return FALLBACK_CENTER;
+  }, [initialViewState, myBusinessId, propBusinesses]);
+
   const mapRef = useRef<MapRef>(null);
   const [popupInfo, setPopupInfo] = useState<Business | null>(null);
-  const [viewport, setViewport] = useState({ ...initialViewState });
+  const [viewport, setViewport] = useState({ ...computedInitialViewState });
   const previousCityRef = useRef<string>("");
-  const viewportRef = useRef({ ...initialViewState });
+  const viewportRef = useRef({ ...computedInitialViewState });
   const isMapClickRef = useRef(false);
   const isProgrammaticMoveRef = useRef(false);
 
@@ -118,12 +139,22 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     return state || undefined;
   }, [selectedCity]);
 
+  // Log the filters being sent
+  console.log('Viewport filters:', {
+    state: parsedState || undefined,
+    city: parsedCity || undefined,
+    neighborhood: selectedNeighborhood || undefined,
+    category: selectedCategory || undefined,
+    min_rating: selectedRating || undefined,
+    is_open: selectedStatus !== null ? selectedStatus : undefined,
+  });
+
   const { data: viewportBusinesses, isLoading: viewportLoading } = useViewportBusinesses({
     bounds: debouncedBounds || {
-      south: initialViewState.latitude - 0.2,
-      north: initialViewState.latitude + 0.2,
-      west: initialViewState.longitude - 0.2,
-      east: initialViewState.longitude + 0.2,
+      south: computedInitialViewState.latitude - 0.2,
+      north: computedInitialViewState.latitude + 0.2,
+      west: computedInitialViewState.longitude - 0.2,
+      east: computedInitialViewState.longitude + 0.2,
     },
     filters: {
       state: parsedState || undefined,
@@ -153,16 +184,21 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     if (useViewportLoading) {
       setAccumulatedBusinesses(new Map());
       loadedBoundsRef.current.clear();
-      // Force a viewport update to refetch businesses with new filters
-      const bounds = mapRef.current?.getBounds();
-      if (bounds) {
-        setDebouncedBounds({
-          south: bounds.getSouth(),
-          north: bounds.getNorth(),
-          west: bounds.getWest(),
-          east: bounds.getEast(),
-        });
+
+      // When neighborhood changes, wait for the map to zoom before fetching
+      // Otherwise immediately trigger a refetch with current bounds
+      if (!selectedNeighborhood) {
+        const bounds = mapRef.current?.getBounds();
+        if (bounds) {
+          setDebouncedBounds({
+            south: bounds.getSouth(),
+            north: bounds.getNorth(),
+            west: bounds.getWest(),
+            east: bounds.getEast(),
+          });
+        }
       }
+      // If neighborhood is selected, the zoom effect will trigger the bounds update
     }
   }, [selectedCity, selectedNeighborhood, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
 
@@ -286,13 +322,13 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     } else if (selectedCity === "" && previousCity !== "") {
       isProgrammaticMoveRef.current = true;
       mapRef.current?.flyTo({
-        center: [initialViewState.longitude, initialViewState.latitude],
-        zoom: initialViewState.zoom,
+        center: [computedInitialViewState.longitude, computedInitialViewState.latitude],
+        zoom: computedInitialViewState.zoom,
         duration: 700,
       });
     }
     previousCityRef.current = selectedCity;
-  }, [selectedCity, businesses, initialViewState, targetLocation]);
+  }, [selectedCity, businesses, computedInitialViewState, targetLocation]);
 
   // Fetch neighborhood and city boundaries when city changes
   useEffect(() => {
@@ -303,18 +339,24 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
         // Fetch city boundary
         getCityBoundary(city, state)
           .then((data) => {
+            console.log('City boundary loaded:', data);
             setCityBoundary(data);
           })
-          .catch(() => {
+          .catch((error) => {
+            console.log('City boundary not available:', error);
             setCityBoundary(null);
           });
 
         // Fetch neighborhood boundaries
         getNeighborhoodBoundaries(city, state)
           .then((data) => {
+            console.log('Neighborhood boundaries loaded:', data);
+            console.log('Number of neighborhoods:', data.features?.length);
+            console.log('First neighborhood properties:', data.features?.[0]?.properties);
             setNeighborhoodBoundaries(data);
           })
-          .catch(() => {
+          .catch((error) => {
+            console.log('Neighborhood boundaries not available:', error);
             setNeighborhoodBoundaries(null);
           });
       } else {
@@ -330,33 +372,45 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   // Focus on neighborhood boundary when neighborhood is selected
   useEffect(() => {
     if (selectedNeighborhood && neighborhoodBoundaries && neighborhoodBoundaries.features) {
-      // Normalize the selected neighborhood name for matching
-      // Convert from underscore format to title case (e.g., "downtown_eagle" -> "Downtown Eagle")
-      const normalizedSelected = selectedNeighborhood
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
+      // The neighborhood name should already be in the correct format from the dropdown
+      // No normalization needed - use it directly
+      console.log('Selected neighborhood:', selectedNeighborhood);
+      console.log('Available neighborhoods:', neighborhoodBoundaries.features.map((f: any) => f.properties?.Name));
 
       // Find the feature for the selected neighborhood
       const selectedFeature = neighborhoodBoundaries.features.find(
-        (feature: any) => feature.properties?.NAME === normalizedSelected
+        (feature: any) => feature.properties?.Name === selectedNeighborhood
       );
+
+      console.log('Selected feature found:', selectedFeature ? 'Yes' : 'No');
 
       if (selectedFeature && selectedFeature.geometry && (selectedFeature.geometry as any).coordinates) {
         // Calculate bounds from the neighborhood feature
         let minLng = Infinity, maxLng = -Infinity;
         let minLat = Infinity, maxLat = -Infinity;
 
-        const coordinates = (selectedFeature.geometry as any).coordinates[0] || [];
-        coordinates.forEach((coord: [number, number]) => {
-          minLng = Math.min(minLng, coord[0]);
-          maxLng = Math.max(maxLng, coord[0]);
-          minLat = Math.min(minLat, coord[1]);
-          maxLat = Math.max(maxLat, coord[1]);
-        });
+        const geometry = selectedFeature.geometry as any;
+        const processCoordinates = (coords: any[]) => {
+          coords.forEach((coord: any) => {
+            if (Array.isArray(coord) && typeof coord[0] === 'number' && typeof coord[1] === 'number') {
+              // This is a coordinate pair [lng, lat]
+              minLng = Math.min(minLng, coord[0]);
+              maxLng = Math.max(maxLng, coord[0]);
+              minLat = Math.min(minLat, coord[1]);
+              maxLat = Math.max(maxLat, coord[1]);
+            } else if (Array.isArray(coord)) {
+              // This is a nested array, recurse
+              processCoordinates(coord);
+            }
+          });
+        };
+
+        processCoordinates(geometry.coordinates);
 
         if (minLng !== Infinity && maxLng !== -Infinity && minLat !== Infinity && maxLat !== -Infinity) {
           isProgrammaticMoveRef.current = true;
+
+          // Fit to neighborhood bounds
           mapRef.current?.fitBounds(
             [
               [minLng, minLat],
@@ -367,6 +421,19 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
               duration: 700,
             }
           );
+
+          // After zoom animation, trigger bounds update to fetch neighborhood businesses
+          setTimeout(() => {
+            const bounds = mapRef.current?.getBounds();
+            if (bounds) {
+              setDebouncedBounds({
+                south: bounds.getSouth(),
+                north: bounds.getNorth(),
+                west: bounds.getWest(),
+                east: bounds.getEast(),
+              });
+            }
+          }, 750); // Wait for zoom animation to complete
         }
       }
     }
@@ -543,7 +610,7 @@ useEffect(() => {
     <div className="business-map-container">
       <MapLibre
         ref={mapRef}
-        initialViewState={initialViewState}
+        initialViewState={computedInitialViewState}
         onMove={(evt) => {
           setViewport(evt.viewState);
           viewportRef.current = evt.viewState;
@@ -556,7 +623,7 @@ useEffect(() => {
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://tiles.openfreemap.org/styles/positron"
       >
-        {cityBoundary && cityBoundary.features && cityBoundary.features.length > 0 && (
+        {cityBoundary && cityBoundary.features && cityBoundary.features.length > 0 && !selectedNeighborhood && (
           <Source id="city-boundary" type="geojson" data={cityBoundary}>
             <Layer
               id="city-fill"
@@ -564,7 +631,7 @@ useEffect(() => {
               source="city-boundary"
               paint={{
                 'fill-color': STATUS_COLORS.high,
-                'fill-opacity': selectedNeighborhood ? 0.05 : 0.15,
+                'fill-opacity': 0.15,
               }}
             />
             <Layer
@@ -573,8 +640,8 @@ useEffect(() => {
               source="city-boundary"
               paint={{
                 'line-color': STATUS_COLORS.high,
-                'line-width': selectedNeighborhood ? 1 : 3,
-                'line-opacity': selectedNeighborhood ? 0.3 : 0.9,
+                'line-width': 3,
+                'line-opacity': 0.9,
               }}
               layout={{
                 'line-join': 'round',
@@ -585,11 +652,9 @@ useEffect(() => {
         )}
 
         {neighborhoodBoundaries && selectedNeighborhood && (() => {
-          // Normalize neighborhood name for filter matching
-          const normalizedNeighborhood = selectedNeighborhood
-            .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ');
+          // Use the neighborhood name directly - no normalization needed
+          console.log('Rendering neighborhood boundary layer for:', selectedNeighborhood);
+          console.log('Neighborhood boundaries data:', neighborhoodBoundaries);
 
           return (
             <Source id="neighborhood-boundaries" type="geojson" data={neighborhoodBoundaries}>
@@ -601,7 +666,7 @@ useEffect(() => {
                   'fill-color': BLUE_SCALE.blue500,
                   'fill-opacity': 0.2,
                 }}
-                filter={['==', ['get', 'NAME'], normalizedNeighborhood]}
+                filter={['==', ['get', 'Name'], selectedNeighborhood]}
               />
               <Layer
                 id="neighborhood-outline"
@@ -612,7 +677,7 @@ useEffect(() => {
                   'line-width': 4,
                   'line-opacity': 1,
                 }}
-                filter={['==', ['get', 'NAME'], normalizedNeighborhood]}
+                filter={['==', ['get', 'Name'], selectedNeighborhood]}
               />
             </Source>
           );
