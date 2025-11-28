@@ -46,16 +46,14 @@ export const useComparisonTimelines = ({
 
   const ratingsDataArray: (RatingsTimeline | null)[] = queries.map((q) => {
     if (!q.data) return null;
-    // Extract ratings timeline from combined response
-    const ratingsKey = Object.keys(q.data).find(key => key.includes('rating')) as keyof typeof q.data;
-    return ratingsKey ? (q.data[ratingsKey] as any as RatingsTimeline) : null;
+    // The combined timeline returns business_ratings for individual businesses
+    return q.data.business_ratings || null;
   });
 
   const sentimentDataArray: (SentimentTimeline | null)[] = queries.map((q) => {
     if (!q.data) return null;
-    // Extract sentiment timeline from combined response
-    const sentimentKey = Object.keys(q.data).find(key => key.includes('sentiment')) as keyof typeof q.data;
-    return sentimentKey ? (q.data[sentimentKey] as any as SentimentTimeline) : null;
+    // The combined timeline returns business_sentiment for individual businesses
+    return q.data.business_sentiment || null;
   });
 
   return {

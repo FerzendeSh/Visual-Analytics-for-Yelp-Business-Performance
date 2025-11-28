@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Business } from '../../api';
+import { getNeighborhoods } from '../../api/endpoints/locations';
 import { SearchBar } from '../search';
+import { formatNeighborhoodName } from '../../utils';
 import './FilterControlPanel.css';
-
-// Helper function to format neighborhood names for display
-const formatNeighborhoodName = (neighborhood: string): string => {
-  return neighborhood
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-};
 
 interface FilterControlPanelProps {
   businesses: Business[];
@@ -83,14 +77,12 @@ const FilterControlPanel: React.FC<FilterControlPanelProps> = ({
       const [city, state] = selectedCity.split('|');
       if (city && state) {
         setLoadingNeighborhoods(true);
-        fetch(`http://localhost:8080/api/neighborhoods?state=${state}&city=${city}`)
-          .then((res) => res.json())
+        getNeighborhoods(city, state)
           .then((data: string[]) => {
             setNeighborhoods(data);
             setLoadingNeighborhoods(false);
           })
-          .catch((err) => {
-            console.error('Error fetching neighborhoods:', err);
+          .catch(() => {
             setNeighborhoods([]);
             setLoadingNeighborhoods(false);
           });

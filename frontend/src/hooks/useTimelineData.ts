@@ -8,6 +8,8 @@ import {
   getCityCombinedTimeline,
   getNeighborhoodCombinedTimeline,
   getCategoryCombinedTimeline,
+  RatingsTimeline,
+  SentimentTimeline,
 } from '../api/endpoints/analytics';
 import { Business } from '../api/types';
 
@@ -19,6 +21,20 @@ interface UseTimelineDataParams {
   selectedNeighborhood?: string;
   period?: 'month' | 'year';
   selectedYear?: number;
+}
+
+/**
+ * Combined timeline data type that covers all possible shapes
+ */
+export interface TimelineData {
+  business_ratings?: RatingsTimeline | null;
+  business_sentiment?: SentimentTimeline | null;
+  city_ratings?: RatingsTimeline | null;
+  city_sentiment?: SentimentTimeline | null;
+  neighborhood_ratings?: RatingsTimeline | null;
+  neighborhood_sentiment?: SentimentTimeline | null;
+  category_ratings?: RatingsTimeline | null;
+  category_sentiment?: SentimentTimeline | null;
 }
 
 /**

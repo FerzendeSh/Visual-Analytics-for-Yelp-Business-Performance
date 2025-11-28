@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import {
   ComposedChart,
   Line,
@@ -30,30 +30,8 @@ import {
 import TrendIndicator from './TrendIndicator';
 import CompetitivePositionBadge from './CompetitivePositionBadge';
 import EnhancedTooltip from './EnhancedTooltip';
-import { CARD_STYLE } from '../../theme/sharedStyles';
-
-function formatDateForPeriod(dateString: string, period: 'month' | 'year'): string {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return dateString;
-    }
-
-    const month = date.toLocaleString('en-US', { month: 'short' });
-    const year = date.getFullYear();
-
-    switch (period) {
-      case 'month':
-        return month;
-      case 'year':
-        return `${year}`;
-      default:
-        return dateString;
-    }
-  } catch {
-    return dateString;
-  }
-}
+import { formatDateForPeriod, createLookupMap } from '../../utils';
+import './TimeSeriesChart.css';
 
 // Get color and stroke style for comparison business by index
 function getComparisonBusinessColor(index: number): { color: string; opacity: number; strokeWidth: number; strokeDasharray: string | undefined } {
@@ -118,8 +96,26 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
   // Determine which comparison data to use: neighborhood if selected, otherwise city
   const comparisonRatingsData = selectedNeighborhood ? neighborhoodRatingsData : cityRatingsData;
 
+  // Extended data point type for merged data with comparison fields
+  interface MergedRatingsDataPoint {
+    period_start: string;
+    avg_rating: number;
+    review_count: number;
+    city_avg_rating: number;
+    category_avg_rating: number;
+    [key: string]: number | string; // For dynamic comparison fields
+  }
+
   const mergedRatingsData = useMemo(() => {
     if (!ratingsData?.data) return null;
+
+    // Create lookup maps for O(1) access instead of O(n) .find() calls
+    const ratingsMap = createLookupMap(ratingsData.data, p => p.period_start);
+    const comparisonMap = createLookupMap(comparisonRatingsData?.data, p => p.period_start);
+    const categoryMap = createLookupMap(categoryRatingsData?.data, p => p.period_start);
+    const comparisonMaps = comparisonRatingsDataArray?.map(data => 
+      createLookupMap(data?.data, p => p.period_start)
+    ) || [];
 
     // Get all unique periods from all datasets
     const allPeriods = new Set<string>();
@@ -134,22 +130,22 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
 
     return {
       ...ratingsData,
-      data: sortedPeriods.map((period) => {
-        const ratingPoint = ratingsData.data.find(p => p.period_start === period);
-        const comparisonPoint = comparisonRatingsData?.data?.find(p => p.period_start === period);
-        const categoryPoint = categoryRatingsData?.data?.find(p => p.period_start === period);
+      data: sortedPeriods.map((periodKey): MergedRatingsDataPoint => {
+        const ratingPoint = ratingsMap.get(periodKey);
+        const comparisonPoint = comparisonMap.get(periodKey);
+        const categoryPoint = categoryMap.get(periodKey);
 
-        const dataPoint: any = {
-          period_start: period,
+        const dataPoint: MergedRatingsDataPoint = {
+          period_start: periodKey,
           avg_rating: ratingPoint?.avg_rating || 0,
           review_count: ratingPoint?.review_count || 0,
           city_avg_rating: comparisonPoint?.avg_rating || 0,
           category_avg_rating: categoryPoint?.avg_rating || 0,
         };
 
-        // Add comparison business ratings
-        comparisonRatingsDataArray?.forEach((data, index) => {
-          const point = data?.data?.find(p => p.period_start === period);
+        // Add comparison business ratings using O(1) map lookups
+        comparisonMaps.forEach((map, index) => {
+          const point = map.get(periodKey);
           dataPoint[`comparison_${index}_avg_rating`] = point?.avg_rating || 0;
           dataPoint[`comparison_${index}_review_count`] = point?.review_count || 0;
         });
@@ -162,8 +158,26 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
   // Determine which comparison data to use: neighborhood if selected, otherwise city
   const comparisonSentimentData = selectedNeighborhood ? neighborhoodSentimentData : citySentimentData;
 
+  // Extended data point type for merged sentiment data with comparison fields
+  interface MergedSentimentDataPoint {
+    period_start: string;
+    avg_sentiment_score: number;
+    review_count: number;
+    city_avg_sentiment_score: number;
+    category_avg_sentiment_score: number;
+    [key: string]: number | string; // For dynamic comparison fields
+  }
+
   const mergedSentimentData = useMemo(() => {
     if (!sentimentData?.data) return null;
+
+    // Create lookup maps for O(1) access instead of O(n) .find() calls
+    const sentimentMap = createLookupMap(sentimentData.data, p => p.period_start);
+    const comparisonMap = createLookupMap(comparisonSentimentData?.data, p => p.period_start);
+    const categoryMap = createLookupMap(categorySentimentData?.data, p => p.period_start);
+    const comparisonMaps = comparisonSentimentDataArray?.map(data => 
+      createLookupMap(data?.data, p => p.period_start)
+    ) || [];
 
     // Get all unique periods from all datasets
     const allPeriods = new Set<string>();
@@ -178,22 +192,22 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
 
     return {
       ...sentimentData,
-      data: sortedPeriods.map((period) => {
-        const sentimentPoint = sentimentData.data.find(p => p.period_start === period);
-        const comparisonPoint = comparisonSentimentData?.data?.find(p => p.period_start === period);
-        const categoryPoint = categorySentimentData?.data?.find(p => p.period_start === period);
+      data: sortedPeriods.map((periodKey): MergedSentimentDataPoint => {
+        const sentimentPoint = sentimentMap.get(periodKey);
+        const comparisonPoint = comparisonMap.get(periodKey);
+        const categoryPoint = categoryMap.get(periodKey);
 
-        const dataPoint: any = {
-          period_start: period,
+        const dataPoint: MergedSentimentDataPoint = {
+          period_start: periodKey,
           avg_sentiment_score: sentimentPoint?.avg_sentiment_score || 0,
           review_count: sentimentPoint?.review_count || 0,
           city_avg_sentiment_score: comparisonPoint?.avg_sentiment_score || 0,
           category_avg_sentiment_score: categoryPoint?.avg_sentiment_score || 0,
         };
 
-        // Add comparison business sentiment scores
-        comparisonSentimentDataArray?.forEach((data, index) => {
-          const point = data?.data?.find(p => p.period_start === period);
+        // Add comparison business sentiment scores using O(1) map lookups
+        comparisonMaps.forEach((map, index) => {
+          const point = map.get(periodKey);
           dataPoint[`comparison_${index}_avg_sentiment_score`] = point?.avg_sentiment_score || 0;
           dataPoint[`comparison_${index}_review_count`] = point?.review_count || 0;
         });
@@ -296,80 +310,55 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
 
   if (!business && !selectedCity && !selectedCategory) {
     return (
-      <div
-        style={{
-          padding: '2rem',
-          textAlign: 'center',
-          color: CHART_COLORS.textMuted,
-          background: 'linear-gradient(135deg, #0d2d7a 0%, #1a3a6e 100%)',
-          borderRadius: '8px',
-        }}
-      >
-        Select a city, category, or business to view performance trends and competitive analysis
+      <div className="empty-state">
+        <p>Select a city, category, or business to view performance trends and competitive analysis</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '1.5rem' }}>
-      <div style={{ marginBottom: '1rem' }}>
+    <div className="timeseries-chart">
+      <div className="timeseries-chart__info">
         {business && (
-          <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
+          <p className="timeseries-chart__subtitle">
             {business.city}, {business.state} • ★ {business.stars} ({displayReviewCount.toLocaleString()} reviews)
           </p>
         )}
         {!business && (selectedCity || selectedNeighborhood) && (
-          <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
+          <p className="timeseries-chart__subtitle">
             {selectedNeighborhood
               ? (selectedCategory ? `${selectedCategory} in ${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}, ${selectedCity}` : `${selectedNeighborhood.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}, ${selectedCity}`)
               : (selectedCategory ? `${selectedCategory} in ${selectedCity}, ${selectedState}` : `${selectedCity}, ${selectedState}`)}
           </p>
         )}
         {!business && !selectedCity && selectedCategory && (
-          <p style={{ margin: 0, color: CHART_COLORS.textSecondary, fontSize: '0.9rem' }}>
+          <p className="timeseries-chart__subtitle">
             Category average trends
           </p>
         )}
       </div>
 
       {isLoading && (
-        <div
-          style={{
-            padding: '2rem',
-            textAlign: 'center',
-            color: CHART_COLORS.textMuted,
-            background: 'linear-gradient(135deg, #0a1529ff 0%, #0a1529ff 100%)',
-            borderRadius: '8px',
-          }}
-        >
+        <div className="loading-state">
           Loading time series data...
         </div>
       )}
 
       {error && (
-        <div
-          style={{
-            padding: '1rem',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '8px',
-            color: '#ef4444',
-            marginBottom: '1rem',
-          }}
-        >
+        <div className="error-state">
           Error: {error.message || 'Failed to load time series data'}
         </div>
       )}
 
       {!isLoading && !error && (mergedRatingsData || mergedSentimentData) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+        <div className="timeseries-chart__content">
           {!isSentimentOnly && mergedRatingsData && mergedRatingsData.data.length > 0 && (
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ marginBottom: '1rem' }}>
-                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
+            <div className="timeseries-chart__section">
+              <div className="timeseries-chart__header">
+                <h4 className="timeseries-chart__title">
                   {ratingInsight.title}
                 </h4>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div className="timeseries-chart__badges">
                   {ratingTrend && <TrendIndicator trend={ratingTrend} metric="rating" />}
                   {business && ratingCompetitivePosition && (
                     <CompetitivePositionBadge
@@ -381,12 +370,11 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                 </div>
               </div>
 
-              <div style={{ ...CARD_STYLE, padding: '1rem' }}>
-                <ResponsiveContainer width="100%" height={CHART_CONFIG.height}>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
                     data={mergedRatingsData.data}
                     margin={CHART_CONFIG.margin}
-                    style={{ backgroundColor: CARD_STYLE.background }}
                     aria-label={ratingInsight.ariaLabel}
                   >
                     <CartesianGrid
@@ -446,7 +434,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         color: CHART_COLORS.textPrimary,
                       }}
                       iconSize={12}
-                      iconType="circle"
+                      iconType="plainline"
                     />
 
                     <Bar
@@ -525,12 +513,12 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
           )}
 
           {!isRatingsOnly && mergedSentimentData && mergedSentimentData.data.length > 0 && (
-            <div>
-              <div style={{ marginBottom: '1rem' }}>
-                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1.15rem', fontWeight: 700, color: CHART_COLORS.textPrimary }}>
+            <div className="timeseries-chart__section">
+              <div className="timeseries-chart__header">
+                <h4 className="timeseries-chart__title">
                   {sentimentInsight.title}
                 </h4>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div className="timeseries-chart__badges">
                   {sentimentTrend && <TrendIndicator trend={sentimentTrend} metric="sentiment" />}
                   {business && sentimentCompetitivePosition && (
                     <CompetitivePositionBadge
@@ -542,12 +530,11 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                 </div>
               </div>
 
-              <div style={{ ...CARD_STYLE, padding: '1rem' }}>
-                <ResponsiveContainer width="100%" height={CHART_CONFIG.height}>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
                     data={mergedSentimentData.data}
                     margin={CHART_CONFIG.margin}
-                    style={{ backgroundColor: CARD_STYLE.background }}
                     aria-label={sentimentInsight.ariaLabel}
                   >
                     <CartesianGrid
@@ -599,7 +586,7 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
                         color: CHART_COLORS.textPrimary,
                       }}
                       iconSize={12}
-                      iconType="circle"
+                      iconType="plainline"
                     />
 
                     <Line
@@ -667,20 +654,12 @@ const TimeSeriesChartOptimized: React.FC<TimeSeriesChartOptimizedProps> = ({
       )}
 
       {!isLoading && !mergedRatingsData && !mergedSentimentData && !error && (
-        <div
-          style={{
-            padding: '2rem',
-            textAlign: 'center',
-            color: CHART_COLORS.textMuted,
-            background: 'linear-gradient(135deg, #0d2d7a 0%, #1a3a6e 100%)',
-            borderRadius: '8px',
-          }}
-        >
-          No time series data available
+        <div className="empty-state">
+          <p>No time series data available</p>
         </div>
       )}
     </div>
   );
 };
 
-export default TimeSeriesChartOptimized;
+export default memo(TimeSeriesChartOptimized);

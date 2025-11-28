@@ -30,6 +30,15 @@ export const getCityBoundary = (city: string, state: string): Promise<GeoJSON.Fe
 };
 
 /**
+ * Get list of neighborhoods for a city
+ */
+export const getNeighborhoods = (city: string, state: string): Promise<string[]> => {
+  return get<string[]>('/api/neighborhoods', {
+    params: { city, state },
+  });
+};
+
+/**
  * Get neighborhood boundaries as GeoJSON
  */
 export const getNeighborhoodBoundaries = (city: string, state: string): Promise<GeoJSON.FeatureCollection> => {

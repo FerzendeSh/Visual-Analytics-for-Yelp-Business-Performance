@@ -6,6 +6,12 @@ import './BusinessMap.css';
 import { useViewportBusinesses } from '../../hooks/useViewportBusinesses';
 import { getNeighborhoodBoundaries, getCityBoundary } from '../../api/endpoints/locations';
 import { STATUS_COLORS, BLUE_SCALE } from '../../theme/cloudscapeColors';
+import { 
+  MAX_ACCUMULATED_BUSINESSES, 
+  ZOOM_THRESHOLDS, 
+  BUSINESS_LIMITS,
+  VIEWPORT_DEBOUNCE_MS 
+} from '../../utils';
 
 interface Business {
   business_id: string;
@@ -120,10 +126,10 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
 
   const dynamicLimit = useMemo(() => {
     const zoom = viewport.zoom;
-    if (zoom < 4) return 5000; // Fully zoomed out - get max businesses
-    if (zoom < 7) return 3000; // State/region level
-    if (zoom < 10) return 2000; // City level
-    return 1500;
+    if (zoom < ZOOM_THRESHOLDS.FULLY_ZOOMED_OUT) return BUSINESS_LIMITS.FULLY_ZOOMED_OUT;
+    if (zoom < ZOOM_THRESHOLDS.STATE_LEVEL) return BUSINESS_LIMITS.STATE_LEVEL;
+    if (zoom < ZOOM_THRESHOLDS.CITY_LEVEL) return BUSINESS_LIMITS.CITY_LEVEL;
+    return BUSINESS_LIMITS.NEIGHBORHOOD_LEVEL;
   }, [viewport.zoom]);
 
   // Parse city and state from selectedCity format "City|State"
@@ -138,16 +144,6 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
     const [, state] = selectedCity.split('|');
     return state || undefined;
   }, [selectedCity]);
-
-  // Log the filters being sent
-  console.log('Viewport filters:', {
-    state: parsedState || undefined,
-    city: parsedCity || undefined,
-    neighborhood: selectedNeighborhood || undefined,
-    category: selectedCategory || undefined,
-    min_rating: selectedRating || undefined,
-    is_open: selectedStatus !== null ? selectedStatus : undefined,
-  });
 
   const { data: viewportBusinesses, isLoading: viewportLoading } = useViewportBusinesses({
     bounds: debouncedBounds || {
@@ -176,6 +172,14 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       viewportBusinesses.forEach(business => {
         updated.set(business.business_id, business);
       });
+      
+      // Implement size limit to prevent memory leak
+      // If we exceed the limit, remove oldest entries (first inserted)
+      if (updated.size > MAX_ACCUMULATED_BUSINESSES) {
+        const keysToDelete = Array.from(updated.keys()).slice(0, updated.size - MAX_ACCUMULATED_BUSINESSES);
+        keysToDelete.forEach(key => updated.delete(key));
+      }
+      
       return updated;
     });
   }, [viewportBusinesses, useViewportLoading]);
@@ -266,7 +270,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
           east: bounds.getEast(),
         });
       }
-    }, 500);
+    }, VIEWPORT_DEBOUNCE_MS);
 
     return () => clearTimeout(debounceTimer);
   }, [viewport, useViewportLoading]);
@@ -339,24 +343,18 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
         // Fetch city boundary
         getCityBoundary(city, state)
           .then((data) => {
-            console.log('City boundary loaded:', data);
             setCityBoundary(data);
           })
-          .catch((error) => {
-            console.log('City boundary not available:', error);
+          .catch(() => {
             setCityBoundary(null);
           });
 
         // Fetch neighborhood boundaries
         getNeighborhoodBoundaries(city, state)
           .then((data) => {
-            console.log('Neighborhood boundaries loaded:', data);
-            console.log('Number of neighborhoods:', data.features?.length);
-            console.log('First neighborhood properties:', data.features?.[0]?.properties);
             setNeighborhoodBoundaries(data);
           })
-          .catch((error) => {
-            console.log('Neighborhood boundaries not available:', error);
+          .catch(() => {
             setNeighborhoodBoundaries(null);
           });
       } else {
@@ -373,16 +371,10 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   useEffect(() => {
     if (selectedNeighborhood && neighborhoodBoundaries && neighborhoodBoundaries.features) {
       // The neighborhood name should already be in the correct format from the dropdown
-      // No normalization needed - use it directly
-      console.log('Selected neighborhood:', selectedNeighborhood);
-      console.log('Available neighborhoods:', neighborhoodBoundaries.features.map((f: any) => f.properties?.Name));
-
       // Find the feature for the selected neighborhood
       const selectedFeature = neighborhoodBoundaries.features.find(
         (feature: any) => feature.properties?.Name === selectedNeighborhood
       );
-
-      console.log('Selected feature found:', selectedFeature ? 'Yes' : 'No');
 
       if (selectedFeature && selectedFeature.geometry && (selectedFeature.geometry as any).coordinates) {
         // Calculate bounds from the neighborhood feature
@@ -652,10 +644,6 @@ useEffect(() => {
         )}
 
         {neighborhoodBoundaries && selectedNeighborhood && (() => {
-          // Use the neighborhood name directly - no normalization needed
-          console.log('Rendering neighborhood boundary layer for:', selectedNeighborhood);
-          console.log('Neighborhood boundaries data:', neighborhoodBoundaries);
-
           return (
             <Source id="neighborhood-boundaries" type="geojson" data={neighborhoodBoundaries}>
               <Layer

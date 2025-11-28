@@ -1,55 +1,64 @@
 .main-content {
-  margin-top: 64px;
-  margin-left: 240px;
-  min-height: calc(100vh - 64px);
+  margin-top: var(--header-height);
+  margin-left: var(--sidebar-width);
+  min-height: calc(100vh - var(--header-height));
   background: transparent;
-  transition: margin-left 0.3s ease;
-  padding: 2rem;
+  transition: margin-left var(--transition-normal);
+  padding: 0; /* Let children handle their own padding */
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content.sidebar-collapsed {
-  margin-left: 64px;
+  margin-left: var(--sidebar-width-collapsed);
 }
 
 .main-header {
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(11, 41, 174, 0.3);
+  padding: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .main-title {
-  font-size: 2rem;
-  color: white;
-  margin: 0 0 0.5rem 0;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
   font-weight: 600;
 }
 
 .main-subtitle {
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .main-body {
-  color: rgb(255, 255, 255);
+  flex: 1;
+  color: var(--color-text-primary);
+  min-height: 0; /* Important for flex children */
 }
 
-/* Responsive design */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+  
+  .main-content.sidebar-collapsed {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+}
+
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
-    padding: 1rem;
   }
 
   .main-content.sidebar-collapsed {
     margin-left: 0;
   }
 
-  .main-title {
-    font-size: 1.5rem;
-  }
-
-  .main-subtitle {
-    font-size: 0.9rem;
+  .main-header {
+    padding: var(--spacing-md);
   }
 }

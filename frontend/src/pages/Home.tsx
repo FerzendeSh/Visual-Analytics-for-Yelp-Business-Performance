@@ -2,16 +2,17 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
 import TimeSeriesChartOptimized from '../components/timeseries/TimeSeriesChartOptimized';
+import RatingTrendsChart from '../components/timeseries/RatingTrendsChart';
 import { FilterControlPanel } from '../components/controls';
 import CompetitivePositioningChart from '../components/competitive/CompetitivePositioningChart';
 import ComparisonBar from '../components/dashboard/ComparisonBar';
-import { Business } from '../api';
-import { useTimelineData } from '../hooks/useTimelineData';
+import { useTimelineData, TimelineData } from '../hooks/useTimelineData';
 import { useBusinesses } from '../hooks/useBusinesses';
 import { useCompetitiveSnapshot } from '../hooks/useCompetitiveSnapshot';
 import { useMyBusiness } from '../context/BusinessContext';
 import { useComparisonTimelines } from '../hooks/useComparisonTimelines';
-import { CARD_STYLE } from '../theme/sharedStyles';
+import { Business } from '../api';
+import './Home.css';
 
 const Home: React.FC = () => {
   const { myBusiness, comparisonBusinesses, addComparison, removeComparison, clearComparisons, maxComparisons, selectedBusiness, setSelectedBusiness } = useMyBusiness();
@@ -57,9 +58,16 @@ const Home: React.FC = () => {
     setSelectedYear(new Date().getFullYear());
   }, []);
 
-  const handleScatterPlotSelect = useCallback((business: any) => {
+  const handleScatterPlotSelect = useCallback((business: Business | null) => {
     setSelectedBusiness(business);
   }, [setSelectedBusiness]);
+
+  // Handler for FilterControlPanel business select (add to comparison)
+  const handleFilterBusinessSelect = useCallback((business: Business | null) => {
+    if (business) {
+      addComparison(business);
+    }
+  }, [addComparison]);
 
   const timelineParams = useMemo(() => ({
     business: myBusiness,
@@ -93,6 +101,17 @@ const Home: React.FC = () => {
     businessId: myBusiness?.business_id || "",
   });
 
+  // Calculate date range for monthly view
+  const comparisonDateRange = useMemo(() => {
+    if (period === 'month' && selectedYear) {
+      return {
+        startDate: `${selectedYear}-01-01`,
+        endDate: `${selectedYear}-12-31`,
+      };
+    }
+    return { startDate: '', endDate: '' };
+  }, [period, selectedYear]);
+
   // Fetch timeline data for comparison businesses
   const {
     ratingsDataArray: comparisonRatingsDataArray,
@@ -101,6 +120,8 @@ const Home: React.FC = () => {
     comparisonBusinesses,
     selectedCategory,
     period,
+    startDate: comparisonDateRange.startDate,
+    endDate: comparisonDateRange.endDate,
   });
 
   const cityCenter = useMemo(() => {
@@ -120,34 +141,33 @@ const Home: React.FC = () => {
     };
   }, [competitiveData, selectedNeighborhood]);
 
+  // Handler for competitive chart business select (defined after competitiveData)
+  const handleCompetitiveBusinessSelect = useCallback((businessId: string | null) => {
+    if (businessId === null) {
+      setSelectedBusiness(null);
+    } else {
+      const business = competitiveData?.businesses?.find(b => b.business_id === businessId);
+      if (business) {
+        handleScatterPlotSelect(business);
+      }
+    }
+  }, [competitiveData?.businesses, handleScatterPlotSelect, setSelectedBusiness]);
+
   return (
     <Layout
       title="Yelp Business Analytics Dashboard"
       showSidebar={true}
     >
-      <div style={{ padding: '1.5rem' }}>
-        <section>
+      <div className="home-content">
+        <section className="home-section">
           {loading && (
-            <div style={{
-              padding: '2rem',
-              textAlign: 'center',
-              color: '#718096',
-              background: '#f7fafc',
-              borderRadius: '8px'
-            }}>
+            <div className="loading-state">
               Loading business data...
             </div>
           )}
 
           {error && (
-            <div style={{
-              padding: '1rem',
-              background: '#fff5f5',
-              border: '1px solid #feb2b2',
-              borderRadius: '8px',
-              color: '#c53030',
-              marginBottom: '1rem'
-            }}>
+            <div className="error-state">
               Error: {error}
             </div>
           )}
@@ -171,35 +191,13 @@ const Home: React.FC = () => {
                 onPeriodChange={setPeriod}
                 onYearChange={setSelectedYear}
                 onResetFilters={handleResetFilters}
-                onBusinessSelect={(business) => {
-                  if (business) {
-                    addComparison(business);
-                  }
-                }}
+                onBusinessSelect={handleFilterBusinessSelect}
               />
 
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1.3fr 1fr',
-                gridTemplateRows: '1fr 1fr',
-                gap: '0.8rem',
-                minHeight: '800px',
-              }}>
-                <div style={{
-                  gridRow: '1',
-                  gridColumn: '1',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  border: '1px solid #e2e8f0',
-                  background: '#fff',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}>
-                  <div style={{
-                    flex: 1,
-                    position: 'relative',
-                    width: '100%',
-                  }}>
+              <div className="dashboard-grid">
+                {/* Map Card */}
+                <div className="dashboard-card map-card">
+                  <div className="dashboard-card__body">
                     <BusinessMap
                       useViewportLoading={true}
                       targetLocation={cityCenter}
@@ -220,20 +218,14 @@ const Home: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{
-                  ...CARD_STYLE,
-                  gridRow: '2',
-                  gridColumn: '1',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}>
+                {/* Competitive Positioning Card */}
+                <div className="dashboard-card competitive-card competitive-card--visx">
                   {competitiveLoading ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#718096' }}>
+                    <div className="loading-state">
                       Loading competitive data...
                     </div>
                   ) : competitiveError ? (
-                    <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+                    <div className="error-state">
                       Error loading competitive data
                     </div>
                   ) : (
@@ -241,96 +233,39 @@ const Home: React.FC = () => {
                       data={competitiveData || null}
                       comparisonBusinessIds={comparisonBusinesses.map(b => b.business_id)}
                       myBusinessId={myBusiness?.business_id}
-                      onBusinessSelect={(businessId) => {
-                        const business = competitiveData?.businesses?.find(b => b.business_id === businessId);
-                        if (business) {
-                          handleScatterPlotSelect(business);
-                        }
-                      }}
+                      onBusinessSelect={handleCompetitiveBusinessSelect}
                       selectedBusinessId={selectedBusiness?.business_id}
                     />
                   )}
                 </div>
-                <div style={{
-                  ...CARD_STYLE,
-                  gridRow: '1',
-                  gridColumn: '2',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}>
-                  <div style={{
-                    padding: '0.75rem 1rem',
-                    borderBottom: '1px solid #9b9c9eff',
-                    background: '#0f1b2a',
-                    flexShrink: 0,
-                  }}>
-                    <h3 style={{
-                      margin: 0,
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      color: '#ffffffff'
-                    }}>
-                      Rating Trends
-                    </h3>
-                  </div>
-                  <div style={{
-                    flex: 1,
-                    overflow: 'hidden',
-                    padding: '0.5rem',
-                    minHeight: 0,
-                  }}>
-                    <TimeSeriesChartOptimized
-                      business={myBusiness}
-                      selectedCity={selectedCity}
-                      selectedState={selectedState || myBusiness?.state || "PA"}
-                      selectedCategory={selectedCategory}
-                      selectedNeighborhood={selectedNeighborhood}
-                      primaryCategory={primaryCategory}
-                      isRatingsOnly={true}
-                      period={period}
-                      ratingsData={(timelineData as any)?.business_ratings || (timelineData as any)?.neighborhood_ratings || (timelineData as any)?.city_ratings || null}
-                      cityRatingsData={(timelineData as any)?.city_ratings || null}
-                      neighborhoodRatingsData={(timelineData as any)?.neighborhood_ratings || null}
-                      categoryRatingsData={(timelineData as any)?.category_ratings || null}
-                      isLoading={timelineLoading}
-                      error={timelineError}
-                      comparisonBusinesses={comparisonBusinesses}
-                      comparisonRatingsDataArray={comparisonRatingsDataArray}
-                      comparisonSentimentDataArray={comparisonSentimentDataArray}
-                    />
-                  </div>
+
+                {/* Rating Trends Card */}
+                <div className="dashboard-card ratings-card ratings-card--visx">
+                  <RatingTrendsChart
+                    business={myBusiness}
+                    selectedCity={selectedCity}
+                    selectedState={selectedState || myBusiness?.state || "PA"}
+                    selectedCategory={selectedCategory}
+                    selectedNeighborhood={selectedNeighborhood}
+                    primaryCategory={primaryCategory}
+                    period={period}
+                    ratingsData={(timelineData as TimelineData)?.business_ratings || (timelineData as TimelineData)?.neighborhood_ratings || (timelineData as TimelineData)?.city_ratings || null}
+                    cityRatingsData={(timelineData as TimelineData)?.city_ratings || null}
+                    neighborhoodRatingsData={(timelineData as TimelineData)?.neighborhood_ratings || null}
+                    categoryRatingsData={(timelineData as TimelineData)?.category_ratings || null}
+                    isLoading={timelineLoading}
+                    error={timelineError}
+                    comparisonBusinesses={comparisonBusinesses}
+                    comparisonRatingsDataArray={comparisonRatingsDataArray}
+                  />
                 </div>
 
-                <div style={{
-                  ...CARD_STYLE,
-                  gridRow: '2',
-                  gridColumn: '2',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}>
-                  <div style={{
-                    padding: '0.75rem 1rem',
-                    borderBottom: '1px solid #e2e8f0',
-                    background: '#0f1b2a ',
-                    flexShrink: 0,
-                  }}>
-                    <h3 style={{
-                      margin: 0,
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      color: '#ffffffff'
-                    }}>
-                      Sentiment Trends
-                    </h3>
+                {/* Sentiment Trends Card */}
+                <div className="dashboard-card sentiment-card">
+                  <div className="dashboard-card__header">
+                    <h3 className="dashboard-card__title">Sentiment Trends</h3>
                   </div>
-                  <div style={{
-                    flex: 1,
-                    overflow: 'hidden',
-                    padding: '0.5rem',
-                    minHeight: 0,
-                  }}>
+                  <div className="dashboard-card__body">
                     <TimeSeriesChartOptimized
                       business={myBusiness}
                       selectedCity={selectedCity}
@@ -340,10 +275,10 @@ const Home: React.FC = () => {
                       primaryCategory={primaryCategory}
                       isSentimentOnly={true}
                       period={period}
-                      sentimentData={(timelineData as any)?.business_sentiment || (timelineData as any)?.neighborhood_sentiment || (timelineData as any)?.city_sentiment || null}
-                      citySentimentData={(timelineData as any)?.city_sentiment || null}
-                      neighborhoodSentimentData={(timelineData as any)?.neighborhood_sentiment || null}
-                      categorySentimentData={(timelineData as any)?.category_sentiment || null}
+                      sentimentData={(timelineData as TimelineData)?.business_sentiment || (timelineData as TimelineData)?.neighborhood_sentiment || (timelineData as TimelineData)?.city_sentiment || null}
+                      citySentimentData={(timelineData as TimelineData)?.city_sentiment || null}
+                      neighborhoodSentimentData={(timelineData as TimelineData)?.neighborhood_sentiment || null}
+                      categorySentimentData={(timelineData as TimelineData)?.category_sentiment || null}
                       isLoading={timelineLoading}
                       error={timelineError}
                       comparisonBusinesses={comparisonBusinesses}

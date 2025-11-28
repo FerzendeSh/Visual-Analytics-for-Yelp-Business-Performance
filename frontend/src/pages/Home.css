@@ -1,0 +1,93 @@
+/* ============================================
+   Home Page Styles
+   ============================================ */
+
+.home-content {
+  padding: var(--spacing-md);
+  padding-bottom: calc(var(--comparison-bar-height) + var(--spacing-lg));
+  overflow-y: auto;
+}
+
+.home-section {
+  width: 100%;
+}
+
+/* ============================================
+   Dashboard Grid - Custom Layout
+   ============================================ */
+
+/* All cards have same height */
+.dashboard-grid .dashboard-card {
+  height: 500px;
+}
+
+/* 2x2 Grid placement */
+@media (min-width: 768px) {
+  .map-card {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  
+  .ratings-card {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  
+  .competitive-card {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  
+  .sentiment-card {
+    grid-row: 2;
+    grid-column: 2;
+  }
+}
+
+/* ============================================
+   Card-specific overrides
+   ============================================ */
+
+/* Map needs special handling for the map container */
+.map-card .dashboard-card__body {
+  padding: 0;
+}
+
+/* Charts need adequate space */
+.ratings-card .dashboard-card__body,
+.sentiment-card .dashboard-card__body,
+.competitive-card .dashboard-card__body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Visx-based Rating Trends Card - no header/body, component handles everything */
+.ratings-card--visx,
+.competitive-card--visx {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ratings-card--visx .rating-trends-chart,
+.competitive-card--visx .competitive-chart {
+  height: 100%;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 768px) {
+  .home-content {
+    padding: var(--spacing-sm);
+    padding-bottom: calc(var(--comparison-bar-height) + var(--spacing-sm));
+  }
+}
+
+@media (max-width: 480px) {
+  .home-content {
+    padding: var(--spacing-xs);
+    padding-bottom: calc(var(--comparison-bar-height) + var(--spacing-xs));
+  }
+}

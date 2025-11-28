@@ -57,8 +57,10 @@ export const LINE_STYLES = {
   ] as const,
 } as const;
 export const CHART_CONFIG = {
-  height: 300,
-  margin: { top: 10, right: 10, left: 10, bottom: 10 },
+  // Height is now handled by CSS for responsiveness
+  // Use 100% in ResponsiveContainer and let parent CSS control size
+  minHeight: 500, // Fallback minimum
+  margin: { top: 10, right: 10, left: 10, bottom: 40 },
   ratingDomain: [1, 5] as [number, number],
   ratingTicks: [1, 2, 3, 4, 5] as number[],
   sentimentDomain: [-1, 1] as [number, number],
