@@ -12,8 +12,9 @@
   border-radius: 12px;
   padding: 1rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
   transition: all 0.3s ease;
 }
 
@@ -22,11 +23,6 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.metrics-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
 
 .metrics-card__icon {
   width: 48px;
@@ -45,6 +41,7 @@
   text-align: right;
   position: relative;
   cursor: help;
+  margin-left: auto;
 }
 
 .metrics-card__tooltip {
@@ -68,6 +65,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.01rem;
+  flex: 1;
 }
 
 .metrics-card__value {
