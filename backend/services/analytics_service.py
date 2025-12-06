@@ -2,14 +2,16 @@
 Analytics service layer for time-series data.
 Orchestrates repository calls, combines data, and formats for API responses.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import date
 from fastapi import HTTPException, status
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.business import Business
 from repositories.interfaces import ReviewRepositoryInterface, BusinessRepositoryInterface
 from repositories.metrics_repository import MetricsRepository
 from services.interfaces import AnalyticsServiceInterface
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AnalyticsService(AnalyticsServiceInterface):
@@ -58,7 +60,7 @@ class AnalyticsService(AnalyticsServiceInterface):
                 detail=f"Business with ID '{business_id}' not found"
             )
 
-        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_business_ratings_timeline(
             db=self.db,
             business_id=business_id,
@@ -98,7 +100,7 @@ class AnalyticsService(AnalyticsServiceInterface):
                 detail=f"Business with ID '{business_id}' not found"
             )
 
-        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_business_sentiment_timeline(
             db=self.db,
             business_id=business_id,
@@ -237,7 +239,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         normalized_city = city.strip()
         normalized_state = state.strip().upper()
 
-        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_city_ratings_timeline(
             db=self.db,
             city=normalized_city,
@@ -300,7 +302,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         normalized_city = city.strip() if city else None
         normalized_state = state.strip().upper() if state else None
 
-        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        # Get timeline data from PRE-COMPUTED metrics
         # If city/state provided, gets city-specific category data
         timeline_data = await self.metrics_repo.get_category_ratings_timeline(
             db=self.db,
@@ -338,7 +340,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         normalized_city = city.strip() if city else None
         normalized_state = state.strip().upper() if state else None
 
-        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        # Get timeline data from PRE-COMPUTED metrics
         # If city/state provided, gets city-specific category data
         timeline_data = await self.metrics_repo.get_category_sentiment_timeline(
             db=self.db,
@@ -376,7 +378,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         normalized_city = city.strip()
         normalized_state = state.strip().upper()
 
-        # Get timeline data from PRE-COMPUTED metrics (FAST!)
+        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_city_sentiment_timeline(
             db=self.db,
             city=normalized_city,
@@ -432,10 +434,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         category: Optional[str] = None,
         business_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        from sqlalchemy import select, func
-        from models.business import Business
-
-        # Build query with filters
         stmt = select(Business)
 
         if state:
@@ -452,47 +450,18 @@ class AnalyticsService(AnalyticsServiceInterface):
         if category:
             stmt = stmt.where(Business.categories.ilike(f'%{category}%'))
 
-        # Order by rating and review count for relevance
         stmt = stmt.order_by(Business.stars.desc(), Business.review_count.desc())
-
-        # Limit to 5000 businesses for performance
         stmt = stmt.limit(5000)
 
-        # Execute query
         result = await self.db.execute(stmt)
-        businesses = list(result.scalars().all())
-
-        # Calculate statistics
-        if not businesses:
-            return {
-                'businesses': [],
-                'statistics': {
-                    'avg_rating': 0,
-                    'median_review_count': 0,
-                    'total_businesses': 0
-                },
-                'selected_business': None,
-                'filters': {
-                    'city': city,
-                    'state': state,
-                    'neighborhood': neighborhood,
-                    'category': category
-                }
-            }
-
-        # Calculate avg rating
-        ratings = [b.stars for b in businesses if b.stars is not None]
-        avg_rating = sum(ratings) / len(ratings) if ratings else 0
-
-        # Calculate median review count
-        review_counts = sorted([b.review_count for b in businesses if b.review_count is not None])
-        median_review_count = review_counts[len(review_counts) // 2] if review_counts else 0
-
-        # Format business data for response
-        business_data = []
+        
+        business_data: List[Dict[str, Any]] = []
         selected_business_data = None
+        ratings_sum = 0.0
+        ratings_count = 0
+        review_counts: List[int] = []
 
-        for b in businesses:
+        for b in result.scalars():
             formatted = {
                 'business_id': b.business_id,
                 'name': b.name,
@@ -506,24 +475,35 @@ class AnalyticsService(AnalyticsServiceInterface):
                 'longitude': b.longitude
             }
             business_data.append(formatted)
-
+            
+            if b.stars is not None:
+                ratings_sum += b.stars
+                ratings_count += 1
+            if b.review_count is not None:
+                review_counts.append(b.review_count)
             if business_id and b.business_id == business_id:
                 selected_business_data = formatted
+
+        if not business_data:
+            return {
+                'businesses': [],
+                'statistics': {'avg_rating': 0, 'median_review_count': 0, 'total_businesses': 0},
+                'selected_business': None,
+                'filters': {'city': city, 'state': state, 'neighborhood': neighborhood, 'category': category}
+            }
+
+        review_counts.sort()
+        median_review_count = review_counts[len(review_counts) // 2] if review_counts else 0
 
         return {
             'businesses': business_data,
             'statistics': {
-                'avg_rating': round(avg_rating, 2),
+                'avg_rating': round(ratings_sum / ratings_count, 2) if ratings_count else 0,
                 'median_review_count': median_review_count,
-                'total_businesses': len(businesses)
+                'total_businesses': len(business_data)
             },
             'selected_business': selected_business_data,
-            'filters': {
-                'city': city,
-                'state': state,
-                'neighborhood': neighborhood,
-                'category': category
-            }
+            'filters': {'city': city, 'state': state, 'neighborhood': neighborhood, 'category': category}
         }
 
     async def get_neighborhood_ratings_timeline(
