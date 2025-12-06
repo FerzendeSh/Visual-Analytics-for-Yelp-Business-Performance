@@ -2,9 +2,8 @@
 Analytics API endpoints for time-series data.
 Provides rating and sentiment timelines for businesses and geographic regions.
 """
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from datetime import date
-import asyncio
 from fastapi import APIRouter, Depends, Path, Query, HTTPException
 
 from dependencies import (
@@ -41,13 +40,11 @@ async def get_business_combined_timeline(
     """
     Get combined ratings and sentiment timelines for a business with city and category comparisons.
     """
-    business_ratings, business_sentiment = await asyncio.gather(
-        analytics_service.get_business_ratings_timeline(
-            business_id=business_id, period=period, start_date=start_date, end_date=end_date
-        ),
-        analytics_service.get_business_sentiment_timeline(
-            business_id=business_id, period=period, start_date=start_date, end_date=end_date
-        )
+    business_ratings = await analytics_service.get_business_ratings_timeline(
+        business_id=business_id, period=period, start_date=start_date, end_date=end_date
+    )
+    business_sentiment = await analytics_service.get_business_sentiment_timeline(
+        business_id=business_id, period=period, start_date=start_date, end_date=end_date
     )
 
     city_ratings = None
@@ -58,28 +55,24 @@ async def get_business_combined_timeline(
     if business_ratings.get('city') and business_ratings.get('state'):
         city = business_ratings['city']
         state = business_ratings['state']
-        
-        city_ratings, city_sentiment = await asyncio.gather(
-            analytics_service.get_city_ratings_timeline(
-                city=city, state=state, period=period, start_date=start_date, end_date=end_date
-            ),
-            analytics_service.get_city_sentiment_timeline(
-                city=city, state=state, period=period, start_date=start_date, end_date=end_date
-            )
+
+        city_ratings = await analytics_service.get_city_ratings_timeline(
+            city=city, state=state, period=period, start_date=start_date, end_date=end_date
+        )
+        city_sentiment = await analytics_service.get_city_sentiment_timeline(
+            city=city, state=state, period=period, start_date=start_date, end_date=end_date
         )
 
     if category:
         category_city = business_ratings.get('city')
         category_state = business_ratings.get('state')
-        category_ratings, category_sentiment = await asyncio.gather(
-            analytics_service.get_category_ratings_timeline(
-                category=category, city=category_city, state=category_state,
-                period=period, start_date=start_date, end_date=end_date
-            ),
-            analytics_service.get_category_sentiment_timeline(
-                category=category, city=category_city, state=category_state,
-                period=period, start_date=start_date, end_date=end_date
-            )
+        category_ratings = await analytics_service.get_category_ratings_timeline(
+            category=category, city=category_city, state=category_state,
+            period=period, start_date=start_date, end_date=end_date
+        )
+        category_sentiment = await analytics_service.get_category_sentiment_timeline(
+            category=category, city=category_city, state=category_state,
+            period=period, start_date=start_date, end_date=end_date
         )
 
     return {
@@ -109,28 +102,24 @@ async def get_city_combined_timeline(
     """
     Get combined ratings and sentiment timelines for a city with optional category comparison.
     """
-    city_ratings, city_sentiment = await asyncio.gather(
-        analytics_service.get_city_ratings_timeline(
-            city=city, state=state, period=period, start_date=start_date, end_date=end_date
-        ),
-        analytics_service.get_city_sentiment_timeline(
-            city=city, state=state, period=period, start_date=start_date, end_date=end_date
-        )
+    city_ratings = await analytics_service.get_city_ratings_timeline(
+        city=city, state=state, period=period, start_date=start_date, end_date=end_date
+    )
+    city_sentiment = await analytics_service.get_city_sentiment_timeline(
+        city=city, state=state, period=period, start_date=start_date, end_date=end_date
     )
 
     category_ratings = None
     category_sentiment = None
 
     if category:
-        category_ratings, category_sentiment = await asyncio.gather(
-            analytics_service.get_category_ratings_timeline(
-                category=category, city=city, state=state,
-                period=period, start_date=start_date, end_date=end_date
-            ),
-            analytics_service.get_category_sentiment_timeline(
-                category=category, city=city, state=state,
-                period=period, start_date=start_date, end_date=end_date
-            )
+        category_ratings = await analytics_service.get_category_ratings_timeline(
+            category=category, city=city, state=state,
+            period=period, start_date=start_date, end_date=end_date
+        )
+        category_sentiment = await analytics_service.get_category_sentiment_timeline(
+            category=category, city=city, state=state,
+            period=period, start_date=start_date, end_date=end_date
         )
 
     return {
@@ -152,13 +141,11 @@ async def get_category_combined_timeline(
     """
     Get combined ratings and sentiment timelines for a category.
     """
-    category_ratings, category_sentiment = await asyncio.gather(
-        analytics_service.get_category_ratings_timeline(
-            category=category, period=period, start_date=start_date, end_date=end_date
-        ),
-        analytics_service.get_category_sentiment_timeline(
-            category=category, period=period, start_date=start_date, end_date=end_date
-        )
+    category_ratings = await analytics_service.get_category_ratings_timeline(
+        category=category, period=period, start_date=start_date, end_date=end_date
+    )
+    category_sentiment = await analytics_service.get_category_sentiment_timeline(
+        category=category, period=period, start_date=start_date, end_date=end_date
     )
 
     return {

@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=PROJECT_NAME,
-    description="API for analyzing Yelp business performance with visual analytics",
+    description="API for analyzing  business performance with visual analytics",
     version=VERSION,
     lifespan=lifespan
 )
@@ -29,12 +29,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
-# Add GZip compression for responses > 1KB (reduces bandwidth by ~70%)
+# Add GZip compression for responses > 1KB (reduces bandwidth)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Register routers
@@ -46,7 +47,7 @@ app.include_router(analytics_router, prefix="/api")
 @app.get("/", tags=["health"])
 def root():
     """Root endpoint - API health check"""
-    return {"message": "Yelp Business Analytics API", "status": "healthy"}
+    return {"message": " Business Analytics API", "status": "healthy"}
 
 
 @app.get("/health", tags=["health"])
