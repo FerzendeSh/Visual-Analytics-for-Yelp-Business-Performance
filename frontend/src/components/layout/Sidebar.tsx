@@ -159,6 +159,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     selectedNeighborhood && selectedNeighborhood !== '',
     minRating !== 1 || maxRating !== 5,
     selectedStatus !== null,
+    compareByCity,
+    compareByCategory,
+    compareByNeighborhood,
+    comparisonBusinesses.length > 0,
   ].filter(Boolean).length;
 
   return (

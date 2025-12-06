@@ -15,7 +15,7 @@ import { Business } from '../api';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { myBusiness, comparisonBusinesses, addComparison, removeComparison, maxComparisons, selectedBusiness, setSelectedBusiness } = useMyBusiness();
+  const { myBusiness, comparisonBusinesses, addComparison, removeComparison, clearComparisons, maxComparisons, selectedBusiness, setSelectedBusiness } = useMyBusiness();
 
   const { data: businesses = [], isLoading: loading, error: queryError } = useBusinesses();
   const error = queryError ? (queryError as Error).message : null;
@@ -61,7 +61,11 @@ const Home: React.FC = () => {
     setSelectedStatus(null);
     setPeriod('year');
     setSelectedYear(new Date().getFullYear());
-  }, []);
+    setCompareByCity(false);
+    setCompareByCategory(false);
+    setCompareByNeighborhood(false);
+    clearComparisons();
+  }, [clearComparisons]);
 
   const handleScatterPlotSelect = useCallback((business: Business | null) => {
     setSelectedBusiness(business);
