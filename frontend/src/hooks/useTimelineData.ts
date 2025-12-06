@@ -2,6 +2,7 @@
  * Custom hook for fetching timeline data with React Query
  * Provides automatic caching, deduplication, and optimized refetching
  */
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getBusinessCombinedTimeline,
@@ -58,9 +59,20 @@ export const useTimelineData = ({
     endDate = `${selectedYear}-12-31`;
   }
 
+  // Determine the category to pass to the business combined timeline
+  // Always fetch category data if business has categories (regardless of compareByCategory checkbox)
+  // The checkbox only controls visibility in the UI
+  const categoryForBusinessQuery = useMemo(() => {
+    if (selectedCategory) return selectedCategory;
+    if (business?.categories) {
+      return business.categories.split(',')[0].trim();
+    }
+    return undefined;
+  }, [selectedCategory, business?.categories]);
+
   const businessQuery = useQuery({
-    queryKey: ['timeline', 'business', business?.business_id || '', period, startDate, endDate, selectedCategory],
-    queryFn: () => getBusinessCombinedTimeline(business!.business_id, period, startDate || undefined, endDate || undefined, selectedCategory || undefined),
+    queryKey: ['timeline', 'business', business?.business_id || '', period, startDate, endDate, categoryForBusinessQuery],
+    queryFn: () => getBusinessCombinedTimeline(business!.business_id, period, startDate || undefined, endDate || undefined, categoryForBusinessQuery),
     enabled: !!business?.business_id,
     staleTime: 5 * 60 * 1000,
   });
@@ -94,15 +106,18 @@ export const useTimelineData = ({
     staleTime: 5 * 60 * 1000,
   });
 
+  // Only fetch standalone category data when no business is selected
   const categoryQuery = useQuery({
     queryKey: ['timeline', 'category', selectedCategory, period, startDate, endDate],
     queryFn: () => getCategoryCombinedTimeline(selectedCategory, period, startDate || undefined, endDate || undefined),
-    enabled: false,
+    enabled: !!selectedCategory && !business?.business_id,
     staleTime: 5 * 60 * 1000,
   });
 
   if (business?.business_id) {
-    // When business is selected, combine business data with neighborhood/city data if available
+    const primaryCat = business.categories ? business.categories.split(',')[0].trim() : '';
+
+    // When business is selected, combine business data with neighborhood/city/category data if available
     if (selectedNeighborhood && neighborhoodQuery.data) {
       return {
         isLoading: businessQuery.isLoading || neighborhoodQuery.isLoading,
@@ -111,8 +126,9 @@ export const useTimelineData = ({
           ...businessQuery.data,
           neighborhood_ratings: neighborhoodQuery.data.neighborhood_ratings,
           neighborhood_sentiment: neighborhoodQuery.data.neighborhood_sentiment,
+          // Category data comes from businessQuery now
         } : null,
-        primaryCategory: business.categories ? business.categories.split(',')[0].trim() : '',
+        primaryCategory: primaryCat,
       };
     }
     // Include city data if a city is selected
@@ -124,15 +140,16 @@ export const useTimelineData = ({
           ...businessQuery.data,
           city_ratings: cityQuery.data.city_ratings,
           city_sentiment: cityQuery.data.city_sentiment,
+          // Category data comes from businessQuery now
         } : null,
-        primaryCategory: business.categories ? business.categories.split(',')[0].trim() : '',
+        primaryCategory: primaryCat,
       };
     }
     return {
       isLoading: businessQuery.isLoading,
       error: businessQuery.error,
       data: businessQuery.data,
-      primaryCategory: business.categories ? business.categories.split(',')[0].trim() : '',
+      primaryCategory: primaryCat,
     };
   }
 

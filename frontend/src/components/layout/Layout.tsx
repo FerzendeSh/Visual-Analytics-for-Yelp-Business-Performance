@@ -1,23 +1,76 @@
 import React, { ReactNode } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { toggleSidebar } from '../../store/slices/uiSlice';
-import Header from './Header';
+import { Business } from '../../api';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
-import './Layout.css';
 
 interface LayoutProps {
   children: ReactNode;
   title?: string;
   subtitle?: string;
   showSidebar?: boolean;
+  businesses?: Business[];
+  selectedCity?: string;
+  selectedCategory?: string;
+  selectedNeighborhood?: string;
+  minRating?: number;
+  maxRating?: number;
+  selectedStatus?: number | null;
+  period?: 'month' | 'year';
+  selectedYear?: number;
+  onCityChange?: (city: string) => void;
+  onCategoryChange?: (category: string) => void;
+  onNeighborhoodChange?: (neighborhood: string) => void;
+  onMinRatingChange?: (rating: number) => void;
+  onMaxRatingChange?: (rating: number) => void;
+  onStatusChange?: (status: number | null) => void;
+  onPeriodChange?: (period: 'month' | 'year') => void;
+  onYearChange?: (year: number) => void;
+  onResetFilters?: () => void;
+  onBusinessSelect?: (business: Business | null) => void;
+  compareByCity?: boolean;
+  compareByCategory?: boolean;
+  compareByNeighborhood?: boolean;
+  comparisonBusinesses?: Business[];
+  onCompareByCity?: (compare: boolean) => void;
+  onCompareByCategory?: (compare: boolean) => void;
+  onCompareByNeighborhood?: (compare: boolean) => void;
+  onComparisonBusinessesChange?: (businesses: Business[]) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({
   children,
   title,
   subtitle,
-  showSidebar = true
+  showSidebar = true,
+  businesses = [],
+  selectedCity = "",
+  selectedCategory = "",
+  selectedNeighborhood = "",
+  minRating = 1,
+  maxRating = 5,
+  selectedStatus = null,
+  period = 'year',
+  selectedYear = new Date().getFullYear(),
+  onCityChange,
+  onCategoryChange,
+  onNeighborhoodChange,
+  onMinRatingChange,
+  onMaxRatingChange,
+  onStatusChange,
+  onPeriodChange,
+  onYearChange,
+  onResetFilters,
+  onBusinessSelect,
+  compareByCity = false,
+  compareByCategory = false,
+  compareByNeighborhood = false,
+  comparisonBusinesses = [],
+  onCompareByCity,
+  onCompareByCategory,
+  onCompareByNeighborhood,
+  onComparisonBusinessesChange,
 }) => {
   const dispatch = useAppDispatch();
   const isSidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
@@ -28,11 +81,37 @@ const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className="layout">
-      <Header />
       {showSidebar && (
         <Sidebar
           isCollapsed={isSidebarCollapsed}
           onToggle={handleToggleSidebar}
+          businesses={businesses}
+          selectedCity={selectedCity}
+          selectedCategory={selectedCategory}
+          selectedNeighborhood={selectedNeighborhood}
+          minRating={minRating}
+          maxRating={maxRating}
+          selectedStatus={selectedStatus}
+          period={period}
+          selectedYear={selectedYear}
+          onCityChange={onCityChange}
+          onCategoryChange={onCategoryChange}
+          onNeighborhoodChange={onNeighborhoodChange}
+          onMinRatingChange={onMinRatingChange}
+          onMaxRatingChange={onMaxRatingChange}
+          onStatusChange={onStatusChange}
+          onPeriodChange={onPeriodChange}
+          onYearChange={onYearChange}
+          onResetFilters={onResetFilters}
+          onBusinessSelect={onBusinessSelect}
+          compareByCity={compareByCity}
+          compareByCategory={compareByCategory}
+          compareByNeighborhood={compareByNeighborhood}
+          comparisonBusinesses={comparisonBusinesses}
+          onCompareByCity={onCompareByCity}
+          onCompareByCategory={onCompareByCategory}
+          onCompareByNeighborhood={onCompareByNeighborhood}
+          onComparisonBusinessesChange={onComparisonBusinessesChange}
         />
       )}
       <MainContent

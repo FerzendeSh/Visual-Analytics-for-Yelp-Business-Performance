@@ -36,6 +36,7 @@ export const getBusinessesInViewport = (bounds: {
   city?: string;
   category?: string;
   min_rating?: number;
+  max_rating?: number;
   is_open?: number;
   limit?: number;
 }): Promise<Business[]> => {
@@ -49,6 +50,7 @@ export const getBusinessesInViewport = (bounds: {
       city: bounds.city,
       category: bounds.category,
       min_rating: bounds.min_rating,
+      max_rating: bounds.max_rating,
       is_open: bounds.is_open,
       limit: bounds.limit || 1000,
     },

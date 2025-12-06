@@ -19,6 +19,7 @@ export interface ViewportFilters {
   neighborhood?: string;
   category?: string;
   min_rating?: number;
+  max_rating?: number;
   is_open?: number;
 }
 

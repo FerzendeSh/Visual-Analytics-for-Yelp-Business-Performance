@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useRef, memo } from 'react';
+import React, { useMemo, useCallback, useRef, memo, useState } from 'react';
 import { Group } from '@visx/group';
 import { Circle, Line } from '@visx/shape';
 import { scaleLinear, scaleOrdinal } from '@visx/scale';
@@ -7,9 +7,12 @@ import { GridRows, GridColumns } from '@visx/grid';
 import { useTooltip, useTooltipInPortal, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { ParentSize } from '@visx/responsive';
-import { Star, MapPin, Info } from 'lucide-react';
+import { Star, MapPin, Info, Maximize2, Move } from 'lucide-react';
 import { Text } from '@visx/text';
+import { Brush } from '@visx/brush';
+import { Bounds } from '@visx/brush/lib/types';
 import { CompetitiveSnapshot } from '../../api/endpoints/analytics';
+import { getSeriesColor } from '../timeseries/chartConstants';
 import './CompetitivePositioningChart.css';
 
 const BACKGROUND_COLOR = '#0F111A';
@@ -30,8 +33,6 @@ const QUADRANT_COLORS: Record<string, string> = {
   'Volume Drivers': '#f97316',
 };
 
-const COMPARISON_COLORS = ['#f43f5e', '#d946ef'];
-
 const QUADRANT_DESCRIPTIONS: Record<string, string> = {
   'Market Leaders': 'High Rating & High Volume. Top performers.',
   'Hidden Gems': 'High Rating & Low Volume. Undiscovered quality.',
@@ -45,6 +46,9 @@ interface CompetitivePositioningChartProps {
   selectedBusinessId?: string | null;
   comparisonBusinessIds?: string[];
   myBusinessId?: string;
+  compareByCity?: boolean;
+  compareByCategory?: boolean;
+  compareByNeighborhood?: boolean;
 }
 
 interface ChartDataPoint {
@@ -113,45 +117,76 @@ const TooltipContent = ({ data, colorScale }: { data: TooltipData; colorScale: a
   );
 };
 
-const QuadrantChart = ({ 
-  width, 
-  height, 
-  data, 
+const QuadrantChart = ({
+  width,
+  height,
+  data,
   stats,
-  selectedBusinessId, 
-  onSelectBusiness 
-}: { 
-  width: number; 
-  height: number; 
-  data: ChartDataPoint[]; 
+  selectedBusinessId,
+  onSelectBusiness,
+  getComparisonBusinessColor
+}: {
+  width: number;
+  height: number;
+  data: ChartDataPoint[];
   stats: { avgRating: number; medianReviews: number };
   selectedBusinessId?: string | null;
   onSelectBusiness?: (id: string | null) => void;
+  getComparisonBusinessColor: (index: number) => string;
 }) => {
   const margin = { top: 20, right: 60, bottom: 50, left: 60 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
+  const brushRef = useRef<any>(null);
 
-  const xDomain = useMemo(() => {
+  // Initial domains
+  const initialXDomain = useMemo((): [number, number] => {
     if (data.length === 0) return [0, 100];
-    
+
     const volumes = data.map(d => d.reviewVolume).sort((a, b) => a - b);
     const p98Index = Math.floor(volumes.length * 0.98);
     const p98Value = volumes[p98Index] || volumes[volumes.length - 1];
-    
+
     return [0, p98Value * 1.2];
   }, [data]);
 
+  const initialYDomain: [number, number] = [1.0, 5.5];
+
+  // Zoomed domains
+  const [filteredXDomain, setFilteredXDomain] = useState<[number, number]>(initialXDomain);
+  const [filteredYDomain, setFilteredYDomain] = useState<[number, number]>(initialYDomain);
+
+  // Zoom mode toggle
+  const [isZoomMode, setIsZoomMode] = useState(false);
+
+  // Update filtered domain when data changes
+  React.useEffect(() => {
+    setFilteredXDomain(initialXDomain);
+    setFilteredYDomain(initialYDomain);
+  }, [initialXDomain]);
+
   const xScale = useMemo(() => scaleLinear({
     range: [0, innerWidth],
-    domain: xDomain,
+    domain: filteredXDomain,
     nice: true,
-    clamp: true,
-  }), [innerWidth, xDomain]);
+  }), [innerWidth, filteredXDomain]);
 
   const yScale = useMemo(() => scaleLinear({
     range: [innerHeight, 0],
-    domain: [1.0, 5.5],
+    domain: filteredYDomain,
+    nice: true,
+  }), [innerHeight, filteredYDomain]);
+
+  // Full scale for brush
+  const xBrushScale = useMemo(() => scaleLinear({
+    range: [0, innerWidth],
+    domain: initialXDomain,
+    nice: true,
+  }), [innerWidth, initialXDomain]);
+
+  const yBrushScale = useMemo(() => scaleLinear({
+    range: [innerHeight, 0],
+    domain: initialYDomain,
     nice: true,
   }), [innerHeight]);
 
@@ -184,10 +219,58 @@ const QuadrantChart = ({
     }
   }, [showTooltip]);
 
+  const onBrushChange = useCallback((domain: Bounds | null) => {
+    if (!domain) return;
+
+    const { x0, x1 } = domain;
+
+    const newXDomain: [number, number] = [
+      Math.max(xBrushScale.invert(x0), initialXDomain[0]),
+      Math.min(xBrushScale.invert(x1), initialXDomain[1])
+    ];
+
+    setFilteredXDomain(newXDomain);
+    // Y-axis stays fixed at initialYDomain
+  }, [xBrushScale, initialXDomain]);
+
+  const resetZoom = useCallback(() => {
+    setFilteredXDomain(initialXDomain);
+    setFilteredYDomain(initialYDomain);
+    if (brushRef.current) {
+      brushRef.current.reset();
+    }
+  }, [initialXDomain, initialYDomain]);
+
   if (width < 10) return null;
+
+  const isZoomed = filteredXDomain[0] !== initialXDomain[0] ||
+                   filteredXDomain[1] !== initialXDomain[1];
 
   return (
     <div className="relative">
+      {/* Zoom Controls */}
+      <div className="competitive-chart__zoom-controls">
+        {/* Toggle Zoom Mode */}
+        <button
+          className={`competitive-chart__zoom-btn ${isZoomMode ? 'competitive-chart__zoom-btn--active' : ''}`}
+          onClick={() => setIsZoomMode(!isZoomMode)}
+          title={isZoomMode ? "Switch to Selection Mode" : "Switch to Zoom Mode"}
+        >
+          <Move size={16} />
+        </button>
+
+        {/* Reset Zoom (only show when zoomed) */}
+        {isZoomed && (
+          <button
+            className="competitive-chart__zoom-btn"
+            onClick={resetZoom}
+            title="Reset Zoom"
+          >
+            <Maximize2 size={16} />
+          </button>
+        )}
+      </div>
+
       <svg
         ref={containerRef}
         width={width}
@@ -196,54 +279,67 @@ const QuadrantChart = ({
         onClick={() => { if (selectedBusinessId && onSelectBusiness) onSelectBusiness(null); }}
       >
         <rect width={width} height={height} fill={BACKGROUND_COLOR} rx={14} />
-        
+
         <Group left={margin.left} top={margin.top}>
           <GridRows scale={yScale} width={innerWidth} strokeDasharray="3,3" stroke={GRID_COLOR} />
           <GridColumns scale={xScale} height={innerHeight} strokeDasharray="3,3" stroke={GRID_COLOR} />
 
           {/* Median Review Line (Vertical) */}
-          <Line
-            from={{ x: xScale(stats.medianReviews), y: 0 }}
-            to={{ x: xScale(stats.medianReviews), y: innerHeight }}
-            stroke={AXIS_COLOR}
-            strokeWidth={1}
-            strokeDasharray="4,4"
-            opacity={0.5}
-          />
-          <Text
-            x={xScale(stats.medianReviews)}
-            y={-5}
-            fill={AXIS_COLOR}
-            fontSize={10}
-            textAnchor="middle"
-            fontWeight={600}
-          >
-            {`Median: ${stats.medianReviews}`}
-          </Text>
+          {stats.medianReviews >= filteredXDomain[0] && stats.medianReviews <= filteredXDomain[1] && (
+            <>
+              <Line
+                from={{ x: xScale(stats.medianReviews), y: 0 }}
+                to={{ x: xScale(stats.medianReviews), y: innerHeight }}
+                stroke={AXIS_COLOR}
+                strokeWidth={1}
+                strokeDasharray="4,4"
+                opacity={0.5}
+              />
+              <Text
+                x={xScale(stats.medianReviews)}
+                y={-5}
+                fill={AXIS_COLOR}
+                fontSize={10}
+                textAnchor="middle"
+                fontWeight={600}
+              >
+                {`Median: ${stats.medianReviews}`}
+              </Text>
+            </>
+          )}
 
           {/* Avg Rating Line (Horizontal) */}
-          <Line
-            from={{ x: 0, y: yScale(stats.avgRating) }}
-            to={{ x: innerWidth, y: yScale(stats.avgRating) }}
-            stroke={AXIS_COLOR}
-            strokeWidth={1}
-            strokeDasharray="4,4"
-            opacity={0.5}
-          />
-          <Text
-            x={innerWidth + 4}
-            y={yScale(stats.avgRating)}
-            fill={AXIS_COLOR}
-            fontSize={10}
-            textAnchor="start"
-            verticalAnchor="middle"
-            fontWeight={600}
-          >
-            {`Avg: ${stats.avgRating.toFixed(2)}`}
-          </Text>
+          {stats.avgRating >= filteredYDomain[0] && stats.avgRating <= filteredYDomain[1] && (
+            <>
+              <Line
+                from={{ x: 0, y: yScale(stats.avgRating) }}
+                to={{ x: innerWidth, y: yScale(stats.avgRating) }}
+                stroke={AXIS_COLOR}
+                strokeWidth={1}
+                strokeDasharray="4,4"
+                opacity={0.5}
+              />
+              <Text
+                x={innerWidth + 4}
+                y={yScale(stats.avgRating)}
+                fill={AXIS_COLOR}
+                fontSize={10}
+                textAnchor="start"
+                verticalAnchor="middle"
+                fontWeight={600}
+              >
+                {`Avg: ${stats.avgRating.toFixed(2)}`}
+              </Text>
+            </>
+          )}
 
           {/* Render Points */}
           {data.map((d) => {
+            // Only render points within the filtered X domain (Y is always visible)
+            if (d.reviewVolume < filteredXDomain[0] || d.reviewVolume > filteredXDomain[1]) {
+              return null;
+            }
+
             const isSelected = selectedBusinessId === d.id;
             const hasSelection = !!selectedBusinessId;
 
@@ -257,7 +353,7 @@ const QuadrantChart = ({
               strokeWidth = 3;
             } else if (d.isComparison) {
               radius = 8;
-              stroke = COMPARISON_COLORS[d.comparisonIndex % COMPARISON_COLORS.length];
+              stroke = getComparisonBusinessColor(d.comparisonIndex);
               strokeWidth = 2.5;
             }
 
@@ -294,6 +390,29 @@ const QuadrantChart = ({
             );
           })}
 
+          {/* Brush for zooming (X-axis only) - only active in zoom mode */}
+          {isZoomMode && (
+            <Brush
+              innerRef={brushRef}
+              xScale={xBrushScale}
+              yScale={yBrushScale}
+              width={innerWidth}
+              height={innerHeight}
+              margin={margin}
+              handleSize={8}
+              resizeTriggerAreas={['left', 'right']}
+              brushDirection="x"
+              onChange={onBrushChange}
+              onClick={() => {}}
+              selectedBoxStyle={{
+                fill: 'rgba(59, 130, 246, 0.1)',
+                stroke: 'rgba(59, 130, 246, 0.6)',
+                strokeWidth: 2,
+              }}
+              useWindowMoveEvents
+            />
+          )}
+
           {/* Axes */}
           <AxisBottom
             scale={xScale}
@@ -316,7 +435,7 @@ const QuadrantChart = ({
               dy: 0,
             })}
           />
-          
+
           <AxisLeft
             scale={yScale}
             stroke={AXIS_COLOR}
@@ -359,8 +478,30 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
   selectedBusinessId,
   comparisonBusinessIds = [],
   myBusinessId,
+  compareByCity = false,
+  compareByCategory = false,
+  compareByNeighborhood = false,
 }) => {
   const appContainerRef = useRef<HTMLDivElement>(null);
+
+  // Calculate color for comparison businesses based on series order
+  // This matches the color logic in charts and sidebar
+  const getComparisonBusinessColor = useCallback((index: number): string => {
+    let colorIndex = 1; // Start after primary (which is 0)
+
+    // Add offset if comparing by city/neighborhood
+    if (compareByCity || compareByNeighborhood) {
+      colorIndex++;
+    }
+
+    // Add offset if comparing by category
+    if (compareByCategory) {
+      colorIndex++;
+    }
+
+    // Add the business index
+    return getSeriesColor(colorIndex + index);
+  }, [compareByCity, compareByCategory, compareByNeighborhood]);
 
   const {
     tooltipOpen: legendTooltipOpen,
@@ -494,13 +635,14 @@ export const CompetitivePositioningChart: React.FC<CompetitivePositioningChartPr
       <div className="competitive-chart__container">
         <ParentSize>
           {({ width, height }) => (
-            <QuadrantChart 
-              width={width} 
-              height={height} 
-              data={chartData} 
+            <QuadrantChart
+              width={width}
+              height={height}
+              data={chartData}
               stats={stats}
               selectedBusinessId={selectedBusinessId}
               onSelectBusiness={onBusinessSelect}
+              getComparisonBusinessColor={getComparisonBusinessColor}
             />
           )}
         </ParentSize>

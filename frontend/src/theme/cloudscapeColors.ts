@@ -13,15 +13,15 @@
  * Recommended: Limit to 8 data series for line/bar charts, 5 for pie/donut charts
  */
 export const CATEGORICAL_COLORS = {
-  categorical1: '#688ae8',  // Blue - primary series
+  categorical1: '#6c89d8ff',  // Blue - primary series
   categorical2: '#c33d69',  // Pink - secondary series
   categorical3: '#2ea597',  // Teal - tertiary series
-  categorical4: '#8456ce',  // Purple - quaternary series
+  categorical4: '#2f5338ff',  // Purple - quaternary series
   categorical5: '#e07941',  // Orange - fifth series
   categorical6: '#3759ce',  // Dark blue
   categorical7: '#962249',  // Dark pink
   categorical8: '#096f64',  // Dark teal
-  categorical9: '#6237a7',  // Dark purple
+  categorical9: '#03c191ff',  // Dark purple
   categorical10: '#a84401', // Dark orange
   categorical11: '#273ea5', // Navy blue
   categorical12: '#780d35', // Burgundy

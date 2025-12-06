@@ -1,7 +1,7 @@
 .main-content {
-  margin-top: var(--header-height);
+  margin-top: 0;
   margin-left: var(--sidebar-width);
-  min-height: calc(100vh - var(--header-height));
+  min-height: 100vh;
   background: transparent;
   transition: margin-left var(--transition-normal);
   padding: 0; /* Let children handle their own padding */

@@ -7,7 +7,7 @@ export const CHART_COLORS = {
   improving: STATUS_COLORS.positive,
   declining: STATUS_COLORS.high,
   stable: STATUS_COLORS.neutral,
-  volumeBars: withAlpha(CATEGORICAL_COLORS.categorical4, 0.5),
+  volumeBars: withAlpha(CATEGORICAL_COLORS.categorical6, 0.5),
   referenceArea: withAlpha(STATUS_COLORS.positive, 0.08),
   gridlines: withAlpha(CATEGORICAL_COLORS.categorical1, 0.08),
   textPrimary: '#ffffffff',
@@ -97,4 +97,36 @@ export function getTrendIcon(changePercent: number): string {
     return '↘️';
   }
   return '→';
+}
+
+/**
+ * Color palette used in both rating and sentiment charts
+ * Keep in sync with LINE_COLORS in RatingTrendsChart.tsx and SentimentTrendsChart.tsx
+ */
+export const LINE_COLORS = [
+  '#9c8506ff', // Gold/Yellow
+  '#9400fdff', // Purple
+  '#8e2315ff', // Red/Brown
+  '#05a763ff', // Green
+  '#0199ffff', // Bright Blue
+  '#ff6b35ff', // Orange
+  '#f72585ff', // Pink
+  '#06ffa5ff', // Cyan
+] as const;
+
+/**
+ * Get the color for a business/series by its index in the series array
+ * This ensures consistent colors across charts, sidebar, and scatter plot
+ */
+export function getSeriesColor(index: number): string {
+  return LINE_COLORS[index % LINE_COLORS.length];
+}
+
+/**
+ * Get the color for a specific business by name from the series names array
+ * Used to maintain color consistency across all visualizations
+ */
+export function getBusinessColor(businessName: string, seriesNames: string[]): string {
+  const index = seriesNames.indexOf(businessName);
+  return index >= 0 ? getSeriesColor(index) : LINE_COLORS[0];
 }

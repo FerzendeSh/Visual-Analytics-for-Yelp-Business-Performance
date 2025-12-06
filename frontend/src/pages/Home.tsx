@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
-import TimeSeriesChartOptimized from '../components/timeseries/TimeSeriesChartOptimized';
 import RatingTrendsChart from '../components/timeseries/RatingTrendsChart';
-import { FilterControlPanel } from '../components/controls';
+import SentimentTrendsChart from '../components/timeseries/SentimentTrendsChart';
+import FilterSummary from '../components/dashboard/FilterSummary';
+import MetricsCards from '../components/dashboard/MetricsCards';
 import CompetitivePositioningChart from '../components/competitive/CompetitivePositioningChart';
-import ComparisonBar from '../components/dashboard/ComparisonBar';
 import { useTimelineData, TimelineData } from '../hooks/useTimelineData';
 import { useBusinesses } from '../hooks/useBusinesses';
 import { useCompetitiveSnapshot } from '../hooks/useCompetitiveSnapshot';
@@ -15,7 +15,7 @@ import { Business } from '../api';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { myBusiness, comparisonBusinesses, addComparison, removeComparison, clearComparisons, maxComparisons, selectedBusiness, setSelectedBusiness } = useMyBusiness();
+  const { myBusiness, comparisonBusinesses, addComparison, removeComparison, maxComparisons, selectedBusiness, setSelectedBusiness } = useMyBusiness();
 
   const { data: businesses = [], isLoading: loading, error: queryError } = useBusinesses();
   const error = queryError ? (queryError as Error).message : null;
@@ -24,10 +24,14 @@ const Home: React.FC = () => {
   const [selectedState, setSelectedState] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("");
-  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [minRating, setMinRating] = useState<number>(1);
+  const [maxRating, setMaxRating] = useState<number>(5);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [period, setPeriod] = useState<'month' | 'year'>('year');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [compareByCity, setCompareByCity] = useState<boolean>(false);
+  const [compareByCategory, setCompareByCategory] = useState<boolean>(false);
+  const [compareByNeighborhood, setCompareByNeighborhood] = useState<boolean>(false);
 
   const handleCityChange = useCallback((cityState: string) => {
     if (!cityState) {
@@ -52,7 +56,8 @@ const Home: React.FC = () => {
     setSelectedState("");
     setSelectedCategory("");
     setSelectedNeighborhood("");
-    setSelectedRating(null);
+    setMinRating(1);
+    setMaxRating(5);
     setSelectedStatus(null);
     setPeriod('year');
     setSelectedYear(new Date().getFullYear());
@@ -153,10 +158,127 @@ const Home: React.FC = () => {
     }
   }, [competitiveData?.businesses, handleScatterPlotSelect, setSelectedBusiness]);
 
+  // Build filter tags for summary
+  const filterTags = [
+    selectedCity && selectedState && {
+      label: `City: ${selectedCity}`,
+      onRemove: () => handleCityChange(''),
+    },
+    selectedNeighborhood && {
+      label: `Neighborhood: ${selectedNeighborhood}`,
+      onRemove: () => setSelectedNeighborhood(''),
+    },
+    selectedCategory && {
+      label: `Category: ${selectedCategory}`,
+      onRemove: () => setSelectedCategory(''),
+    },
+    (minRating !== 1 || maxRating !== 5) && {
+      label: `Rating: ${minRating} - ${maxRating}★`,
+      onRemove: () => { setMinRating(1); setMaxRating(5); },
+    },
+    selectedStatus !== null && {
+      label: `Status: ${selectedStatus === 1 ? 'Open' : 'Closed'}`,
+      onRemove: () => setSelectedStatus(null),
+    },
+  ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
+
+  // Calculate metrics for the cards
+  const metricsData = useMemo(() => {
+    if (!myBusiness) {
+      return {
+        starRating: undefined,
+        sentimentScore: undefined,
+        reviewVolume: undefined,
+        ratingChange: 0,
+        sentimentChange: 0,
+        reviewVolumeChange: 0,
+      };
+    }
+
+    const ratingsData = (timelineData as TimelineData)?.business_ratings;
+    const sentimentData = (timelineData as TimelineData)?.business_sentiment;
+
+    // Current values
+    const starRating = myBusiness.stars || 0;
+    const sentimentScore = sentimentData?.data?.[sentimentData.data.length - 1]?.avg_sentiment_score || 0;
+    const reviewVolume = myBusiness.review_count || 0;
+
+    // Calculate changes from latest vs previous period
+    let ratingChange = 0;
+    let sentimentChange = 0;
+    let reviewVolumeChange = 0;
+
+    if (ratingsData?.data && ratingsData.data.length >= 2) {
+      const latest = ratingsData.data[ratingsData.data.length - 1];
+      const previous = ratingsData.data[ratingsData.data.length - 2];
+      if (latest.avg_rating && previous.avg_rating) {
+        ratingChange = (latest.avg_rating - previous.avg_rating) / previous.avg_rating;
+      }
+      if (latest.review_count && previous.review_count) {
+        reviewVolumeChange = (latest.review_count - previous.review_count) / previous.review_count;
+      }
+    }
+
+    if (sentimentData?.data && sentimentData.data.length >= 2) {
+      const latest = sentimentData.data[sentimentData.data.length - 1];
+      const previous = sentimentData.data[sentimentData.data.length - 2];
+      if (latest.avg_sentiment_score !== undefined && previous.avg_sentiment_score !== undefined) {
+        sentimentChange = (latest.avg_sentiment_score - previous.avg_sentiment_score) / Math.abs(previous.avg_sentiment_score || 1);
+      }
+    }
+
+    return {
+      starRating,
+      sentimentScore,
+      reviewVolume,
+      ratingChange,
+      sentimentChange,
+      reviewVolumeChange,
+    };
+  }, [myBusiness, timelineData]);
+
   return (
     <Layout
       title="Yelp Business Analytics Dashboard"
       showSidebar={true}
+      businesses={businesses}
+      selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
+      selectedCategory={selectedCategory}
+      selectedNeighborhood={selectedNeighborhood}
+      minRating={minRating}
+      maxRating={maxRating}
+      selectedStatus={selectedStatus}
+      period={period}
+      selectedYear={selectedYear}
+      onCityChange={handleCityChange}
+      onCategoryChange={setSelectedCategory}
+      onNeighborhoodChange={setSelectedNeighborhood}
+      onMinRatingChange={setMinRating}
+      onMaxRatingChange={setMaxRating}
+      onStatusChange={setSelectedStatus}
+      onPeriodChange={setPeriod}
+      onYearChange={setSelectedYear}
+      onResetFilters={handleResetFilters}
+      onBusinessSelect={handleFilterBusinessSelect}
+      compareByCity={compareByCity}
+      compareByCategory={compareByCategory}
+      compareByNeighborhood={compareByNeighborhood}
+      comparisonBusinesses={comparisonBusinesses}
+      onCompareByCity={setCompareByCity}
+      onCompareByCategory={setCompareByCategory}
+      onCompareByNeighborhood={setCompareByNeighborhood}
+      onComparisonBusinessesChange={(businesses) => {
+        businesses.forEach((b) => {
+          if (!comparisonBusinesses.find((cb) => cb.business_id === b.business_id)) {
+            addComparison(b);
+          }
+        });
+        comparisonBusinesses.forEach((cb) => {
+          if (!businesses.find((b) => b.business_id === cb.business_id)) {
+            removeComparison(cb.business_id);
+          }
+        });
+      }}
     >
       <div className="home-content">
         <section className="home-section">
@@ -174,24 +296,30 @@ const Home: React.FC = () => {
 
           {!loading && !error && (
             <>
-              <FilterControlPanel
-                businesses={businesses}
+              <FilterSummary
+                filters={filterTags}
                 selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
                 selectedCategory={selectedCategory}
                 selectedNeighborhood={selectedNeighborhood}
-                selectedRating={selectedRating}
+                minRating={minRating}
+                maxRating={maxRating}
                 selectedStatus={selectedStatus}
-                period={period}
-                selectedYear={selectedYear}
                 onCityChange={handleCityChange}
                 onCategoryChange={setSelectedCategory}
                 onNeighborhoodChange={setSelectedNeighborhood}
-                onRatingChange={setSelectedRating}
+                onMinRatingChange={setMinRating}
+                onMaxRatingChange={setMaxRating}
                 onStatusChange={setSelectedStatus}
-                onPeriodChange={setPeriod}
-                onYearChange={setSelectedYear}
-                onResetFilters={handleResetFilters}
-                onBusinessSelect={handleFilterBusinessSelect}
+              />
+
+              <MetricsCards
+                starRating={metricsData.starRating}
+                sentimentScore={metricsData.sentimentScore}
+                reviewVolume={metricsData.reviewVolume}
+                ratingChange={metricsData.ratingChange}
+                sentimentChange={metricsData.sentimentChange}
+                reviewVolumeChange={metricsData.reviewVolumeChange}
+                isLoading={timelineLoading}
               />
 
               <div className="dashboard-grid">
@@ -204,7 +332,8 @@ const Home: React.FC = () => {
                       selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
                       selectedNeighborhood={selectedNeighborhood}
                       selectedCategory={selectedCategory}
-                      selectedRating={selectedRating}
+                      minRating={minRating}
+                      maxRating={maxRating}
                       selectedStatus={selectedStatus}
                       onMapCityChange={handleMapCityChange}
                       onAddComparison={addComparison}
@@ -235,6 +364,9 @@ const Home: React.FC = () => {
                       myBusinessId={myBusiness?.business_id}
                       onBusinessSelect={handleCompetitiveBusinessSelect}
                       selectedBusinessId={selectedBusiness?.business_id}
+                      compareByCity={compareByCity}
+                      compareByCategory={compareByCategory}
+                      compareByNeighborhood={compareByNeighborhood}
                     />
                   )}
                 </div>
@@ -257,47 +389,40 @@ const Home: React.FC = () => {
                     error={timelineError}
                     comparisonBusinesses={comparisonBusinesses}
                     comparisonRatingsDataArray={comparisonRatingsDataArray}
+                    compareByCity={compareByCity}
+                    compareByCategory={compareByCategory}
+                    compareByNeighborhood={compareByNeighborhood}
                   />
                 </div>
 
                 {/* Sentiment Trends Card */}
-                <div className="dashboard-card sentiment-card">
-                  <div className="dashboard-card__header">
-                    <h3 className="dashboard-card__title">Sentiment Trends</h3>
-                  </div>
-                  <div className="dashboard-card__body">
-                    <TimeSeriesChartOptimized
-                      business={myBusiness}
-                      selectedCity={selectedCity}
-                      selectedState={selectedState || myBusiness?.state || "PA"}
-                      selectedCategory={selectedCategory}
-                      selectedNeighborhood={selectedNeighborhood}
-                      primaryCategory={primaryCategory}
-                      isSentimentOnly={true}
-                      period={period}
-                      sentimentData={(timelineData as TimelineData)?.business_sentiment || (timelineData as TimelineData)?.neighborhood_sentiment || (timelineData as TimelineData)?.city_sentiment || null}
-                      citySentimentData={(timelineData as TimelineData)?.city_sentiment || null}
-                      neighborhoodSentimentData={(timelineData as TimelineData)?.neighborhood_sentiment || null}
-                      categorySentimentData={(timelineData as TimelineData)?.category_sentiment || null}
-                      isLoading={timelineLoading}
-                      error={timelineError}
-                      comparisonBusinesses={comparisonBusinesses}
-                      comparisonRatingsDataArray={comparisonRatingsDataArray}
-                      comparisonSentimentDataArray={comparisonSentimentDataArray}
-                    />
-                  </div>
+                <div className="dashboard-card sentiment-card sentiment-card--visx">
+                  <SentimentTrendsChart
+                    business={myBusiness}
+                    selectedCity={selectedCity}
+                    selectedState={selectedState || myBusiness?.state || "PA"}
+                    selectedCategory={selectedCategory}
+                    selectedNeighborhood={selectedNeighborhood}
+                    primaryCategory={primaryCategory}
+                    period={period}
+                    sentimentData={(timelineData as TimelineData)?.business_sentiment || (timelineData as TimelineData)?.neighborhood_sentiment || (timelineData as TimelineData)?.city_sentiment || null}
+                    citySentimentData={(timelineData as TimelineData)?.city_sentiment || null}
+                    neighborhoodSentimentData={(timelineData as TimelineData)?.neighborhood_sentiment || null}
+                    categorySentimentData={(timelineData as TimelineData)?.category_sentiment || null}
+                    isLoading={timelineLoading}
+                    error={timelineError}
+                    comparisonBusinesses={comparisonBusinesses}
+                    comparisonSentimentDataArray={comparisonSentimentDataArray}
+                    compareByCity={compareByCity}
+                    compareByCategory={compareByCategory}
+                    compareByNeighborhood={compareByNeighborhood}
+                  />
                 </div>
               </div>
             </>
           )}
         </section>
       </div>
-      <ComparisonBar
-        myBusiness={myBusiness}
-        comparisonBusinesses={comparisonBusinesses}
-        onRemove={removeComparison}
-        onClear={clearComparisons}
-      />
     </Layout>
   );
 };

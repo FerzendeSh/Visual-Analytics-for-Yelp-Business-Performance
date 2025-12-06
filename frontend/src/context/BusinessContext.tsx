@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Business, searchBusinesses } from '../api';
+import { Business, getBusinessById } from '../api';
 
 interface BusinessContextType {
   myBusiness: Business | null;
@@ -16,8 +16,8 @@ interface BusinessContextType {
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
-// Default logged-in business name
-const DEFAULT_BUSINESS_NAME = 'La Parada';
+// Default logged-in business
+const DEFAULT_BUSINESS_ID = 'IG2KelKEHCwybPl98frdgQ';
 const MAX_COMPARISONS = 3;
 
 export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -68,13 +68,10 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
           const parsed = JSON.parse(stored);
           setMyBusinessState(parsed);
         } else {
-          // Search for the default business by name from database
-          const results = await searchBusinesses(DEFAULT_BUSINESS_NAME, { limit: 1 });
-          if (results.length > 0) {
-            const business = results[0];
-            setMyBusinessState(business);
-            localStorage.setItem('myBusiness', JSON.stringify(business));
-          }
+          // Fetch the default business by ID from database
+          const business = await getBusinessById(DEFAULT_BUSINESS_ID);
+          setMyBusinessState(business);
+          localStorage.setItem('myBusiness', JSON.stringify(business));
         }
       } catch (e) {
         console.error('Failed to load business', e);

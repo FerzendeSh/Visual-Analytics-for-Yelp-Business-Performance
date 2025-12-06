@@ -50,7 +50,8 @@ interface BusinessMapProps {
   selectedCity?: string;
   selectedNeighborhood?: string;
   selectedCategory?: string;
-  selectedRating?: number | null;
+  minRating?: number;
+  maxRating?: number;
   selectedStatus?: number | null;
   selectedBusiness?: Business | null;
 }
@@ -79,7 +80,8 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   selectedCity = "",
   selectedNeighborhood = "",
   selectedCategory = "",
-  selectedRating = null,
+  minRating = 1,
+  maxRating = 5,
   selectedStatus = null,
   selectedBusiness = null,
 }) => {
@@ -157,7 +159,8 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       city: parsedCity || undefined,
       neighborhood: selectedNeighborhood || undefined,
       category: selectedCategory || undefined,
-      min_rating: selectedRating || undefined,
+      min_rating: minRating || undefined,
+      max_rating: maxRating || undefined,
       is_open: selectedStatus !== null ? selectedStatus : undefined,
     },
     limit: dynamicLimit,
@@ -204,7 +207,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       }
       // If neighborhood is selected, the zoom effect will trigger the bounds update
     }
-  }, [selectedCity, selectedNeighborhood, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
+  }, [selectedCity, selectedNeighborhood, selectedCategory, minRating, maxRating, selectedStatus, useViewportLoading]);
 
   const businesses = useViewportLoading
     ? Array.from(accumulatedBusinesses.values())
@@ -219,12 +222,12 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       const categoryMatch = selectedCategory
         ? b.categories?.toLowerCase().includes(selectedCategory.toLowerCase())
         : true;
-      const ratingMatch = selectedRating ? b.stars == selectedRating : true;
+      const ratingMatch = b.stars >= minRating && b.stars <= maxRating;
       const statusMatch = selectedStatus !== null ? b.is_open === selectedStatus : true;
 
       return cityMatch && categoryMatch && ratingMatch && statusMatch;
     });
-  }, [businesses, selectedCity, selectedCategory, selectedRating, selectedStatus, useViewportLoading]);
+  }, [businesses, selectedCity, selectedCategory, minRating, maxRating, selectedStatus, useViewportLoading]);
 
   const supercluster = useMemo(() => {
     const validBusinesses = filteredBusinesses.filter(
@@ -524,6 +527,21 @@ useEffect(() => {
     }
   }, [useViewportLoading]);
 
+  const handleGoToMyBusiness = useCallback(() => {
+    const myBiz = filteredBusinesses.find(b => b.business_id === myBusinessId);
+    if (myBiz && myBiz.latitude && myBiz.longitude) {
+      isProgrammaticMoveRef.current = true;
+      mapRef.current?.flyTo({
+        center: [myBiz.longitude, myBiz.latitude],
+        zoom: 16,
+        duration: 700,
+      });
+      // Open popup for my business
+      setPopupInfo(myBiz);
+      onBusinessSelect?.(myBiz);
+    }
+  }, [filteredBusinesses, myBusinessId, onBusinessSelect]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '+' || e.key === '=' || e.key === 'Add') {
@@ -731,6 +749,8 @@ useEffect(() => {
           }
 
           const business = cluster.properties as Business;
+          const isMyBusiness = business.business_id === myBusinessId;
+
           return (
             <Marker
               key={`business-${business.business_id}`}
@@ -744,20 +764,30 @@ useEffect(() => {
                 setTimeout(() => onBusinessSelect?.(business), 0);
               }}
             >
-              <div className="marker">
-                <div
-                  className={`marker-pin ${business.is_open ? "open" : "closed"}`}
-                  title={business.name}
-                  style={{
-                    borderWidth: business.business_id === myBusinessId ? '4px' :
-                                 comparisonBusinessIds.includes(business.business_id) ? '3px' : '0px',
-                    borderColor: business.business_id === myBusinessId ? '#FFD700' : 'rgba(255, 255, 255, 0.8)',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <span className="marker-star">{business.stars}</span>
+              {isMyBusiness ? (
+                <div className="marker marker-my-business">
+                  <img
+                    src="/MyBusiness.png"
+                    alt={business.name}
+                    className="my-business-marker-icon"
+                    title={business.name}
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="marker">
+                  <div
+                    className={`marker-pin ${business.is_open ? "open" : "closed"}`}
+                    title={business.name}
+                    style={{
+                      borderWidth: comparisonBusinessIds.includes(business.business_id) ? '3px' : '0px',
+                      borderColor: 'rgba(255, 255, 255, 0.8)',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <span className="marker-star">{business.stars}</span>
+                  </div>
+                </div>
+              )}
             </Marker>
           );
         })}
@@ -879,6 +909,16 @@ useEffect(() => {
               aria-label="Set Filter to Current View"
             >
               <span className="control-icon">📍</span>
+            </button>
+          )}
+          {myBusinessId && (
+            <button
+              className="map-control-btn my-business-btn"
+              onClick={handleGoToMyBusiness}
+              title="Go to My Business"
+              aria-label="Go to My Business"
+            >
+              <img src="/MyBusiness.png" alt="My Business" className="my-business-icon" />
             </button>
           )}
           <div className="zoom-level-display">

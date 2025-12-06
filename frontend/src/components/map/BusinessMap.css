@@ -369,3 +369,62 @@
   color: #000000;
   line-height: 1;
 }
+
+/* My Business Button */
+.my-business-btn {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1.5px solid #d0d5dd;
+  position: relative;
+}
+
+.my-business-btn:hover {
+  background: linear-gradient(135deg, #f0f2f5 0%, #e9ecef 100%);
+  border-color: #adb5bd;
+  box-shadow: 0 6px 16px rgba(115, 115, 231, 0.3);
+  transform: translateY(-2px);
+}
+
+.my-business-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* My Business Marker */
+.marker-my-business {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.my-business-marker-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.my-business-marker-icon:hover {
+  transform: scale(1.15);
+}
+
+.my-business-marker-label {
+  position: absolute;
+  bottom: 8px;
+  background: #FFD700;
+  border: 2px solid #DAA520;
+  border-radius: 12px;
+  padding: 2px 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.my-business-marker-label .marker-star {
+  transform: none;
+  font-size: 11px;
+  font-weight: bold;
+  color: #000;
+  text-shadow: none;
+}

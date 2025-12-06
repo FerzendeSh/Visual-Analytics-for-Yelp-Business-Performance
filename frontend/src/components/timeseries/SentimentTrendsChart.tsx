@@ -11,10 +11,10 @@ import { curveMonotoneX } from '@visx/curve';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 import { Business } from '../../api';
-import { RatingsTimeline } from '../../api/endpoints/analytics';
+import { SentimentTimeline } from '../../api/endpoints/analytics';
 import { calculateTrend, calculateCompetitivePosition } from './trendUtils';
 import { formatPercentChange } from './chartConstants';
-import './RatingTrendsChart.css';
+import './SentimentTrendsChart.css';
 
 const BACKGROUND_COLOR = '#0F111A';
 const VOLUME_COLOR = '#3b2f5c';
@@ -48,25 +48,25 @@ interface TooltipData {
   period: string;
   volume: number;
   legendItems: LegendItem[];
-  ratings: Record<string, number>;
+  sentiments: Record<string, number>;
   change: { change: number; changePercent: number } | null;
 }
 
-interface RatingTrendsChartProps {
+interface SentimentTrendsChartProps {
   business: Business | null;
   selectedCity?: string;
   selectedState?: string;
   selectedCategory?: string;
   selectedNeighborhood?: string;
   primaryCategory?: string;
-  ratingsData?: RatingsTimeline | null;
-  cityRatingsData?: RatingsTimeline | null;
-  neighborhoodRatingsData?: RatingsTimeline | null;
-  categoryRatingsData?: RatingsTimeline | null;
+  sentimentData?: SentimentTimeline | null;
+  citySentimentData?: SentimentTimeline | null;
+  neighborhoodSentimentData?: SentimentTimeline | null;
+  categorySentimentData?: SentimentTimeline | null;
   isLoading?: boolean;
   error?: any;
   comparisonBusinesses?: Business[];
-  comparisonRatingsDataArray?: (RatingsTimeline | null)[];
+  comparisonSentimentDataArray?: (SentimentTimeline | null)[];
   period?: 'month' | 'year';
   compareByCity?: boolean;
   compareByCategory?: boolean;
@@ -77,15 +77,14 @@ function formatDateForPeriod(dateString: string, period: 'month' | 'year'): stri
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    return period === 'year' 
-      ? `${date.getFullYear()}` 
+    return period === 'year'
+      ? `${date.getFullYear()}`
       : date.toLocaleString('en-US', { month: 'short' });
   } catch {
     return dateString;
   }
 }
 
-// Helper to get sortable date key for proper chronological ordering
 function getDateSortKey(dateString: string): number {
   try {
     const date = new Date(dateString);
@@ -250,12 +249,10 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
   const tickInterval = useMemo(() => {
     const numPoints = data.length;
     if (numPoints <= 1) return 1;
-    
-    // Estimate space needed per label (approximate width in pixels)
+
     const estimatedLabelWidth = period === 'year' ? 40 : 35;
     const maxLabels = Math.floor(innerWidth / estimatedLabelWidth);
-    
-    // Calculate interval to show appropriate number of labels
+
     const interval = Math.max(1, Math.ceil(numPoints / maxLabels));
     return interval;
   }, [data.length, innerWidth, period]);
@@ -264,7 +261,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
     () =>
       scaleLinear<number>({
         range: [innerHeight, 0],
-        domain: [0, 5.5],
+        domain: [-1, 1],
       }),
     [innerHeight]
   );
@@ -302,10 +299,10 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
       const selectedData = data[safeIndex];
 
       if (selectedData) {
-        const ratings: Record<string, number> = {};
+        const sentiments: Record<string, number> = {};
         const legendItems = seriesNames.map((name) => {
           const value = (selectedData[name] as number) || 0;
-          ratings[name] = value;
+          sentiments[name] = value;
           return {
             name,
             value,
@@ -328,11 +325,11 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
         }
 
         showTooltip({
-          tooltipData: { 
+          tooltipData: {
             period: selectedData.period,
             volume: selectedData.volume,
             legendItems,
-            ratings,
+            sentiments,
             change,
           },
           tooltipLeft: (xScale(selectedData.period) || 0) + xScale.bandwidth() / 2 + margin.left,
@@ -390,7 +387,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
             );
           })}
 
-          {/* Rating Lines */}
+          {/* Sentiment Lines */}
           {seriesNames.map((name) => (
             <React.Fragment key={`line-group-${name}`}>
               <LinePath
@@ -405,7 +402,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
               {tooltipOpen && tooltipData && (
                 <Circle
                   cx={(xScale(tooltipData.period) || 0) + xScale.bandwidth() / 2}
-                  cy={y1Scale(tooltipData.ratings[name] || 0)}
+                  cy={y1Scale(tooltipData.sentiments[name] || 0)}
                   r={6}
                   fill={colorScale(name)}
                   stroke="#fff"
@@ -451,7 +448,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
             stroke="transparent"
             tickStroke="transparent"
             numTicks={5}
-            label="Star Rating"
+            label="Sentiment Score"
             labelOffset={40}
             labelProps={{
               fill: AXIS_COLOR,
@@ -518,39 +515,39 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
   );
 };
 
-const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
+const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
   business,
   selectedCity = '',
   selectedCategory = '',
   selectedNeighborhood = '',
   primaryCategory = '',
-  ratingsData,
-  cityRatingsData,
-  neighborhoodRatingsData,
-  categoryRatingsData,
+  sentimentData,
+  citySentimentData,
+  neighborhoodSentimentData,
+  categorySentimentData,
   isLoading = false,
   error = null,
   comparisonBusinesses = [],
-  comparisonRatingsDataArray = [],
+  comparisonSentimentDataArray = [],
   period = 'year',
   compareByCity = false,
   compareByCategory = false,
   compareByNeighborhood = false,
 }) => {
   // Determine comparison data source
-  const comparisonRatingsSource = selectedNeighborhood ? neighborhoodRatingsData : cityRatingsData;
+  const comparisonSentimentSource = selectedNeighborhood ? neighborhoodSentimentData : citySentimentData;
 
   // Build chart data and series names
-  const { chartData, seriesNames, ratingTrend, competitivePosition } = useMemo(() => {
-    if (!ratingsData?.data || ratingsData.data.length === 0) {
-      return { chartData: [], seriesNames: [], ratingTrend: null, competitivePosition: null };
+  const { chartData, seriesNames, sentimentTrend, competitivePosition } = useMemo(() => {
+    if (!sentimentData?.data || sentimentData.data.length === 0) {
+      return { chartData: [], seriesNames: [], sentimentTrend: null, competitivePosition: null };
     }
 
     // Collect periods only from the primary data source (business/city/category being viewed)
     // This ensures the chart only shows periods where the primary entity has data
-    const primaryPeriods = ratingsData.data.map((p) => p.period_start);
+    const primaryPeriods = sentimentData.data.map((p) => p.period_start);
 
-    // Sort periods chronologically by actual date, not alphabetically
+    // Sort periods chronologically by actual date
     const sortedPeriods = primaryPeriods.sort((a, b) => getDateSortKey(a) - getDateSortKey(b));
 
     // Build series names
@@ -568,13 +565,12 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
       ? `${selectedCity} Avg`
       : selectedCategory
       ? `${selectedCategory} Avg`
-      : 'Avg Rating';
+      : 'Avg Sentiment';
 
     names.push(primaryName);
 
     // Comparison series name (city/neighborhood avg when viewing a business)
-    // Only add if the checkbox is checked (use business's city as default if not filtered)
-    if (business && comparisonRatingsSource?.data) {
+    if (business && comparisonSentimentSource?.data) {
       const shouldShowComparison = selectedNeighborhood
         ? compareByNeighborhood && selectedNeighborhood
         : compareByCity;
@@ -592,7 +588,7 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
 
     // Category average if available
     // Only add if the checkbox is checked
-    if (categoryRatingsData?.data && compareByCategory) {
+    if (categorySentimentData?.data && compareByCategory) {
       const categoryName = selectedCategory
         ? `${selectedCategory} in ${selectedCity}`
         : `${primaryCategory} Avg`;
@@ -606,18 +602,18 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
 
     // Build chart data points
     const data: ChartDataPoint[] = sortedPeriods.map((periodStart) => {
-      const ratingPoint = ratingsData.data.find((p) => p.period_start === periodStart);
-      const comparisonPoint = comparisonRatingsSource?.data?.find((p) => p.period_start === periodStart);
-      const categoryPoint = categoryRatingsData?.data?.find((p) => p.period_start === periodStart);
+      const sentimentPoint = sentimentData.data.find((p) => p.period_start === periodStart);
+      const comparisonPoint = comparisonSentimentSource?.data?.find((p) => p.period_start === periodStart);
+      const categoryPoint = categorySentimentData?.data?.find((p) => p.period_start === periodStart);
 
       const point: ChartDataPoint = {
         period: formatDateForPeriod(periodStart, period),
-        volume: ratingPoint?.review_count || 0,
-        [primaryName]: ratingPoint?.avg_rating || 0,
+        volume: sentimentPoint?.review_count || 0,
+        [primaryName]: sentimentPoint?.avg_sentiment_score || 0,
       };
 
-      // Add comparison data (only if checkbox is checked, use business's city as default if not filtered)
-      if (business && comparisonRatingsSource?.data) {
+      // Add comparison data (only if checkbox is checked)
+      if (business && comparisonSentimentSource?.data) {
         const shouldShowComparison = selectedNeighborhood
           ? compareByNeighborhood && selectedNeighborhood
           : compareByCity;
@@ -629,23 +625,23 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
                 .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
                 .join(' ')} Avg`
             : `${selectedCity || business.city} Avg`;
-          point[comparisonName] = comparisonPoint?.avg_rating || 0;
+          point[comparisonName] = comparisonPoint?.avg_sentiment_score || 0;
         }
       }
 
       // Add category data (only if checkbox is checked)
-      if (categoryRatingsData?.data && compareByCategory) {
+      if (categorySentimentData?.data && compareByCategory) {
         const categoryName = selectedCategory
           ? `${selectedCategory} in ${selectedCity}`
           : `${primaryCategory} Avg`;
-        point[categoryName] = categoryPoint?.avg_rating || 0;
+        point[categoryName] = categoryPoint?.avg_sentiment_score || 0;
       }
 
       // Add comparison businesses
-      comparisonRatingsDataArray?.forEach((compData, index) => {
+      comparisonSentimentDataArray?.forEach((compData, index) => {
         const compPoint = compData?.data?.find((p) => p.period_start === periodStart);
         if (comparisonBusinesses[index]) {
-          point[comparisonBusinesses[index].name] = compPoint?.avg_rating || 0;
+          point[comparisonBusinesses[index].name] = compPoint?.avg_sentiment_score || 0;
         }
       });
 
@@ -653,24 +649,24 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
     });
 
     // Calculate trend
-    const trend = calculateTrend(ratingsData.data, 'avg_rating', 3);
+    const trend = calculateTrend(sentimentData.data, 'avg_sentiment_score', 3);
 
     // Calculate competitive position
-    const position = comparisonRatingsSource?.data
-      ? calculateCompetitivePosition(ratingsData.data, comparisonRatingsSource.data, 'avg_rating')
+    const position = comparisonSentimentSource?.data
+      ? calculateCompetitivePosition(sentimentData.data, comparisonSentimentSource.data, 'avg_sentiment_score')
       : null;
 
     return {
       chartData: data,
       seriesNames: names,
-      ratingTrend: trend,
+      sentimentTrend: trend,
       competitivePosition: position,
     };
   }, [
-    ratingsData,
-    comparisonRatingsSource,
-    categoryRatingsData,
-    comparisonRatingsDataArray,
+    sentimentData,
+    comparisonSentimentSource,
+    categorySentimentData,
+    comparisonSentimentDataArray,
     comparisonBusinesses,
     business,
     selectedCity,
@@ -684,52 +680,52 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
   ]);
 
   // Determine title and insight text
-  const primaryName = seriesNames[0] || 'Ratings';
-  const titleText = ratingTrend
-    ? `${primaryName}: Ratings ${ratingTrend.direction === 'improving' ? 'Improving' : ratingTrend.direction === 'declining' ? 'Declining' : 'Stable'}`
-    : `${primaryName} - Rating Trends`;
+  const primaryName = seriesNames[0] || 'Sentiments';
+  const titleText = sentimentTrend
+    ? `${primaryName}: Sentiment ${sentimentTrend.direction === 'improving' ? 'Improving' : sentimentTrend.direction === 'declining' ? 'Declining' : 'Stable'}`
+    : `${primaryName} - Sentiment Trends`;
 
   if (!business && !selectedCity && !selectedCategory) {
     return (
-      <div className="rating-trends-empty">
-        <p>Select a city, category, or business to view rating trends</p>
+      <div className="sentiment-trends-empty">
+        <p>Select a city, category, or business to view sentiment trends</p>
       </div>
     );
   }
 
   return (
-    <div className="rating-trends-chart" style={{ backgroundColor: BACKGROUND_COLOR }}>
+    <div className="sentiment-trends-chart" style={{ backgroundColor: BACKGROUND_COLOR }}>
       {/* Header Section */}
-      <div className="rating-trends-chart__header">
-        <h2 className="rating-trends-chart__title">Rating Trends</h2>
-        <h3 className="rating-trends-chart__insight-title">{titleText}</h3>
+      <div className="sentiment-trends-chart__header">
+        <h2 className="sentiment-trends-chart__title">Sentiment Trends</h2>
+        <h3 className="sentiment-trends-chart__insight-title">{titleText}</h3>
 
         {/* Trend Badges */}
-        <div className="rating-trends-chart__badges">
-          {ratingTrend && (
+        <div className="sentiment-trends-chart__badges">
+          {sentimentTrend && (
             <div
-              className={`rating-trends-chart__badge ${
-                ratingTrend.direction === 'improving'
-                  ? 'rating-trends-chart__badge--positive'
-                  : ratingTrend.direction === 'declining'
-                  ? 'rating-trends-chart__badge--negative'
-                  : 'rating-trends-chart__badge--neutral'
+              className={`sentiment-trends-chart__badge ${
+                sentimentTrend.direction === 'improving'
+                  ? 'sentiment-trends-chart__badge--positive'
+                  : sentimentTrend.direction === 'declining'
+                  ? 'sentiment-trends-chart__badge--negative'
+                  : 'sentiment-trends-chart__badge--neutral'
               }`}
             >
-              <div className="rating-trends-chart__badge-icon">
-                {ratingTrend.direction === 'improving' ? (
+              <div className="sentiment-trends-chart__badge-icon">
+                {sentimentTrend.direction === 'improving' ? (
                   <ArrowUpRight size={14} strokeWidth={2.5} />
-                ) : ratingTrend.direction === 'declining' ? (
+                ) : sentimentTrend.direction === 'declining' ? (
                   <ArrowDownRight size={14} strokeWidth={2.5} />
                 ) : (
                   <Minus size={14} strokeWidth={2.5} />
                 )}
               </div>
-              <div className="rating-trends-chart__badge-content">
-                <span className="rating-trends-chart__badge-value">
-                  {formatPercentChange(ratingTrend.changePercent)}
+              <div className="sentiment-trends-chart__badge-content">
+                <span className="sentiment-trends-chart__badge-value">
+                  {formatPercentChange(sentimentTrend.changePercent)}
                 </span>
-                <span className="rating-trends-chart__badge-label">
+                <span className="sentiment-trends-chart__badge-label">
                   recent trend (last 3 {period}s)
                 </span>
               </div>
@@ -738,24 +734,24 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
 
           {business && competitivePosition && (
             <div
-              className={`rating-trends-chart__badge ${
+              className={`sentiment-trends-chart__badge ${
                 competitivePosition.isAboveAverage
-                  ? 'rating-trends-chart__badge--positive'
-                  : 'rating-trends-chart__badge--negative'
+                  ? 'sentiment-trends-chart__badge--positive'
+                  : 'sentiment-trends-chart__badge--negative'
               }`}
             >
-              <div className="rating-trends-chart__badge-icon">
+              <div className="sentiment-trends-chart__badge-icon">
                 {competitivePosition.isAboveAverage ? (
                   <ArrowUpRight size={14} strokeWidth={2.5} />
                 ) : (
                   <ArrowDownRight size={14} strokeWidth={2.5} />
                 )}
               </div>
-              <div className="rating-trends-chart__badge-content">
-                <span className="rating-trends-chart__badge-value">
+              <div className="sentiment-trends-chart__badge-content">
+                <span className="sentiment-trends-chart__badge-value">
                   {formatPercentChange(Math.abs(competitivePosition.gapPercent))}
                 </span>
-                <span className="rating-trends-chart__badge-label">
+                <span className="sentiment-trends-chart__badge-label">
                   {competitivePosition.isAboveAverage ? 'above' : 'below'}{' '}
                   {selectedNeighborhood
                     ? selectedNeighborhood
@@ -773,19 +769,19 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
 
       {/* Loading State */}
       {isLoading && (
-        <div className="rating-trends-chart__loading">Loading rating trends...</div>
+        <div className="sentiment-trends-chart__loading">Loading sentiment trends...</div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="rating-trends-chart__error">
-          Error: {error.message || 'Failed to load rating trends'}
+        <div className="sentiment-trends-chart__error">
+          Error: {error.message || 'Failed to load sentiment trends'}
         </div>
       )}
 
       {/* Chart */}
       {!isLoading && !error && chartData.length > 0 && (
-        <div className="rating-trends-chart__chart">
+        <div className="sentiment-trends-chart__chart">
           <ParentSize>
             {({ width, height }) => (
               <Chart
@@ -802,32 +798,32 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
 
       {/* Empty State */}
       {!isLoading && !error && chartData.length === 0 && (
-        <div className="rating-trends-chart__empty">
-          <p>No rating trends data available</p>
+        <div className="sentiment-trends-chart__empty">
+          <p>No sentiment trends data available</p>
         </div>
       )}
 
       {/* Legend at the bottom */}
       {chartData.length > 0 && (
-        <div className="rating-trends-chart__legend">
-          <div className="rating-trends-chart__legend-items">
+        <div className="sentiment-trends-chart__legend">
+          <div className="sentiment-trends-chart__legend-items">
             {/* Review Volume Legend Item */}
-            <div className="rating-trends-chart__legend-item">
+            <div className="sentiment-trends-chart__legend-item">
               <div
-                className="rating-trends-chart__legend-bar"
+                className="sentiment-trends-chart__legend-bar"
                 style={{ backgroundColor: VOLUME_COLOR }}
               />
-              <span className="rating-trends-chart__legend-text">Review Volume</span>
+              <span className="sentiment-trends-chart__legend-text">Review Volume</span>
             </div>
 
             {/* Line Legend Items */}
             {seriesNames.map((name, i) => (
-              <div key={`legend-${i}`} className="rating-trends-chart__legend-item">
+              <div key={`legend-${i}`} className="sentiment-trends-chart__legend-item">
                 <div
-                  className="rating-trends-chart__legend-line"
+                  className="sentiment-trends-chart__legend-line"
                   style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }}
                 />
-                <span className="rating-trends-chart__legend-text">{name}</span>
+                <span className="sentiment-trends-chart__legend-text">{name}</span>
               </div>
             ))}
           </div>
@@ -837,4 +833,4 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
   );
 };
 
-export default memo(RatingTrendsChart);
+export default memo(SentimentTrendsChart);
