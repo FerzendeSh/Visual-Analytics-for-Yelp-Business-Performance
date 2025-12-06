@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { toggleSidebar } from '../../store/slices/uiSlice';
 import { Business } from '../../api';
+import { useMyBusiness } from '../../context/BusinessContext';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
 
@@ -74,6 +75,7 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const isSidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
+  const { myBusiness } = useMyBusiness();
 
   const handleToggleSidebar = () => {
     dispatch(toggleSidebar());
@@ -117,6 +119,7 @@ const Layout: React.FC<LayoutProps> = ({
       <MainContent
         title={title}
         subtitle={subtitle}
+        myBusinessName={myBusiness?.name}
         isSidebarCollapsed={showSidebar ? isSidebarCollapsed : false}
       >
         {children}

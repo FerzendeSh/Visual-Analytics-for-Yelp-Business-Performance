@@ -244,7 +244,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
       geometry: { type: "Point", coordinates: [b.longitude, b.latitude] },
     }));
 
-    const cluster = new Supercluster<Business>({ radius: 75, maxZoom: 20 });
+    const cluster = new Supercluster<Business>({ radius: 75, maxZoom: 14 });
     cluster.load(points);
     return cluster;
   }, [filteredBusinesses]);
@@ -891,16 +891,6 @@ useEffect(() => {
           >
             <img src="/direction.png" alt="Reset Orientation" className="orientation-icon" />
           </button>
-          {useViewportLoading && (
-            <button
-              className="map-control-btn refresh-btn"
-              onClick={handleRefreshBusinesses}
-              title="Refresh Businesses (Clear Cached)"
-              aria-label="Refresh Businesses"
-            >
-              <span className="control-icon">⟳</span>
-            </button>
-          )}
           {onMapCityChange && (
             <button
               className="map-control-btn set-filter-btn"

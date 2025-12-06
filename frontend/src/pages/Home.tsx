@@ -243,7 +243,7 @@ const Home: React.FC = () => {
 
   return (
     <Layout
-      title="Yelp Business Analytics Dashboard"
+      title="Business and Market Analytics Dashboard"
       showSidebar={true}
       businesses={businesses}
       selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}

@@ -97,9 +97,10 @@ function getDateSortKey(dateString: string): number {
 
 interface TooltipContentProps {
   data: TooltipData | null;
+  period: 'month' | 'year';
 }
 
-const TooltipContent: React.FC<TooltipContentProps> = ({ data }) => {
+const TooltipContent: React.FC<TooltipContentProps> = ({ data, period }) => {
   if (!data) return null;
 
   const change = data.change;
@@ -202,7 +203,7 @@ const TooltipContent: React.FC<TooltipContentProps> = ({ data }) => {
                   : '#94a3b8',
             }}
           >
-            {formatPercentChange(change.changePercent)} vs previous period
+            {formatPercentChange(change.changePercent)} vs previous {period}
           </span>
         </div>
       )}
@@ -511,7 +512,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
             zIndex: 100,
           }}
         >
-          <TooltipContent data={tooltipData} />
+          <TooltipContent data={tooltipData} period={period} />
         </TooltipInPortal>
       )}
     </div>
@@ -683,11 +684,8 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
     compareByNeighborhood,
   ]);
 
-  // Determine title and insight text
+  // Determine title text
   const primaryName = seriesNames[0] || 'Ratings';
-  const titleText = ratingTrend
-    ? `${primaryName}: Ratings ${ratingTrend.direction === 'improving' ? 'Improving' : ratingTrend.direction === 'declining' ? 'Declining' : 'Stable'}`
-    : `${primaryName} - Rating Trends`;
 
   if (!business && !selectedCity && !selectedCategory) {
     return (
@@ -702,73 +700,6 @@ const RatingTrendsChart: React.FC<RatingTrendsChartProps> = ({
       {/* Header Section */}
       <div className="rating-trends-chart__header">
         <h2 className="rating-trends-chart__title">Rating Trends</h2>
-        <h3 className="rating-trends-chart__insight-title">{titleText}</h3>
-
-        {/* Trend Badges */}
-        <div className="rating-trends-chart__badges">
-          {ratingTrend && (
-            <div
-              className={`rating-trends-chart__badge ${
-                ratingTrend.direction === 'improving'
-                  ? 'rating-trends-chart__badge--positive'
-                  : ratingTrend.direction === 'declining'
-                  ? 'rating-trends-chart__badge--negative'
-                  : 'rating-trends-chart__badge--neutral'
-              }`}
-            >
-              <div className="rating-trends-chart__badge-icon">
-                {ratingTrend.direction === 'improving' ? (
-                  <ArrowUpRight size={14} strokeWidth={2.5} />
-                ) : ratingTrend.direction === 'declining' ? (
-                  <ArrowDownRight size={14} strokeWidth={2.5} />
-                ) : (
-                  <Minus size={14} strokeWidth={2.5} />
-                )}
-              </div>
-              <div className="rating-trends-chart__badge-content">
-                <span className="rating-trends-chart__badge-value">
-                  {formatPercentChange(ratingTrend.changePercent)}
-                </span>
-                <span className="rating-trends-chart__badge-label">
-                  recent trend (last 3 {period}s)
-                </span>
-              </div>
-            </div>
-          )}
-
-          {business && competitivePosition && (
-            <div
-              className={`rating-trends-chart__badge ${
-                competitivePosition.isAboveAverage
-                  ? 'rating-trends-chart__badge--positive'
-                  : 'rating-trends-chart__badge--negative'
-              }`}
-            >
-              <div className="rating-trends-chart__badge-icon">
-                {competitivePosition.isAboveAverage ? (
-                  <ArrowUpRight size={14} strokeWidth={2.5} />
-                ) : (
-                  <ArrowDownRight size={14} strokeWidth={2.5} />
-                )}
-              </div>
-              <div className="rating-trends-chart__badge-content">
-                <span className="rating-trends-chart__badge-value">
-                  {formatPercentChange(Math.abs(competitivePosition.gapPercent))}
-                </span>
-                <span className="rating-trends-chart__badge-label">
-                  {competitivePosition.isAboveAverage ? 'above' : 'below'}{' '}
-                  {selectedNeighborhood
-                    ? selectedNeighborhood
-                        .split('_')
-                        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                        .join(' ')
-                    : selectedCity || business.city}{' '}
-                  avg
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Loading State */}

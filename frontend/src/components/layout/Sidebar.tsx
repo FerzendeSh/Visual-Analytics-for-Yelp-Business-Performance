@@ -479,10 +479,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       {!isCollapsed && (
         <div className="sidebar-footer">
           <div className="sidebar-info">
-            <div className="my-business-info">
-              <p className="my-business-label">My Business</p>
-              <p className="my-business-name">{myBusiness?.name || 'Loading...'}</p>
-            </div>
             <p className="sidebar-version">v1.0.0</p>
           </div>
         </div>

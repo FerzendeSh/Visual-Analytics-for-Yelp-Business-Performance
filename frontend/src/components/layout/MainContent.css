@@ -23,7 +23,19 @@
 .main-title {
   font-size: clamp(1.25rem, 3vw, 2rem);
   color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+  font-weight: 600;
+}
+
+.main-business-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
   margin: 0 0 var(--spacing-sm) 0;
+  font-weight: 500;
+}
+
+.main-business-name {
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 

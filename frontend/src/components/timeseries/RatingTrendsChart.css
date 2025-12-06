@@ -24,111 +24,6 @@
   letter-spacing: -0.025em;
 }
 
-.rating-trends-chart__subtitle {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-.rating-trends-chart__dot {
-  color: #475569;
-}
-
-.rating-trends-chart__stars {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: #fff;
-  font-weight: 600;
-}
-
-.rating-trends-chart__insight-title {
-  margin: 0.125rem 0 0 0;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.rating-trends-chart__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0;
-}
-
-.rating-trends-chart__badge {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 0.375rem;
-}
-
-.rating-trends-chart__badge--positive {
-  background-color: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.rating-trends-chart__badge--positive .rating-trends-chart__badge-icon {
-  color: #34d399;
-}
-
-.rating-trends-chart__badge--positive .rating-trends-chart__badge-value {
-  color: #34d399;
-}
-
-.rating-trends-chart__badge--negative {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.rating-trends-chart__badge--negative .rating-trends-chart__badge-icon {
-  color: #ef4444;
-}
-
-.rating-trends-chart__badge--negative .rating-trends-chart__badge-value {
-  color: #ef4444;
-}
-
-.rating-trends-chart__badge--neutral {
-  background-color: rgba(100, 116, 139, 0.2);
-  border: 1px solid rgba(100, 116, 139, 0.3);
-}
-
-.rating-trends-chart__badge--neutral .rating-trends-chart__badge-icon {
-  color: #94a3b8;
-}
-
-.rating-trends-chart__badge--neutral .rating-trends-chart__badge-value {
-  color: #94a3b8;
-}
-
-.rating-trends-chart__badge-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.rating-trends-chart__badge-content {
-  display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
-}
-
-.rating-trends-chart__badge-value {
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.rating-trends-chart__badge-label {
-  font-size: 0.7rem;
-  color: #cbd5e1;
-}
-
 .rating-trends-chart__chart {
   flex: 1 1 auto;
   min-height: 250px;
@@ -218,19 +113,6 @@
 
   .rating-trends-chart__title {
     font-size: 1.25rem;
-  }
-
-  .rating-trends-chart__badges {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .rating-trends-chart__badge {
-    padding: 0.5rem 0.75rem;
-  }
-
-  .rating-trends-chart__badge-value {
-    font-size: 1rem;
   }
 
   .rating-trends-chart__legend-items {

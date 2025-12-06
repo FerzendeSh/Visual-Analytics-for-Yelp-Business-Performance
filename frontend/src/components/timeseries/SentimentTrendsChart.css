@@ -24,103 +24,6 @@
   letter-spacing: -0.025em;
 }
 
-.sentiment-trends-chart__subtitle {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-.sentiment-trends-chart__dot {
-  color: #475569;
-}
-
-.sentiment-trends-chart__insight-title {
-  margin: 0.125rem 0 0 0;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.sentiment-trends-chart__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0;
-}
-
-.sentiment-trends-chart__badge {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 0.375rem;
-}
-
-.sentiment-trends-chart__badge--positive {
-  background-color: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.sentiment-trends-chart__badge--positive .sentiment-trends-chart__badge-icon {
-  color: #34d399;
-}
-
-.sentiment-trends-chart__badge--positive .sentiment-trends-chart__badge-value {
-  color: #34d399;
-}
-
-.sentiment-trends-chart__badge--negative {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.sentiment-trends-chart__badge--negative .sentiment-trends-chart__badge-icon {
-  color: #ef4444;
-}
-
-.sentiment-trends-chart__badge--negative .sentiment-trends-chart__badge-value {
-  color: #ef4444;
-}
-
-.sentiment-trends-chart__badge--neutral {
-  background-color: rgba(100, 116, 139, 0.2);
-  border: 1px solid rgba(100, 116, 139, 0.3);
-}
-
-.sentiment-trends-chart__badge--neutral .sentiment-trends-chart__badge-icon {
-  color: #94a3b8;
-}
-
-.sentiment-trends-chart__badge--neutral .sentiment-trends-chart__badge-value {
-  color: #94a3b8;
-}
-
-.sentiment-trends-chart__badge-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sentiment-trends-chart__badge-content {
-  display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
-}
-
-.sentiment-trends-chart__badge-value {
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.sentiment-trends-chart__badge-label {
-  font-size: 0.7rem;
-  color: #cbd5e1;
-}
-
 .sentiment-trends-chart__chart {
   flex: 1 1 auto;
   min-height: 250px;
@@ -204,19 +107,6 @@
 
   .sentiment-trends-chart__title {
     font-size: 1.25rem;
-  }
-
-  .sentiment-trends-chart__badges {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .sentiment-trends-chart__badge {
-    padding: 0.5rem 0.75rem;
-  }
-
-  .sentiment-trends-chart__badge-value {
-    font-size: 1rem;
   }
 
   .sentiment-trends-chart__legend-items {
