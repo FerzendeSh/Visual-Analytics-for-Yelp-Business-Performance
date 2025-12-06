@@ -8,18 +8,14 @@ from api.endpoints.locations import router as locations_router
 from api.endpoints.analytics import router as analytics_router
 from configs.settings import PROJECT_NAME, VERSION, ALLOWED_ORIGINS
 from database.database import init_db, close_db
+from dependencies import preload_ml_models
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Lifecycle manager for database connections.
-    Runs on startup and shutdown.
-    """
-    # Startup: Initialize database tables (if needed)
     await init_db()
+    preload_ml_models()
     yield
-    # Shutdown: Close database connections
     await close_db()
 
 

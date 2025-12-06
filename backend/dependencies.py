@@ -2,6 +2,8 @@
 Centralized dependency injection for FastAPI.
 Provides all service dependencies with proper wiring.
 """
+from functools import lru_cache
+from pathlib import Path
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +13,35 @@ from repositories.review_repository import ReviewRepository
 from repositories.interfaces import BusinessRepositoryInterface, ReviewRepositoryInterface
 from services.business_service import BusinessService
 from services.analytics_service import AnalyticsService
+from services.forecast_service import ForecastService
+from services.keyword_service import KeywordService, EmbeddingStore
 from services.interfaces import BusinessServiceInterface, AnalyticsServiceInterface
+
+
+# ============================================================================
+# Paths
+# ============================================================================
+
+BACKEND_DIR = Path(__file__).parent
+PUBLIC_DIR = BACKEND_DIR / "public"
+EMBEDDINGS_PATH = PUBLIC_DIR / "review_embeddings.npy"
+METADATA_PATH = PUBLIC_DIR / "review_metadata.parquet"
+
+
+# ============================================================================
+# Singleton ML Model Loaders
+# ============================================================================
+
+@lru_cache(maxsize=1)
+def get_embedding_store() -> EmbeddingStore:
+    """
+    Load EmbeddingStore as a singleton.
+    Uses memory-mapped numpy array for efficient embedding lookup.
+    """
+    return EmbeddingStore(
+        embeddings_path=EMBEDDINGS_PATH,
+        metadata_path=METADATA_PATH
+    )
 
 
 # ============================================================================
@@ -21,30 +51,14 @@ from services.interfaces import BusinessServiceInterface, AnalyticsServiceInterf
 def get_business_repository(
     db: AsyncSession = Depends(get_async_session)
 ) -> BusinessRepositoryInterface:
-    """
-    Get business repository instance.
-
-    Args:
-        db: Async database session from dependency
-
-    Returns:
-        BusinessRepositoryInterface: Concrete repository implementation
-    """
+    """Get business repository instance."""
     return BusinessRepository(db)
 
 
 def get_review_repository(
     db: AsyncSession = Depends(get_async_session)
 ) -> ReviewRepositoryInterface:
-    """
-    Get review repository instance.
-
-    Args:
-        db: Async database session from dependency
-
-    Returns:
-        ReviewRepositoryInterface: Concrete repository implementation
-    """
+    """Get review repository instance."""
     return ReviewRepository(db)
 
 
@@ -55,15 +69,7 @@ def get_review_repository(
 def get_business_service(
     business_repository: BusinessRepositoryInterface = Depends(get_business_repository)
 ) -> BusinessServiceInterface:
-    """
-    Get business service instance with all dependencies injected.
-
-    Args:
-        business_repository: Business repository dependency
-
-    Returns:
-        BusinessServiceInterface: Concrete service implementation
-    """
+    """Get business service instance."""
     return BusinessService(business_repository)
 
 
@@ -72,15 +78,28 @@ def get_analytics_service(
     business_repository: BusinessRepositoryInterface = Depends(get_business_repository),
     db: AsyncSession = Depends(get_async_session)
 ) -> AnalyticsServiceInterface:
-    """
-    Get analytics service instance with all dependencies injected.
-
-    Args:
-        review_repository: Review repository dependency
-        business_repository: Business repository dependency
-        db: Database session for metrics repository
-
-    Returns:
-        AnalyticsServiceInterface: Concrete service implementation
-    """
+    """Get analytics service instance."""
     return AnalyticsService(review_repository, business_repository, db)
+
+
+# ============================================================================
+# Phase 2 Service Dependencies
+# ============================================================================
+
+@lru_cache(maxsize=1)
+def get_forecast_service() -> ForecastService:
+    return ForecastService()
+
+
+@lru_cache(maxsize=1)
+def get_keyword_service() -> KeywordService:
+    embedding_store = get_embedding_store()
+    return KeywordService(embedding_store=embedding_store)
+
+
+def preload_ml_models():
+    """Pre-load ML models at startup to avoid cold-start latency."""
+    store = get_embedding_store()
+    store._load()
+    _ = get_forecast_service()
+    _ = get_keyword_service()
