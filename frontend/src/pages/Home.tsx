@@ -6,12 +6,14 @@ import SentimentTrendsChart from '../components/timeseries/SentimentTrendsChart'
 import FilterSummary from '../components/dashboard/FilterSummary';
 import MetricsCards from '../components/dashboard/MetricsCards';
 import CompetitivePositioningChart from '../components/competitive/CompetitivePositioningChart';
+import { MetricsCardsSkeleton, EmptyState } from '../components/common';
 import { useTimelineData, TimelineData } from '../hooks/useTimelineData';
 import { useBusinesses } from '../hooks/useBusinesses';
 import { useCompetitiveSnapshot } from '../hooks/useCompetitiveSnapshot';
 import { useMyBusiness } from '../context/BusinessContext';
 import { useComparisonTimelines } from '../hooks/useComparisonTimelines';
 import { Business } from '../api';
+import toast from 'react-hot-toast';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -74,9 +76,35 @@ const Home: React.FC = () => {
   // Handler for FilterControlPanel business select (add to comparison)
   const handleFilterBusinessSelect = useCallback((business: Business | null) => {
     if (business) {
+      const isAlreadyAdded = comparisonBusinesses.some(b => b.business_id === business.business_id);
+      if (isAlreadyAdded) {
+        toast.error(`${business.name} is already in comparison group`, { duration: 2000 });
+        return;
+      }
+
+      if (comparisonBusinesses.length >= maxComparisons) {
+        toast(
+          `Maximum ${maxComparisons} businesses allowed. Remove one to add another.`,
+          {
+            duration: 4000,
+            icon: '⚠️',
+            style: {
+              background: '#1e293b',
+              color: '#f59e0b',
+              border: '1px solid #f59e0b',
+            }
+          }
+        );
+        return;
+      }
+
       addComparison(business);
+      toast.success(
+        `${business.name} added to comparison group (${comparisonBusinesses.length + 1}/${maxComparisons})`,
+        { duration: 3000 }
+      );
     }
-  }, [addComparison]);
+  }, [addComparison, comparisonBusinesses, maxComparisons]);
 
   const timelineParams = useMemo(() => ({
     business: myBusiness,
@@ -196,16 +224,33 @@ const Home: React.FC = () => {
         ratingChange: 0,
         sentimentChange: 0,
         reviewVolumeChange: 0,
+        cityAvgRating: undefined,
+        cityAvgSentiment: undefined,
+        categoryAvgRating: undefined,
+        categoryAvgSentiment: undefined,
+        neighborhoodAvgRating: undefined,
       };
     }
 
     const ratingsData = (timelineData as TimelineData)?.business_ratings;
     const sentimentData = (timelineData as TimelineData)?.business_sentiment;
+    const cityRatingsData = (timelineData as TimelineData)?.city_ratings;
+    const citySentimentData = (timelineData as TimelineData)?.city_sentiment;
+    const categoryRatingsData = (timelineData as TimelineData)?.category_ratings;
+    const categorySentimentData = (timelineData as TimelineData)?.category_sentiment;
+    const neighborhoodRatingsData = (timelineData as TimelineData)?.neighborhood_ratings;
 
     // Current values
     const starRating = myBusiness.stars || 0;
     const sentimentScore = sentimentData?.data?.[sentimentData.data.length - 1]?.avg_sentiment_score || 0;
     const reviewVolume = myBusiness.review_count || 0;
+
+    // Calculate averages from comparison data (latest period)
+    const cityAvgRating = cityRatingsData?.data?.[cityRatingsData.data.length - 1]?.avg_rating;
+    const cityAvgSentiment = citySentimentData?.data?.[citySentimentData.data.length - 1]?.avg_sentiment_score;
+    const categoryAvgRating = categoryRatingsData?.data?.[categoryRatingsData.data.length - 1]?.avg_rating;
+    const categoryAvgSentiment = categorySentimentData?.data?.[categorySentimentData.data.length - 1]?.avg_sentiment_score;
+    const neighborhoodAvgRating = neighborhoodRatingsData?.data?.[neighborhoodRatingsData.data.length - 1]?.avg_rating;
 
     // Calculate changes from latest vs previous period
     let ratingChange = 0;
@@ -238,6 +283,11 @@ const Home: React.FC = () => {
       ratingChange,
       sentimentChange,
       reviewVolumeChange,
+      cityAvgRating,
+      cityAvgSentiment,
+      categoryAvgRating,
+      categoryAvgSentiment,
+      neighborhoodAvgRating,
     };
   }, [myBusiness, timelineData]);
 
@@ -287,18 +337,31 @@ const Home: React.FC = () => {
       <div className="home-content">
         <section className="home-section">
           {loading && (
-            <div className="loading-state">
-              Loading business data...
+            <div className="loading-container">
+              <MetricsCardsSkeleton />
+              <div className="loading-message">Loading business data...</div>
             </div>
           )}
 
           {error && (
-            <div className="error-state">
-              Error: {error}
-            </div>
+            <EmptyState
+              variant="error"
+              title="Failed to load business data"
+              description={`Error: ${error}`}
+              actionLabel="Retry"
+              onAction={() => window.location.reload()}
+            />
           )}
 
-          {!loading && !error && (
+          {!loading && !error && businesses.length === 0 && (
+            <EmptyState
+              variant="no-results"
+              title="No businesses found"
+              description="There are no businesses available in the database."
+            />
+          )}
+
+          {!loading && !error && businesses.length > 0 && (
             <>
               <FilterSummary
                 filters={filterTags}
@@ -316,15 +379,22 @@ const Home: React.FC = () => {
                 onStatusChange={setSelectedStatus}
               />
 
-              <MetricsCards
-                starRating={metricsData.starRating}
-                sentimentScore={metricsData.sentimentScore}
-                reviewVolume={metricsData.reviewVolume}
-                ratingChange={metricsData.ratingChange}
-                sentimentChange={metricsData.sentimentChange}
-                reviewVolumeChange={metricsData.reviewVolumeChange}
-                isLoading={timelineLoading}
-              />
+              {timelineLoading ? (
+                <MetricsCardsSkeleton />
+              ) : (
+                <MetricsCards
+                  starRating={metricsData.starRating}
+                  sentimentScore={metricsData.sentimentScore}
+                  reviewVolume={metricsData.reviewVolume}
+                  ratingChange={metricsData.ratingChange}
+                  sentimentChange={metricsData.sentimentChange}
+                  reviewVolumeChange={metricsData.reviewVolumeChange}
+                  cityAvgRating={metricsData.cityAvgRating}
+                  cityAvgSentiment={metricsData.cityAvgSentiment}
+                  neighborhoodAvgRating={metricsData.neighborhoodAvgRating}
+                  isLoading={timelineLoading}
+                />
+              )}
 
               <div className="dashboard-grid">
                 {/* Map Card */}

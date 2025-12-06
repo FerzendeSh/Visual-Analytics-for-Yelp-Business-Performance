@@ -60,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onStatusChange = () => {},
   onPeriodChange = () => {},
   onYearChange = () => {},
-  onResetFilters = () => {},
+  onResetFilters: _onResetFilters = () => {},
   onBusinessSelect = () => {},
   compareByCity = false,
   compareByCategory = false,
@@ -71,12 +71,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   onCompareByNeighborhood = () => {},
   onComparisonBusinessesChange = () => {},
 }) => {
-  const { myBusiness } = useMyBusiness();
+  // Note: myBusiness context is available for future use (e.g., highlighting in comparison)
+  const { myBusiness: _myBusiness } = useMyBusiness();
 
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
   const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
+  
+  // Collapsible group states
+  const [locationExpanded, setLocationExpanded] = useState(true);
+  const [attributesExpanded, setAttributesExpanded] = useState(false);
+  const [timeExpanded, setTimeExpanded] = useState(false);
   const [comparisonGroupExpanded, setComparisonGroupExpanded] = useState(false);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
 
   // Prepare filter options
   const cityStateMap = new Map<string, string>();
@@ -153,17 +158,49 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, [selectedCity, onNeighborhoodChange]);
 
   const isSpecificCitySelected = selectedCity && selectedCity !== '';
-  const appliedFiltersCount = [
+
+  // Calculate filter counts by category
+  const locationFiltersCount = [
     selectedCity && selectedCity !== '',
-    selectedCategory && selectedCategory !== '',
     selectedNeighborhood && selectedNeighborhood !== '',
+  ].filter(Boolean).length;
+
+  const attributeFiltersCount = [
+    selectedCategory && selectedCategory !== '',
     minRating !== 1 || maxRating !== 5,
     selectedStatus !== null,
+  ].filter(Boolean).length;
+
+  const timeFiltersCount = [
+    period === 'month' && selectedYear !== new Date().getFullYear(),
+  ].filter(Boolean).length;
+
+  const comparisonFiltersCount = [
     compareByCity,
     compareByCategory,
     compareByNeighborhood,
     comparisonBusinesses.length > 0,
   ].filter(Boolean).length;
+
+  const appliedFiltersCount = locationFiltersCount + attributeFiltersCount + timeFiltersCount;
+
+  const handleClearFiltersOnly = () => {
+    onCityChange("");
+    onCategoryChange("");
+    onNeighborhoodChange("");
+    onMinRatingChange(1);
+    onMaxRatingChange(5);
+    onStatusChange(null);
+    onPeriodChange('year');
+    onYearChange(new Date().getFullYear());
+  };
+
+  const handleClearComparisonsOnly = () => {
+    onCompareByCity(false);
+    onCompareByCategory(false);
+    onCompareByNeighborhood(false);
+    onComparisonBusinessesChange([]);
+  };
 
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -177,232 +214,265 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {!isCollapsed && (
         <div className="sidebar-filters">
-          {/* Filters Header with Clear All and Toggle */}
-          <div className="sidebar-filters-header-wrapper">
+          {/* Search Box - Always Visible */}
+          <div className="sidebar-search-box">
+            {onBusinessSelect && <SearchBar onBusinessSelect={onBusinessSelect} />}
+          </div>
+
+          {/* Location Group */}
+          <div className="sidebar-filter-group">
             <button
-              className="sidebar-filters-header-button"
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              className="sidebar-filter-group-header"
+              onClick={() => setLocationExpanded(!locationExpanded)}
             >
-              <div className="sidebar-filters-header">
-                <h3 className="sidebar-filters-title">Filters</h3>
+              <div className="sidebar-filter-group-title-wrapper">
+                <span className="sidebar-filter-group-title">Location</span>
+                {locationFiltersCount > 0 && (
+                  <span className="filter-count-badge">{locationFiltersCount}</span>
+                )}
               </div>
               <ChevronDown
-                size={12}
-                style={{
-                  transform: filtersExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}
+                size={14}
+                className={`sidebar-filter-group-chevron ${locationExpanded ? 'expanded' : ''}`}
               />
             </button>
-            {appliedFiltersCount > 0 && (
-              <button
-                onClick={onResetFilters}
-                className="sidebar-clear-all"
-                title="Clear all filters"
-              >
-                <Trash2 size={12} />
-                <span>Clear All</span>
-              </button>
-            )}
-          </div>
 
-          {filtersExpanded && (
-            <>
-              {/* Search Box */}
-              <div className="sidebar-search-box sidebar-search-box--top">
-                {onBusinessSelect && <SearchBar onBusinessSelect={onBusinessSelect} />}
-              </div>
-
-              {/* Primary Filters */}
-              <div className="sidebar-primary-filters sidebar-form-group--animate">
-            {/* City Dropdown */}
-            <div className="sidebar-form-group">
-              <label className="sidebar-label-text">City</label>
-              <div className="sidebar-select-wrapper">
-                <select
-                  value={selectedCity}
-                  onChange={(e) => onCityChange(e.target.value)}
-                  className="sidebar-select"
-                >
-                  <option value="">Cities</option>
-                  {cities.map(({ city, state }) => (
-                    <option key={`${city}|${state}`} value={`${city}|${state}`}>
-                      {city}, {state}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="sidebar-select-icon" size={14} />
-              </div>
-            </div>
-
-            {/* Neighborhood Dropdown (Conditional) */}
-            {isSpecificCitySelected && (
-              <div className="sidebar-form-group sidebar-form-group--animate">
-                <label className="sidebar-label-text">Neighborhood</label>
-                <div className="sidebar-select-wrapper">
-                  <select
-                    value={selectedNeighborhood}
-                    onChange={(e) => onNeighborhoodChange(e.target.value)}
-                    className="sidebar-select"
-                    disabled={loadingNeighborhoods}
-                  >
-                    <option value="">
-                      {loadingNeighborhoods ? 'Loading...' : 'All Neighborhoods'}
-                    </option>
-                    {neighborhoods.map((neighborhood) => (
-                      <option key={neighborhood} value={neighborhood}>
-                        {formatNeighborhoodName(neighborhood)}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="sidebar-select-icon" size={14} />
-                </div>
-              </div>
-            )}
-
-            {/* Category Dropdown */}
-            <div className="sidebar-form-group">
-              <label className="sidebar-label-text">Category</label>
-              <div className="sidebar-select-wrapper">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => onCategoryChange(e.target.value)}
-                  className="sidebar-select"
-                >
-                  <option value="">Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="sidebar-select-icon" size={14} />
-              </div>
-            </div>
-
-            {/* Rating Threshold - Dual Range Slider */}
-            <div className="sidebar-form-group">
-              <label className="sidebar-label-text">Rating Threshold</label>
-              <div className="sidebar-rating-slider">
-                <div className="sidebar-rating-values">
-                  <span className="sidebar-rating-min">{minRating}★</span>
-                  <div className="sidebar-slider-container">
-                    <input
-                      type="range"
-                      min="2"
-                      max="10"
-                      step="1"
-                      value={minRating * 2}
-                      onChange={(e) => {
-                        const newMin = Number(e.target.value) / 2;
-                        if (newMin <= maxRating) {
-                          onMinRatingChange(newMin);
-                        }
-                      }}
-                      className="sidebar-slider sidebar-slider-min"
-                    />
-                    <input
-                      type="range"
-                      min="2"
-                      max="10"
-                      step="1"
-                      value={maxRating * 2}
-                      onChange={(e) => {
-                        const newMax = Number(e.target.value) / 2;
-                        if (newMax >= minRating) {
-                          onMaxRatingChange(newMax);
-                        }
-                      }}
-                      className="sidebar-slider sidebar-slider-max"
-                    />
-                    <div className="sidebar-slider-track" />
+            {locationExpanded && (
+              <div className="sidebar-filter-group-content">
+                {/* City Dropdown */}
+                <div className="sidebar-form-group">
+                  <label className="sidebar-label-text">City</label>
+                  <div className="sidebar-select-wrapper">
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => onCityChange(e.target.value)}
+                      className="sidebar-select"
+                    >
+                      <option value="">All Cities</option>
+                      {cities.map(({ city, state }) => (
+                        <option key={`${city}|${state}`} value={`${city}|${state}`}>
+                          {city}, {state}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="sidebar-select-icon" size={14} />
                   </div>
-                  <span className="sidebar-rating-max">{maxRating}★</span>
                 </div>
-              </div>
-            </div>
 
-            {/* Status Toggle */}
-            <div className="sidebar-form-group">
-              <label className="sidebar-label-text">Status</label>
-              <div className="sidebar-status-group">
-                <button
-                  className={`sidebar-status-btn ${selectedStatus === 1 ? 'active' : ''}`}
-                  onClick={() => onStatusChange(selectedStatus === 1 ? null : 1)}
-                  title="Filter to open businesses"
-                >
-                  Open
-                </button>
-                <button
-                  className={`sidebar-status-btn ${selectedStatus === 0 ? 'active' : ''}`}
-                  onClick={() => onStatusChange(selectedStatus === 0 ? null : 0)}
-                  title="Filter to closed businesses"
-                >
-                  Closed
-                </button>
-              </div>
-            </div>
-
-            {/* Time Period */}
-            <div className="sidebar-form-group">
-              <label className="sidebar-label-text">Time Period</label>
-              <div className="sidebar-select-wrapper">
-                <select
-                  value={period}
-                  onChange={(e) => onPeriodChange(e.target.value as 'month' | 'year')}
-                  className="sidebar-select"
-                >
-                  <option value="year">Yearly</option>
-                  <option value="month">Monthly (per Year)</option>
-                </select>
-                <ChevronDown className="sidebar-select-icon" size={14} />
-              </div>
-            </div>
-
-            {/* Year Selector (Conditional) */}
-            {period === 'month' && (
-              <div className="sidebar-form-group sidebar-form-group--animate">
-                <label className="sidebar-label-text">Select Year</label>
-                <div className="sidebar-select-wrapper">
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => onYearChange(Number(e.target.value))}
-                    className="sidebar-select"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="sidebar-select-icon" size={14} />
-                </div>
+                {/* Neighborhood Dropdown (Conditional) */}
+                {isSpecificCitySelected && (
+                  <div className="sidebar-form-group sidebar-form-group--animate">
+                    <label className="sidebar-label-text">Neighborhood</label>
+                    <div className="sidebar-select-wrapper">
+                      <select
+                        value={selectedNeighborhood}
+                        onChange={(e) => onNeighborhoodChange(e.target.value)}
+                        className="sidebar-select"
+                        disabled={loadingNeighborhoods}
+                      >
+                        <option value="">
+                          {loadingNeighborhoods ? 'Loading...' : 'All Neighborhoods'}
+                        </option>
+                        {neighborhoods.map((neighborhood) => (
+                          <option key={neighborhood} value={neighborhood}>
+                            {formatNeighborhoodName(neighborhood)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="sidebar-select-icon" size={14} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-            </>
-          )}
 
-          {/* Comparison Group Section */}
-          <div className="sidebar-comparison-group">
+          {/* Attributes Group */}
+          <div className="sidebar-filter-group">
             <button
-              className="sidebar-comparison-header"
-              onClick={() => setComparisonGroupExpanded(!comparisonGroupExpanded)}
+              className="sidebar-filter-group-header"
+              onClick={() => setAttributesExpanded(!attributesExpanded)}
             >
-              <div className="sidebar-comparison-title-wrapper">
-                <h3 className="sidebar-comparison-title">Comparison Group</h3>
+              <div className="sidebar-filter-group-title-wrapper">
+                <span className="sidebar-filter-group-title">Attributes</span>
+                {attributeFiltersCount > 0 && (
+                  <span className="filter-count-badge">{attributeFiltersCount}</span>
+                )}
               </div>
               <ChevronDown
-                size={12}
-                style={{
-                  transform: comparisonGroupExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}
+                size={14}
+                className={`sidebar-filter-group-chevron ${attributesExpanded ? 'expanded' : ''}`}
+              />
+            </button>
+
+            {attributesExpanded && (
+              <div className="sidebar-filter-group-content">
+                {/* Category Dropdown */}
+                <div className="sidebar-form-group">
+                  <label className="sidebar-label-text">Category</label>
+                  <div className="sidebar-select-wrapper">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => onCategoryChange(e.target.value)}
+                      className="sidebar-select"
+                    >
+                      <option value="">All Categories</option>
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="sidebar-select-icon" size={14} />
+                  </div>
+                </div>
+
+                {/* Rating Threshold */}
+                <div className="sidebar-form-group">
+                  <label className="sidebar-label-text">Rating Range</label>
+                  <div className="sidebar-rating-slider">
+                    <div className="sidebar-rating-values">
+                      <span className="sidebar-rating-min">{minRating}★</span>
+                      <div className="sidebar-slider-container">
+                        <input
+                          type="range"
+                          min="2"
+                          max="10"
+                          step="1"
+                          value={minRating * 2}
+                          onChange={(e) => {
+                            const newMin = Number(e.target.value) / 2;
+                            if (newMin <= maxRating) {
+                              onMinRatingChange(newMin);
+                            }
+                          }}
+                          className="sidebar-slider sidebar-slider-min"
+                        />
+                        <input
+                          type="range"
+                          min="2"
+                          max="10"
+                          step="1"
+                          value={maxRating * 2}
+                          onChange={(e) => {
+                            const newMax = Number(e.target.value) / 2;
+                            if (newMax >= minRating) {
+                              onMaxRatingChange(newMax);
+                            }
+                          }}
+                          className="sidebar-slider sidebar-slider-max"
+                        />
+                        <div className="sidebar-slider-track" />
+                      </div>
+                      <span className="sidebar-rating-max">{maxRating}★</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Toggle */}
+                <div className="sidebar-form-group">
+                  <label className="sidebar-label-text">Status</label>
+                  <div className="sidebar-status-group">
+                    <button
+                      className={`sidebar-status-btn ${selectedStatus === 1 ? 'active' : ''}`}
+                      onClick={() => onStatusChange(selectedStatus === 1 ? null : 1)}
+                      title="Filter to open businesses"
+                    >
+                      Open
+                    </button>
+                    <button
+                      className={`sidebar-status-btn ${selectedStatus === 0 ? 'active' : ''}`}
+                      onClick={() => onStatusChange(selectedStatus === 0 ? null : 0)}
+                      title="Filter to closed businesses"
+                    >
+                      Closed
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Time Period Group */}
+          <div className="sidebar-filter-group">
+            <button
+              className="sidebar-filter-group-header"
+              onClick={() => setTimeExpanded(!timeExpanded)}
+            >
+              <div className="sidebar-filter-group-title-wrapper">
+                <span className="sidebar-filter-group-title">Time Period</span>
+                {timeFiltersCount > 0 && (
+                  <span className="filter-count-badge">{timeFiltersCount}</span>
+                )}
+              </div>
+              <ChevronDown
+                size={14}
+                className={`sidebar-filter-group-chevron ${timeExpanded ? 'expanded' : ''}`}
+              />
+            </button>
+
+            {timeExpanded && (
+              <div className="sidebar-filter-group-content">
+                {/* Time Period Dropdown */}
+                <div className="sidebar-form-group">
+                  <label className="sidebar-label-text">View</label>
+                  <div className="sidebar-select-wrapper">
+                    <select
+                      value={period}
+                      onChange={(e) => onPeriodChange(e.target.value as 'month' | 'year')}
+                      className="sidebar-select"
+                    >
+                      <option value="year">Yearly</option>
+                      <option value="month">Monthly (per Year)</option>
+                    </select>
+                    <ChevronDown className="sidebar-select-icon" size={14} />
+                  </div>
+                </div>
+
+                {/* Year Selector (Conditional) */}
+                {period === 'month' && (
+                  <div className="sidebar-form-group sidebar-form-group--animate">
+                    <label className="sidebar-label-text">Year</label>
+                    <div className="sidebar-select-wrapper">
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => onYearChange(Number(e.target.value))}
+                        className="sidebar-select"
+                      >
+                        {years.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="sidebar-select-icon" size={14} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Comparison Group */}
+          <div className="sidebar-filter-group">
+            <button
+              className="sidebar-filter-group-header"
+              onClick={() => setComparisonGroupExpanded(!comparisonGroupExpanded)}
+            >
+              <div className="sidebar-filter-group-title-wrapper">
+                <span className="sidebar-filter-group-title">Comparison Group</span>
+                {comparisonFiltersCount > 0 && (
+                  <span className="filter-count-badge">{comparisonFiltersCount}</span>
+                )}
+              </div>
+              <ChevronDown
+                size={14}
+                className={`sidebar-filter-group-chevron ${comparisonGroupExpanded ? 'expanded' : ''}`}
               />
             </button>
 
             {comparisonGroupExpanded && (
-              <div className="sidebar-comparison-content sidebar-form-group--animate">
+              <div className="sidebar-filter-group-content">
                 {/* Comparison Checkboxes */}
                 <div className="sidebar-benchmark-items">
                   <label className="sidebar-benchmark-item">
@@ -467,12 +537,38 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {/* Add Competitors Button */}
                 {comparisonBusinesses.length < 3 && (
                   <button className="sidebar-add-competitors-btn">
-                    + Select Businesses For Comparsion ({3 - comparisonBusinesses.length} left)
+                    + Select Businesses ({3 - comparisonBusinesses.length} left)
                   </button>
                 )}
               </div>
             )}
           </div>
+
+          {/* Clear All Actions */}
+          {(appliedFiltersCount > 0 || comparisonFiltersCount > 0) && (
+            <div className="sidebar-clear-actions">
+              {appliedFiltersCount > 0 && (
+                <button
+                  onClick={handleClearFiltersOnly}
+                  className="sidebar-clear-btn"
+                  title="Clear all filters"
+                >
+                  <Trash2 size={12} />
+                  <span>Clear Filters</span>
+                </button>
+              )}
+              {comparisonFiltersCount > 0 && (
+                <button
+                  onClick={handleClearComparisonsOnly}
+                  className="sidebar-clear-btn"
+                  title="Clear all comparisons"
+                >
+                  <Trash2 size={12} />
+                  <span>Clear Comparisons</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

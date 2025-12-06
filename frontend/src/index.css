@@ -9,8 +9,8 @@
   --color-border: rgba(102, 126, 234, 0.25);
   --color-border-accent: rgba(102, 126, 234, 0.4);
   --color-text-primary: #ffffff;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
+  --color-text-secondary: #e2e8f0;
+  --color-text-muted: #cbd5e1;
   --color-link: #688ae8;
   --color-link-hover: #88bbff;
   
@@ -47,6 +47,21 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
+
+  /* Interactive states */
+  --state-hover-bg: rgba(102, 126, 234, 0.15);
+  --state-active-bg: rgba(102, 126, 234, 0.25);
+  --state-disabled-opacity: 0.4;
+
+  /* Status colors */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Gradients */
+  --gradient-card: linear-gradient(135deg, #111428 0%, #0f111a 100%);
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 /* ============================================
@@ -160,7 +175,12 @@ a:hover {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 700px; 
+  transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+  border-color: var(--color-border-accent);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(102, 126, 234, 0.3);
 }
 
 .dashboard-card__header {

@@ -12,12 +12,39 @@
   width: 100%;
 }
 
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+}
+
+.loading-message {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
 /* ============================================
    Dashboard Grid - Custom Layout
    ============================================ */
 
-/* All cards have same height */
+/* Fixed card heights for consistency */
 .dashboard-grid .dashboard-card {
+  height: 500px;
+}
+
+/* Map card gets standard height */
+.dashboard-grid .map-card {
+  height: 500px;
+}
+
+/* Competitive chart gets standard height */
+.dashboard-grid .competitive-card {
   height: 500px;
 }
 
