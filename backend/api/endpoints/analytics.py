@@ -10,12 +10,13 @@ from dependencies import (
     get_analytics_service, 
     get_forecast_service, 
     get_keyword_service,
-    get_review_repository
+    get_review_repository,
+    get_business_repository
 )
 from services.interfaces import AnalyticsServiceInterface
 from services.forecast_service import ForecastService
 from services.keyword_service import KeywordService
-from repositories.interfaces import ReviewRepositoryInterface
+from repositories.interfaces import ReviewRepositoryInterface, BusinessRepositoryInterface
 
 router = APIRouter(
     prefix="/analytics",
@@ -308,6 +309,7 @@ async def get_period_issues(
     end_date: date = Query(..., description="End date (YYYY-MM-DD)"),
     n_clusters: int = Query(3, ge=1, le=10, description="Number of topic clusters per sentiment category"),
     review_repository: ReviewRepositoryInterface = Depends(get_review_repository),
+    business_repository: BusinessRepositoryInterface = Depends(get_business_repository),
     keyword_service: KeywordService = Depends(get_keyword_service)
 ):
     """
@@ -323,6 +325,10 @@ async def get_period_issues(
     if start_date > end_date:
         raise HTTPException(status_code=400, detail="start_date must be before end_date")
     
+    # Fetch business details for context (e.g. name filtering)
+    business = await business_repository.get_by_id(business_id)
+    business_name = business.name if business else None
+
     reviews = await review_repository.get_by_business_and_date_range(
         business_id=business_id,
         start_date=start_date,
@@ -344,12 +350,20 @@ async def get_period_issues(
     
     analysis_result = keyword_service.analyze_period(
         reviews=reviews,
-        n_clusters=n_clusters
+        business_name=business_name
     )
     
-    analysis_result['period'] = {
-        'start_date': start_date.isoformat(),
-        'end_date': end_date.isoformat()
-    }
+    # Adapt new service response structure to API contract
+    meta = analysis_result.get('meta', {})
     
-    return analysis_result
+    return {
+        'complaints': analysis_result.get('complaints', []),
+        'praises': analysis_result.get('praises', []),
+        'total_reviews': meta.get('total', 0),
+        'negative_count': meta.get('neg_count', 0),
+        'positive_count': meta.get('pos_count', 0),
+        'period': {
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat()
+        }
+    }
