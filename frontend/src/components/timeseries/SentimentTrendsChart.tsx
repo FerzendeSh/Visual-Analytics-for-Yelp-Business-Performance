@@ -314,17 +314,21 @@ interface ChartProps {
   seriesNames: string[];
   period: 'month' | 'year';
   hiddenSeries: Set<string>;
+  hideVolume?: boolean;
+  hideForecast?: boolean;
   /** Forecast data points to render as dashed line with confidence band */
   forecastData?: ForecastDataPoint[] | null;
 }
 
-const Chart: React.FC<ChartProps> = ({ 
-  width, 
-  height, 
-  data, 
-  seriesNames, 
-  period, 
+const Chart: React.FC<ChartProps> = ({
+  width,
+  height,
+  data,
+  seriesNames,
+  period,
   hiddenSeries,
+  hideVolume = false,
+  hideForecast = false,
   forecastData,
 }) => {
   const margin = { top: 20, right: 60, bottom: 40, left: 60 };
@@ -372,15 +376,25 @@ const Chart: React.FC<ChartProps> = ({
 
   // Calculate optimal tick interval based on available width
   const tickInterval = useMemo(() => {
-    const numPoints = allPeriods.length;
-    if (numPoints <= 1) return 1;
+    const numHistoricalPoints = data.length;
+    const numForecastPoints = forecastPeriodLabels.length;
+    const totalPoints = numHistoricalPoints + numForecastPoints;
 
+    if (totalPoints <= 1) return 1;
+
+    // Estimate space needed per label (approximate width in pixels)
     const estimatedLabelWidth = period === 'year' ? 40 : 35;
     const maxLabels = Math.floor(innerWidth / estimatedLabelWidth);
 
-    const interval = Math.max(1, Math.ceil(numPoints / maxLabels));
+    // Reserve space for forecast labels
+    const availableLabelsForHistorical = numForecastPoints > 0
+      ? Math.max(1, maxLabels - numForecastPoints)
+      : maxLabels;
+
+    // Calculate interval to show appropriate number of labels
+    const interval = Math.max(1, Math.ceil(numHistoricalPoints / availableLabelsForHistorical));
     return interval;
-  }, [allPeriods.length, innerWidth, period]);
+  }, [data.length, forecastPeriodLabels.length, innerWidth, period]);
 
   const y1Scale = useMemo(
     () =>
@@ -436,7 +450,7 @@ const Chart: React.FC<ChartProps> = ({
 
       // Check if this is a forecast period
       const forecastPoint = formattedForecastData.find(fp => fp.period === hoveredPeriod);
-      
+
       if (forecastPoint) {
         // Show forecast tooltip
         showTooltip({
@@ -537,7 +551,7 @@ const Chart: React.FC<ChartProps> = ({
           />
 
           {/* Volume Bars */}
-          {data.map((d) => {
+          {!hideVolume && data.map((d) => {
             const barWidth = xScale.bandwidth();
             const barHeight = innerHeight - y2Scale(d.volume);
             const barX = xScale(d.period) || 0;
@@ -562,10 +576,10 @@ const Chart: React.FC<ChartProps> = ({
           {seriesNames.map((name, seriesIndex) => {
             const isPrimary = seriesIndex === 0;
             const isHidden = hiddenSeries.has(name);
-            
+
             // Don't render hidden series
             if (isHidden) return null;
-            
+
             return (
               <React.Fragment key={`line-group-${name}`}>
                 <LinePath
@@ -608,7 +622,7 @@ const Chart: React.FC<ChartProps> = ({
           })}
 
           {/* Forecast Hover Circle - show when hovering forecast periods */}
-          {tooltipOpen && tooltipData?.isForecast && tooltipData.forecastValue !== undefined && (
+          {!hideForecast && tooltipOpen && tooltipData?.isForecast && tooltipData.forecastValue !== undefined && (
             <Circle
               cx={(xScale(tooltipData.period) || 0) + xScale.bandwidth() / 2}
               cy={y1Scale(tooltipData.forecastValue)}
@@ -620,7 +634,7 @@ const Chart: React.FC<ChartProps> = ({
           )}
 
           {/* Forecast Confidence Band & Line */}
-          {forecastData && forecastData.length > 0 && data.length > 0 && (() => {
+          {!hideForecast && forecastData && forecastData.length > 0 && data.length > 0 && (() => {
             // Get the last historical data point position
             const lastDataPeriod = data[data.length - 1].period;
             const lastDataX = (xScale(lastDataPeriod) || 0) + xScale.bandwidth() / 2;
@@ -719,7 +733,10 @@ const Chart: React.FC<ChartProps> = ({
               ...data
                 .map((d, i) => (i % tickInterval === 0 ? d.period : null))
                 .filter((v): v is string => v !== null),
-              ...forecastPeriodLabels,
+              ...(hideForecast ? [] : forecastPeriodLabels.filter((label) => {
+                const year = parseInt(label);
+                return !isNaN(year) && year % 2 === 0;
+              })),
             ]}
           />
 
@@ -959,6 +976,8 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
 
   // State for hidden series (interactive legend)
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+  const [hideVolume, setHideVolume] = useState(false);
+  const [hideForecast, setHideForecast] = useState(false);
 
   // Toggle series visibility when clicking legend items
   const toggleSeries = useCallback((seriesName: string) => {
@@ -1012,6 +1031,8 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
                 seriesNames={seriesNames}
                 period={period}
                 hiddenSeries={hiddenSeries}
+                hideVolume={hideVolume}
+                hideForecast={hideForecast}
                 forecastData={forecastData}
               />
             )}
@@ -1030,14 +1051,27 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
       {chartData.length > 0 && (
         <div className="sentiment-trends-chart__legend">
           <div className="sentiment-trends-chart__legend-items">
-            {/* Review Volume Legend Item */}
-            <div className="sentiment-trends-chart__legend-item">
+            {/* Review Volume Legend Item - clickable */}
+            <button
+              className={`sentiment-trends-chart__legend-item sentiment-trends-chart__legend-item--interactive ${hideVolume ? 'sentiment-trends-chart__legend-item--hidden' : ''}`}
+              onClick={() => setHideVolume(!hideVolume)}
+              title={hideVolume ? 'Show Review Volume' : 'Hide Review Volume'}
+              type="button"
+            >
               <div
                 className="sentiment-trends-chart__legend-bar"
-                style={{ backgroundColor: VOLUME_COLOR }}
+                style={{
+                  backgroundColor: VOLUME_COLOR,
+                  opacity: hideVolume ? 0.3 : 1
+                }}
               />
-              <span className="sentiment-trends-chart__legend-text">Review Volume</span>
-            </div>
+              <span
+                className="sentiment-trends-chart__legend-text"
+                style={{ opacity: hideVolume ? 0.5 : 1 }}
+              >
+                Review Volume
+              </span>
+            </button>
 
             {/* Line Legend Items - clickable to toggle visibility */}
             {seriesNames.map((name, i) => {
@@ -1053,12 +1087,12 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
                 >
                   <div
                     className="sentiment-trends-chart__legend-line"
-                    style={{ 
+                    style={{
                       backgroundColor: LINE_COLORS[i % LINE_COLORS.length],
                       opacity: isHidden ? 0.3 : 1
                     }}
                   />
-                  <span 
+                  <span
                     className="sentiment-trends-chart__legend-text"
                     style={{ opacity: isHidden ? 0.5 : 1 }}
                   >
@@ -1069,20 +1103,29 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
               );
             })}
 
-            {/* Forecast Legend Item */}
+            {/* Forecast Legend Item - clickable */}
             {forecastData && forecastData.length > 0 && (
-              <div className="sentiment-trends-chart__legend-item">
+              <button
+                className={`sentiment-trends-chart__legend-item sentiment-trends-chart__legend-item--interactive ${hideForecast ? 'sentiment-trends-chart__legend-item--hidden' : ''}`}
+                onClick={() => setHideForecast(!hideForecast)}
+                title={hideForecast ? 'Show Forecast' : 'Hide Forecast'}
+                type="button"
+              >
                 <div
                   className="sentiment-trends-chart__legend-line"
-                  style={{ 
+                  style={{
                     backgroundColor: FORECAST_COLOR,
                     backgroundImage: `repeating-linear-gradient(90deg, ${FORECAST_COLOR} 0, ${FORECAST_COLOR} 4px, transparent 4px, transparent 8px)`,
+                    opacity: hideForecast ? 0.3 : 1
                   }}
                 />
-                <span className="sentiment-trends-chart__legend-text">
+                <span
+                  className="sentiment-trends-chart__legend-text"
+                  style={{ opacity: hideForecast ? 0.5 : 1 }}
+                >
                   Forecast (80% CI)
                 </span>
-              </div>
+              </button>
             )}
           </div>
         </div>

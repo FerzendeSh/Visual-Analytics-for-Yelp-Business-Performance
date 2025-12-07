@@ -19,7 +19,9 @@ interface LayoutProps {
   maxRating?: number;
   selectedStatus?: number | null;
   period?: 'month' | 'year';
-  selectedYear?: number;
+  startYear?: number;
+  endYear?: number;
+  availableYears?: number[];
   onCityChange?: (city: string) => void;
   onCategoryChange?: (category: string) => void;
   onNeighborhoodChange?: (neighborhood: string) => void;
@@ -27,17 +29,10 @@ interface LayoutProps {
   onMaxRatingChange?: (rating: number) => void;
   onStatusChange?: (status: number | null) => void;
   onPeriodChange?: (period: 'month' | 'year') => void;
-  onYearChange?: (year: number) => void;
+  onYearRangeChange?: (startYear: number, endYear: number) => void;
   onResetFilters?: () => void;
   onBusinessSelect?: (business: Business | null) => void;
-  compareByCity?: boolean;
-  compareByCategory?: boolean;
-  compareByNeighborhood?: boolean;
   comparisonBusinesses?: Business[];
-  onCompareByCity?: (compare: boolean) => void;
-  onCompareByCategory?: (compare: boolean) => void;
-  onCompareByNeighborhood?: (compare: boolean) => void;
-  onComparisonBusinessesChange?: (businesses: Business[]) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -53,7 +48,9 @@ const Layout: React.FC<LayoutProps> = ({
   maxRating = 5,
   selectedStatus = null,
   period = 'year',
-  selectedYear = new Date().getFullYear(),
+  startYear = new Date().getFullYear(),
+  endYear = new Date().getFullYear(),
+  availableYears = [],
   onCityChange,
   onCategoryChange,
   onNeighborhoodChange,
@@ -61,17 +58,10 @@ const Layout: React.FC<LayoutProps> = ({
   onMaxRatingChange,
   onStatusChange,
   onPeriodChange,
-  onYearChange,
+  onYearRangeChange,
   onResetFilters,
   onBusinessSelect,
-  compareByCity = false,
-  compareByCategory = false,
-  compareByNeighborhood = false,
-  comparisonBusinesses = [],
-  onCompareByCity,
-  onCompareByCategory,
-  onCompareByNeighborhood,
-  onComparisonBusinessesChange,
+  comparisonBusinesses,
 }) => {
   const dispatch = useAppDispatch();
   const isSidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
@@ -95,7 +85,9 @@ const Layout: React.FC<LayoutProps> = ({
           maxRating={maxRating}
           selectedStatus={selectedStatus}
           period={period}
-          selectedYear={selectedYear}
+          startYear={startYear}
+          endYear={endYear}
+          availableYears={availableYears}
           onCityChange={onCityChange}
           onCategoryChange={onCategoryChange}
           onNeighborhoodChange={onNeighborhoodChange}
@@ -103,17 +95,10 @@ const Layout: React.FC<LayoutProps> = ({
           onMaxRatingChange={onMaxRatingChange}
           onStatusChange={onStatusChange}
           onPeriodChange={onPeriodChange}
-          onYearChange={onYearChange}
+          onYearRangeChange={onYearRangeChange}
           onResetFilters={onResetFilters}
           onBusinessSelect={onBusinessSelect}
-          compareByCity={compareByCity}
-          compareByCategory={compareByCategory}
-          compareByNeighborhood={compareByNeighborhood}
           comparisonBusinesses={comparisonBusinesses}
-          onCompareByCity={onCompareByCity}
-          onCompareByCategory={onCompareByCategory}
-          onCompareByNeighborhood={onCompareByNeighborhood}
-          onComparisonBusinessesChange={onComparisonBusinessesChange}
         />
       )}
       <MainContent

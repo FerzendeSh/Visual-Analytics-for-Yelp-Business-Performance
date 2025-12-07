@@ -33,13 +33,28 @@ const Home: React.FC = () => {
   const [maxRating, setMaxRating] = useState<number>(5);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [period, setPeriod] = useState<'month' | 'year'>('year');
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [compareByCity, setCompareByCity] = useState<boolean>(false);
-  const [compareByCategory, setCompareByCategory] = useState<boolean>(false);
-  const [compareByNeighborhood, setCompareByNeighborhood] = useState<boolean>(false);
+  const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
+  const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
   
   // Layout toggle state (grid or list view)
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
+
+  // Auto-set period based on year selection
+  useEffect(() => {
+    if (startYear === endYear) {
+      // Single year selected -> show monthly data
+      setPeriod('month');
+    } else {
+      // Range of years selected -> show yearly data
+      setPeriod('year');
+    }
+  }, [startYear, endYear]);
+
+  // Handler for year range changes
+  const handleYearRangeChange = useCallback((start: number, end: number) => {
+    setStartYear(start);
+    setEndYear(end);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -90,13 +105,12 @@ const Home: React.FC = () => {
     setMinRating(1);
     setMaxRating(5);
     setSelectedStatus(null);
-    setPeriod('year');
-    setSelectedYear(new Date().getFullYear());
-    setCompareByCity(false);
-    setCompareByCategory(false);
-    setCompareByNeighborhood(false);
+    const currentYear = new Date().getFullYear();
+    setStartYear(currentYear);
+    setEndYear(currentYear);
+    setSelectedBusiness(null);
     clearComparisons();
-  }, [clearComparisons]);
+  }, [setSelectedBusiness, clearComparisons]);
 
   const handleScatterPlotSelect = useCallback((business: Business | null) => {
     setSelectedBusiness(business);
@@ -142,8 +156,8 @@ const Home: React.FC = () => {
     selectedCategory: selectedCategory || "",
     selectedNeighborhood: selectedNeighborhood || "",
     period,
-    selectedYear,
-  }), [myBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, selectedYear]);
+    selectedYear: period === 'month' ? startYear : undefined,
+  }), [myBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, startYear]);
 
   const {
     isLoading: timelineLoading,
@@ -182,14 +196,14 @@ const Home: React.FC = () => {
 
   // Calculate date range for monthly view
   const comparisonDateRange = useMemo(() => {
-    if (period === 'month' && selectedYear) {
+    if (period === 'month' && startYear) {
       return {
-        startDate: `${selectedYear}-01-01`,
-        endDate: `${selectedYear}-12-31`,
+        startDate: `${startYear}-01-01`,
+        endDate: `${startYear}-12-31`,
       };
     }
     return { startDate: '', endDate: '' };
-  }, [period, selectedYear]);
+  }, [period, startYear]);
 
   // Fetch timeline data for comparison businesses
   const {
@@ -255,6 +269,27 @@ const Home: React.FC = () => {
       onRemove: () => setSelectedStatus(null),
     },
   ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
+
+  // Extract available years from timeline data for the business
+  const availableYears = useMemo(() => {
+    if (!timelineData) return [];
+
+    const ratingsData = (timelineData as TimelineData)?.business_ratings;
+    if (!ratingsData?.data || ratingsData.data.length === 0) return [];
+
+    // Extract years from period_start dates
+    const yearsSet = new Set<number>();
+    ratingsData.data.forEach((dataPoint) => {
+      if (dataPoint.period_start) {
+        const year = new Date(dataPoint.period_start).getFullYear();
+        if (!isNaN(year)) {
+          yearsSet.add(year);
+        }
+      }
+    });
+
+    return Array.from(yearsSet).sort((a, b) => a - b);
+  }, [timelineData]);
 
   // Calculate metrics for the cards
   const metricsData = useMemo(() => {
@@ -345,7 +380,9 @@ const Home: React.FC = () => {
       maxRating={maxRating}
       selectedStatus={selectedStatus}
       period={period}
-      selectedYear={selectedYear}
+      startYear={startYear}
+      endYear={endYear}
+      availableYears={availableYears}
       onCityChange={handleCityChange}
       onCategoryChange={setSelectedCategory}
       onNeighborhoodChange={setSelectedNeighborhood}
@@ -353,28 +390,10 @@ const Home: React.FC = () => {
       onMaxRatingChange={setMaxRating}
       onStatusChange={setSelectedStatus}
       onPeriodChange={setPeriod}
-      onYearChange={setSelectedYear}
+      onYearRangeChange={handleYearRangeChange}
       onResetFilters={handleResetFilters}
       onBusinessSelect={handleFilterBusinessSelect}
-      compareByCity={compareByCity}
-      compareByCategory={compareByCategory}
-      compareByNeighborhood={compareByNeighborhood}
       comparisonBusinesses={comparisonBusinesses}
-      onCompareByCity={setCompareByCity}
-      onCompareByCategory={setCompareByCategory}
-      onCompareByNeighborhood={setCompareByNeighborhood}
-      onComparisonBusinessesChange={(businesses) => {
-        businesses.forEach((b) => {
-          if (!comparisonBusinesses.find((cb) => cb.business_id === b.business_id)) {
-            addComparison(b);
-          }
-        });
-        comparisonBusinesses.forEach((cb) => {
-          if (!businesses.find((b) => b.business_id === cb.business_id)) {
-            removeComparison(cb.business_id);
-          }
-        });
-      }}
     >
       <div className="home-content">
         <section className="home-section">
@@ -503,9 +522,9 @@ const Home: React.FC = () => {
                       myBusinessId={myBusiness?.business_id}
                       onBusinessSelect={handleCompetitiveBusinessSelect}
                       selectedBusinessId={selectedBusiness?.business_id}
-                      compareByCity={compareByCity}
-                      compareByCategory={compareByCategory}
-                      compareByNeighborhood={compareByNeighborhood}
+                      compareByCity={false}
+                      compareByCategory={false}
+                      compareByNeighborhood={false}
                     />
                   )}
                 </div>
@@ -528,9 +547,9 @@ const Home: React.FC = () => {
                     error={timelineError}
                     comparisonBusinesses={comparisonBusinesses}
                     comparisonRatingsDataArray={comparisonRatingsDataArray}
-                    compareByCity={compareByCity}
-                    compareByCategory={compareByCategory}
-                    compareByNeighborhood={compareByNeighborhood}
+                    compareByCity={!!selectedCity}
+                    compareByCategory={!!selectedCategory}
+                    compareByNeighborhood={!!selectedNeighborhood}
                     forecastData={ratingForecast}
                   />
                 </div>
@@ -553,9 +572,9 @@ const Home: React.FC = () => {
                     error={timelineError}
                     comparisonBusinesses={comparisonBusinesses}
                     comparisonSentimentDataArray={comparisonSentimentDataArray}
-                    compareByCity={compareByCity}
-                    compareByCategory={compareByCategory}
-                    compareByNeighborhood={compareByNeighborhood}
+                    compareByCity={!!selectedCity}
+                    compareByCategory={!!selectedCategory}
+                    compareByNeighborhood={!!selectedNeighborhood}
                     forecastData={sentimentForecast}
                   />
                 </div>

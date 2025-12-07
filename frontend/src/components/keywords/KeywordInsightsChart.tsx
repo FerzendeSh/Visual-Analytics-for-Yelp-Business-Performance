@@ -14,7 +14,6 @@ const BACKGROUND_COLOR = '#0F111A';
 const COMPLAINT_COLOR = '#ef4444';
 const PRAISE_COLOR = '#10b981';
 const AXIS_COLOR = '#f8fafc';
-const GRID_COLOR = '#2d3748';
 const LINE_COLORS = [
   '#9c8506ff', // Gold/Yellow - Your Business
   '#9400fdff', // Purple - Competitor 1
@@ -240,8 +239,6 @@ const ChartSection: React.FC<ChartSectionProps> = ({
   const margin = { top: 20, right: 20, bottom: 50, left: 160 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
-
-  const color = type === 'complaints' ? COMPLAINT_COLOR : PRAISE_COLOR;
 
   // Y scale for keywords
   const yScale = useMemo(

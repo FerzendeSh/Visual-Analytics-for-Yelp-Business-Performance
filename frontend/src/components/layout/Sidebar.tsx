@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useMyBusiness } from '../../context/BusinessContext';
 import { Business } from '../../api';
 import { getNeighborhoods } from '../../api/endpoints/locations';
 import { SearchBar } from '../search';
 import { formatNeighborhoodName } from '../../utils';
-import { ChevronDown, Trash2, X } from 'lucide-react';
-import { getSeriesColor } from '../timeseries/chartConstants';
+import { ChevronDown, Trash2 } from 'lucide-react';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -19,7 +18,9 @@ interface SidebarProps {
   maxRating?: number;
   selectedStatus?: number | null;
   period?: 'month' | 'year';
-  selectedYear?: number;
+  startYear?: number;
+  endYear?: number;
+  availableYears?: number[];
   onCityChange?: (city: string) => void;
   onCategoryChange?: (category: string) => void;
   onNeighborhoodChange?: (neighborhood: string) => void;
@@ -27,17 +28,10 @@ interface SidebarProps {
   onMaxRatingChange?: (rating: number) => void;
   onStatusChange?: (status: number | null) => void;
   onPeriodChange?: (period: 'month' | 'year') => void;
-  onYearChange?: (year: number) => void;
+  onYearRangeChange?: (startYear: number, endYear: number) => void;
   onResetFilters?: () => void;
   onBusinessSelect?: (business: Business | null) => void;
-  compareByCity?: boolean;
-  compareByCategory?: boolean;
-  compareByNeighborhood?: boolean;
   comparisonBusinesses?: Business[];
-  onCompareByCity?: (compare: boolean) => void;
-  onCompareByCategory?: (compare: boolean) => void;
-  onCompareByNeighborhood?: (compare: boolean) => void;
-  onComparisonBusinessesChange?: (businesses: Business[]) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -51,7 +45,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   maxRating = 5,
   selectedStatus = null,
   period = 'year',
-  selectedYear = new Date().getFullYear(),
+  startYear = new Date().getFullYear(),
+  endYear = new Date().getFullYear(),
+  availableYears = [],
   onCityChange = () => {},
   onCategoryChange = () => {},
   onNeighborhoodChange = () => {},
@@ -59,17 +55,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   onMaxRatingChange = () => {},
   onStatusChange = () => {},
   onPeriodChange = () => {},
-  onYearChange = () => {},
-  onResetFilters: _onResetFilters = () => {},
+  onYearRangeChange = () => {},
+  onResetFilters = () => {},
   onBusinessSelect = () => {},
-  compareByCity = false,
-  compareByCategory = false,
-  compareByNeighborhood = false,
   comparisonBusinesses = [],
-  onCompareByCity = () => {},
-  onCompareByCategory = () => {},
-  onCompareByNeighborhood = () => {},
-  onComparisonBusinessesChange = () => {},
 }) => {
   // Note: myBusiness context is available for future use (e.g., highlighting in comparison)
   const { myBusiness: _myBusiness } = useMyBusiness();
@@ -81,7 +70,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [locationExpanded, setLocationExpanded] = useState(true);
   const [attributesExpanded, setAttributesExpanded] = useState(false);
   const [timeExpanded, setTimeExpanded] = useState(false);
-  const [comparisonGroupExpanded, setComparisonGroupExpanded] = useState(false);
 
   // Prepare filter options
   const cityStateMap = new Map<string, string>();
@@ -105,33 +93,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     .slice(0, 200)
     .sort();
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 2005 + 1 }, (_, i) => currentYear - i).sort((a, b) => a - b);
-
-  // Calculate color indices for comparison businesses
-  // This matches the series order in the charts:
-  // 0: Primary business/city/neighborhood
-  // 1: City/Neighborhood avg (if compareByCity/compareByNeighborhood is checked)
-  // 2: Category avg (if compareByCategory is checked)
-  // 3+: Comparison businesses
-  const getComparisonBusinessColor = useMemo(() => {
-    return (index: number): string => {
-      let colorIndex = 1; // Start after primary (which is 0)
-
-      // Add offset if comparing by city/neighborhood
-      if (compareByCity || compareByNeighborhood) {
-        colorIndex++;
-      }
-
-      // Add offset if comparing by category
-      if (compareByCategory) {
-        colorIndex++;
-      }
-
-      // Add the business index
-      return getSeriesColor(colorIndex + index);
-    };
-  }, [compareByCity, compareByCategory, compareByNeighborhood]);
+  // Use available years from business data ONLY (no fallback)
+  const years = availableYears;
+  const minYear = years.length > 0 ? Math.min(...years) : startYear;
+  const maxYear = years.length > 0 ? Math.max(...years) : endYear;
 
   // Fetch neighborhoods when city changes
   useEffect(() => {
@@ -172,35 +137,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   ].filter(Boolean).length;
 
   const timeFiltersCount = [
-    period === 'month' && selectedYear !== new Date().getFullYear(),
-  ].filter(Boolean).length;
-
-  const comparisonFiltersCount = [
-    compareByCity,
-    compareByCategory,
-    compareByNeighborhood,
-    comparisonBusinesses.length > 0,
+    startYear !== endYear || startYear !== new Date().getFullYear(),
   ].filter(Boolean).length;
 
   const appliedFiltersCount = locationFiltersCount + attributeFiltersCount + timeFiltersCount;
-
-  const handleClearFiltersOnly = () => {
-    onCityChange("");
-    onCategoryChange("");
-    onNeighborhoodChange("");
-    onMinRatingChange(1);
-    onMaxRatingChange(5);
-    onStatusChange(null);
-    onPeriodChange('year');
-    onYearChange(new Date().getFullYear());
-  };
-
-  const handleClearComparisonsOnly = () => {
-    onCompareByCity(false);
-    onCompareByCategory(false);
-    onCompareByNeighborhood(false);
-    onComparisonBusinessesChange([]);
-  };
+  const hasComparisonBusinesses = comparisonBusinesses.length > 0;
 
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -413,160 +354,65 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {timeExpanded && (
               <div className="sidebar-filter-group-content">
-                {/* Time Period Dropdown */}
-                <div className="sidebar-form-group">
-                  <label className="sidebar-label-text">View</label>
-                  <div className="sidebar-select-wrapper">
-                    <select
-                      value={period}
-                      onChange={(e) => onPeriodChange(e.target.value as 'month' | 'year')}
-                      className="sidebar-select"
-                    >
-                      <option value="year">Yearly</option>
-                      <option value="month">Monthly (per Year)</option>
-                    </select>
-                    <ChevronDown className="sidebar-select-icon" size={14} />
-                  </div>
-                </div>
-
-                {/* Year Selector (Conditional) */}
-                {period === 'month' && (
-                  <div className="sidebar-form-group sidebar-form-group--animate">
-                    <label className="sidebar-label-text">Year</label>
-                    <div className="sidebar-select-wrapper">
-                      <select
-                        value={selectedYear}
-                        onChange={(e) => onYearChange(Number(e.target.value))}
-                        className="sidebar-select"
-                      >
-                        {years.map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="sidebar-select-icon" size={14} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Comparison Group */}
-          <div className="sidebar-filter-group">
-            <button
-              className="sidebar-filter-group-header"
-              onClick={() => setComparisonGroupExpanded(!comparisonGroupExpanded)}
-            >
-              <div className="sidebar-filter-group-title-wrapper">
-                <span className="sidebar-filter-group-title">Comparison Group</span>
-                {comparisonFiltersCount > 0 && (
-                  <span className="filter-count-badge">{comparisonFiltersCount}</span>
-                )}
-              </div>
-              <ChevronDown
-                size={14}
-                className={`sidebar-filter-group-chevron ${comparisonGroupExpanded ? 'expanded' : ''}`}
-              />
-            </button>
-
-            {comparisonGroupExpanded && (
-              <div className="sidebar-filter-group-content">
-                {/* Comparison Checkboxes */}
-                <div className="sidebar-benchmark-items">
-                  <label className="sidebar-benchmark-item">
-                    <input
-                      type="checkbox"
-                      checked={compareByCity}
-                      onChange={(e) => onCompareByCity(e.target.checked)}
-                      className="sidebar-benchmark-checkbox"
-                    />
-                    <span>Compare against City</span>
-                  </label>
-                  <label className="sidebar-benchmark-item">
-                    <input
-                      type="checkbox"
-                      checked={compareByCategory}
-                      onChange={(e) => onCompareByCategory(e.target.checked)}
-                      className="sidebar-benchmark-checkbox"
-                    />
-                    <span>Compare against Category</span>
-                  </label>
-                  {selectedCity && (
-                    <label className="sidebar-benchmark-item">
-                      <input
-                        type="checkbox"
-                        checked={compareByNeighborhood}
-                        onChange={(e) => onCompareByNeighborhood(e.target.checked)}
-                        className="sidebar-benchmark-checkbox"
-                      />
-                      <span>Compare against Neighborhood</span>
+                {/* Year Range Selector */}
+                {years.length > 0 && (
+                  <div className="sidebar-form-group">
+                    <label className="sidebar-label-text">
+                      Year Range: <span className="sidebar-year-value">{startYear === endYear ? startYear : `${startYear}-${endYear}`}</span>
+                      {startYear === endYear && <span className="sidebar-period-hint"> (Monthly)</span>}
+                      {startYear !== endYear && <span className="sidebar-period-hint"> (Yearly)</span>}
                     </label>
-                  )}
-                </div>
-
-                {/* Competitor Chips */}
-                {comparisonBusinesses.length > 0 && (
-                  <div className="sidebar-competitors">
-                    <div className="sidebar-competitor-chips">
-                      {comparisonBusinesses.map((business, index) => (
-                        <div key={business.business_id} className="sidebar-comparison-business-item">
-                          <span
-                            className="sidebar-comparison-dot"
-                            style={{ backgroundColor: getComparisonBusinessColor(index) }}
-                          ></span>
-                          <span className="sidebar-comparison-business-name">{business.name}</span>
-                          <button
-                            onClick={() =>
-                              onComparisonBusinessesChange(
-                                comparisonBusinesses.filter((b) => b.business_id !== business.business_id)
-                              )
+                    <div className="sidebar-year-slider">
+                      <span className="sidebar-year-label">{minYear}</span>
+                      <div className="sidebar-year-range-container">
+                        <input
+                          type="range"
+                          min={minYear}
+                          max={maxYear}
+                          step="1"
+                          value={startYear}
+                          onChange={(e) => {
+                            const newStart = Number(e.target.value);
+                            if (newStart <= endYear) {
+                              onYearRangeChange(newStart, endYear);
                             }
-                            className="sidebar-comparison-remove"
-                            aria-label="Remove competitor"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
+                          }}
+                          className="sidebar-slider sidebar-slider-start"
+                        />
+                        <input
+                          type="range"
+                          min={minYear}
+                          max={maxYear}
+                          step="1"
+                          value={endYear}
+                          onChange={(e) => {
+                            const newEnd = Number(e.target.value);
+                            if (newEnd >= startYear) {
+                              onYearRangeChange(startYear, newEnd);
+                            }
+                          }}
+                          className="sidebar-slider sidebar-slider-end"
+                        />
+                      </div>
+                      <span className="sidebar-year-label">{maxYear}</span>
                     </div>
                   </div>
-                )}
-
-                {/* Add Competitors Button */}
-                {comparisonBusinesses.length < 3 && (
-                  <button className="sidebar-add-competitors-btn">
-                    + Select Businesses ({3 - comparisonBusinesses.length} left)
-                  </button>
                 )}
               </div>
             )}
           </div>
 
           {/* Clear All Actions */}
-          {(appliedFiltersCount > 0 || comparisonFiltersCount > 0) && (
+          {(appliedFiltersCount > 0 || hasComparisonBusinesses) && (
             <div className="sidebar-clear-actions">
-              {appliedFiltersCount > 0 && (
-                <button
-                  onClick={handleClearFiltersOnly}
-                  className="sidebar-clear-btn"
-                  title="Clear all filters"
-                >
-                  <Trash2 size={12} />
-                  <span>Clear Filters</span>
-                </button>
-              )}
-              {comparisonFiltersCount > 0 && (
-                <button
-                  onClick={handleClearComparisonsOnly}
-                  className="sidebar-clear-btn"
-                  title="Clear all comparisons"
-                >
-                  <Trash2 size={12} />
-                  <span>Clear Comparisons</span>
-                </button>
-              )}
+              <button
+                onClick={onResetFilters}
+                className="sidebar-clear-btn"
+                title="Clear all filters and comparison businesses"
+              >
+                <Trash2 size={12} />
+                <span>Clear Filters</span>
+              </button>
             </div>
           )}
         </div>
