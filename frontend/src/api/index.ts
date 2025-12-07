@@ -8,3 +8,4 @@ export * from './apiClient';
 export * from './endpoints/businesses';
 export * from './endpoints/analytics';
 export * from './endpoints/locations';
+export * from './endpoints/keywords';
