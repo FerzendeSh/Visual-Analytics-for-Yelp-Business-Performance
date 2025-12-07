@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Layout } from '../components/layout';
 import { BusinessMap } from '../components/map';
 import RatingTrendsChart from '../components/timeseries/RatingTrendsChart';
@@ -6,14 +6,17 @@ import SentimentTrendsChart from '../components/timeseries/SentimentTrendsChart'
 import FilterSummary from '../components/dashboard/FilterSummary';
 import MetricsCards from '../components/dashboard/MetricsCards';
 import CompetitivePositioningChart from '../components/competitive/CompetitivePositioningChart';
+import KeywordInsightsChart from '../components/keywords/KeywordInsightsChart';
 import { MetricsCardsSkeleton, EmptyState } from '../components/common';
 import { useTimelineData, TimelineData } from '../hooks/useTimelineData';
 import { useBusinesses } from '../hooks/useBusinesses';
 import { useCompetitiveSnapshot } from '../hooks/useCompetitiveSnapshot';
+import { useForecast } from '../hooks/useForecast';
 import { useMyBusiness } from '../context/BusinessContext';
 import { useComparisonTimelines } from '../hooks/useComparisonTimelines';
 import { Business } from '../api';
 import toast from 'react-hot-toast';
+import { LayoutGrid, List } from 'lucide-react';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -34,6 +37,32 @@ const Home: React.FC = () => {
   const [compareByCity, setCompareByCity] = useState<boolean>(false);
   const [compareByCategory, setCompareByCategory] = useState<boolean>(false);
   const [compareByNeighborhood, setCompareByNeighborhood] = useState<boolean>(false);
+  
+  // Layout toggle state (grid or list view)
+  const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      // Escape - clear selected business
+      if (e.key === 'Escape') {
+        setSelectedBusiness(null);
+      }
+      
+      // G - toggle grid/list layout
+      if (e.key === 'g' || e.key === 'G') {
+        setLayoutMode(prev => prev === 'grid' ? 'list' : 'grid');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setSelectedBusiness]);
 
   const handleCityChange = useCallback((cityState: string) => {
     if (!cityState) {
@@ -122,6 +151,19 @@ const Home: React.FC = () => {
     data: timelineData,
     primaryCategory,
   } = useTimelineData(timelineParams);
+
+  // Fetch forecast data for the selected business
+  const {
+    ratingForecast,
+    sentimentForecast,
+    isLoading: forecastLoading,
+  } = useForecast({
+    businessId: myBusiness?.business_id,
+    periods: 4,
+    periodType: period,
+    // Only fetch forecast when we have a business selected
+    enabled: !!myBusiness?.business_id,
+  });
 
   const competitiveCity = selectedCity || myBusiness?.city || "";
   const competitiveState = selectedState || myBusiness?.state || "PA";
@@ -363,21 +405,44 @@ const Home: React.FC = () => {
 
           {!loading && !error && businesses.length > 0 && (
             <>
-              <FilterSummary
-                filters={filterTags}
-                selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
-                selectedCategory={selectedCategory}
-                selectedNeighborhood={selectedNeighborhood}
-                minRating={minRating}
-                maxRating={maxRating}
-                selectedStatus={selectedStatus}
-                onCityChange={handleCityChange}
-                onCategoryChange={setSelectedCategory}
-                onNeighborhoodChange={setSelectedNeighborhood}
-                onMinRatingChange={setMinRating}
-                onMaxRatingChange={setMaxRating}
-                onStatusChange={setSelectedStatus}
-              />
+              {/* Filter Summary and Layout Controls */}
+              <div className="dashboard-controls">
+                <FilterSummary
+                  filters={filterTags}
+                  selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
+                  selectedCategory={selectedCategory}
+                  selectedNeighborhood={selectedNeighborhood}
+                  minRating={minRating}
+                  maxRating={maxRating}
+                  selectedStatus={selectedStatus}
+                  onCityChange={handleCityChange}
+                  onCategoryChange={setSelectedCategory}
+                  onNeighborhoodChange={setSelectedNeighborhood}
+                  onMinRatingChange={setMinRating}
+                  onMaxRatingChange={setMaxRating}
+                  onStatusChange={setSelectedStatus}
+                />
+                
+                {/* Layout Toggle */}
+                <div className="layout-toggle">
+                  <button
+                    className={`layout-toggle__btn ${layoutMode === 'grid' ? 'layout-toggle__btn--active' : ''}`}
+                    onClick={() => setLayoutMode('grid')}
+                    title="Grid view (press G)"
+                    aria-label="Grid view"
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+                  <button
+                    className={`layout-toggle__btn ${layoutMode === 'list' ? 'layout-toggle__btn--active' : ''}`}
+                    onClick={() => setLayoutMode('list')}
+                    title="List view (press G)"
+                    aria-label="List view"
+                  >
+                    <List size={18} />
+                  </button>
+                </div>
+              </div>
 
               {timelineLoading ? (
                 <MetricsCardsSkeleton />
@@ -396,7 +461,7 @@ const Home: React.FC = () => {
                 />
               )}
 
-              <div className="dashboard-grid">
+              <div className={`dashboard-grid ${layoutMode === 'list' ? 'dashboard-grid--list' : ''}`}>
                 {/* Map Card */}
                 <div className="dashboard-card map-card">
                   <div className="dashboard-card__body">
@@ -459,13 +524,14 @@ const Home: React.FC = () => {
                     cityRatingsData={(timelineData as TimelineData)?.city_ratings || null}
                     neighborhoodRatingsData={(timelineData as TimelineData)?.neighborhood_ratings || null}
                     categoryRatingsData={(timelineData as TimelineData)?.category_ratings || null}
-                    isLoading={timelineLoading}
+                    isLoading={timelineLoading || forecastLoading}
                     error={timelineError}
                     comparisonBusinesses={comparisonBusinesses}
                     comparisonRatingsDataArray={comparisonRatingsDataArray}
                     compareByCity={compareByCity}
                     compareByCategory={compareByCategory}
                     compareByNeighborhood={compareByNeighborhood}
+                    forecastData={ratingForecast}
                   />
                 </div>
 
@@ -483,13 +549,25 @@ const Home: React.FC = () => {
                     citySentimentData={(timelineData as TimelineData)?.city_sentiment || null}
                     neighborhoodSentimentData={(timelineData as TimelineData)?.neighborhood_sentiment || null}
                     categorySentimentData={(timelineData as TimelineData)?.category_sentiment || null}
-                    isLoading={timelineLoading}
+                    isLoading={timelineLoading || forecastLoading}
                     error={timelineError}
                     comparisonBusinesses={comparisonBusinesses}
                     comparisonSentimentDataArray={comparisonSentimentDataArray}
                     compareByCity={compareByCity}
                     compareByCategory={compareByCategory}
                     compareByNeighborhood={compareByNeighborhood}
+                    forecastData={sentimentForecast}
+                  />
+                </div>
+
+                {/* Keyword Insights Card */}
+                <div className="dashboard-card keyword-insights-card keyword-insights-card--visx">
+                  <KeywordInsightsChart
+                    business={myBusiness}
+                    comparisonBusinesses={comparisonBusinesses}
+                    ratingsTimeline={(timelineData as TimelineData)?.business_ratings || null}
+                    isLoading={timelineLoading}
+                    error={timelineError}
                   />
                 </div>
               </div>

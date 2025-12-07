@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { useMyBusiness } from '../../context/BusinessContext';
 import { Business } from '../../api';
 import { getNeighborhoods } from '../../api/endpoints/locations';
@@ -583,4 +583,4 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-export default Sidebar;
+export default memo(Sidebar);

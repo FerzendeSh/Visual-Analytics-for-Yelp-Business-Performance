@@ -17,7 +17,7 @@ interface BusinessContextType {
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
 // Default logged-in business
-const DEFAULT_BUSINESS_ID = 'IG2KelKEHCwybPl98frdgQ';
+const DEFAULT_BUSINESS_ID = 'RiC_-68qxtDJqiIs5mRR6g';
 const MAX_COMPARISONS = 3;
 
 export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

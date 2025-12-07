@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Star, MessageSquare, TrendingUp, ArrowUp, ArrowDown, TrendingUp as TrendingFlat } from 'lucide-react';
 import './MetricsCards.css';
 
@@ -210,4 +210,4 @@ const MetricsCards: React.FC<MetricsCardsProps> = ({
   );
 };
 
-export default MetricsCards;
+export default memo(MetricsCards);

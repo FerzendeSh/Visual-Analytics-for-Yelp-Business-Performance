@@ -510,11 +510,13 @@ useEffect(() => {
     });
   };
 
+  // Note: Available for future use to refresh map businesses via a UI button
+  // Commented out to avoid unused variable TS error until a refresh button is added
+  /*
   const handleRefreshBusinesses = useCallback(() => {
     if (useViewportLoading) {
       setAccumulatedBusinesses(new Map());
       loadedBoundsRef.current.clear();
-      // Trigger a refresh by updating bounds
       const bounds = mapRef.current?.getBounds();
       if (bounds) {
         setDebouncedBounds({
@@ -526,6 +528,7 @@ useEffect(() => {
       }
     }
   }, [useViewportLoading]);
+  */
 
   const handleGoToMyBusiness = useCallback(() => {
     const myBiz = filteredBusinesses.find(b => b.business_id === myBusinessId);

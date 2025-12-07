@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { X } from 'lucide-react';
 import './FilterSummary.css';
 
@@ -118,4 +118,4 @@ const FilterSummary: React.FC<FilterSummaryProps> = ({
   );
 };
 
-export default FilterSummary;
+export default memo(FilterSummary);

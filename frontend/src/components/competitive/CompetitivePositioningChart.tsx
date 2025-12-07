@@ -278,9 +278,68 @@ const QuadrantChart = ({
         className="touch-none select-none"
         onClick={() => { if (selectedBusinessId && onSelectBusiness) onSelectBusiness(null); }}
       >
+        <defs>
+          {/* Glow filter for My Business point */}
+          <filter id="myBusinessGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
         <rect width={width} height={height} fill={BACKGROUND_COLOR} rx={14} />
 
         <Group left={margin.left} top={margin.top}>
+          {/* Quadrant Background Shading */}
+          {(() => {
+            const medianX = xScale(stats.medianReviews);
+            const avgY = yScale(stats.avgRating);
+            const clampedMedianX = Math.max(0, Math.min(innerWidth, medianX));
+            const clampedAvgY = Math.max(0, Math.min(innerHeight, avgY));
+            
+            return (
+              <>
+                {/* Market Leaders (top-right) - Green */}
+                <rect
+                  x={clampedMedianX}
+                  y={0}
+                  width={innerWidth - clampedMedianX}
+                  height={clampedAvgY}
+                  fill={QUADRANT_COLORS['Market Leaders']}
+                  opacity={0.05}
+                />
+                {/* Hidden Gems (top-left) - Blue */}
+                <rect
+                  x={0}
+                  y={0}
+                  width={clampedMedianX}
+                  height={clampedAvgY}
+                  fill={QUADRANT_COLORS['Hidden Gems']}
+                  opacity={0.05}
+                />
+                {/* Volume Drivers (bottom-right) - Orange */}
+                <rect
+                  x={clampedMedianX}
+                  y={clampedAvgY}
+                  width={innerWidth - clampedMedianX}
+                  height={innerHeight - clampedAvgY}
+                  fill={QUADRANT_COLORS['Volume Drivers']}
+                  opacity={0.05}
+                />
+                {/* Struggling (bottom-left) - Red */}
+                <rect
+                  x={0}
+                  y={clampedAvgY}
+                  width={clampedMedianX}
+                  height={innerHeight - clampedAvgY}
+                  fill={QUADRANT_COLORS['Struggling']}
+                  opacity={0.05}
+                />
+              </>
+            );
+          })()}
+
           <GridRows scale={yScale} width={innerWidth} strokeDasharray="3,3" stroke={GRID_COLOR} />
           <GridColumns scale={xScale} height={innerHeight} strokeDasharray="3,3" stroke={GRID_COLOR} />
 
@@ -378,6 +437,7 @@ const QuadrantChart = ({
                 strokeWidth={strokeWidth}
                 style={{ cursor: 'pointer' }}
                 className="transition-all duration-300"
+                filter={d.isMyBusiness ? 'url(#myBusinessGlow)' : undefined}
                 onMouseOver={(e) => handleMouseOver(e as React.MouseEvent<SVGCircleElement>, d)}
                 onMouseOut={hideTooltip}
                 onClick={(e) => {
@@ -401,7 +461,7 @@ const QuadrantChart = ({
               margin={margin}
               handleSize={8}
               resizeTriggerAreas={['left', 'right']}
-              brushDirection="x"
+              brushDirection="horizontal"
               onChange={onBrushChange}
               onClick={() => {}}
               selectedBoxStyle={{
