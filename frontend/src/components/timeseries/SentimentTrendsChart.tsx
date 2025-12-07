@@ -1,9 +1,10 @@
-import React, { useMemo, useCallback, memo } from 'react';
+import React, { useMemo, useCallback, memo, useState } from 'react';
 import { Group } from '@visx/group';
 import { Bar, LinePath, Circle, Line } from '@visx/shape';
 import { scaleLinear, scaleBand, scaleOrdinal } from '@visx/scale';
 import { AxisLeft, AxisRight, AxisBottom } from '@visx/axis';
 import { GridRows } from '@visx/grid';
+import { Text } from '@visx/text';
 import { useTooltip, useTooltipInPortal, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { ParentSize } from '@visx/responsive';
@@ -11,8 +12,9 @@ import { curveMonotoneX } from '@visx/curve';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 import { Business } from '../../api';
-import { SentimentTimeline } from '../../api/endpoints/analytics';
-import { calculateTrend, calculateCompetitivePosition } from './trendUtils';
+import { SentimentTimeline, ForecastDataPoint } from '../../api/endpoints/analytics';
+// NOTE: Trend utilities available for future enhancements
+// import { calculateTrend, calculateCompetitivePosition } from './trendUtils';
 import { formatPercentChange } from './chartConstants';
 import './SentimentTrendsChart.css';
 
@@ -21,6 +23,7 @@ const VOLUME_COLOR = '#3b2f5c';
 const VOLUME_HIGHLIGHT = '#504278';
 const AXIS_COLOR = '#f8fafc';
 const GRID_COLOR = '#2d3748';
+const FORECAST_COLOR = '#06ffa5'; // Cyan for forecast
 const LINE_COLORS = [
   '#9c8506ff', // Gold/Yellow
   '#9400fdff', // Purple
@@ -50,6 +53,11 @@ interface TooltipData {
   legendItems: LegendItem[];
   sentiments: Record<string, number>;
   change: { change: number; changePercent: number } | null;
+  // Forecast-specific fields
+  isForecast?: boolean;
+  forecastValue?: number;
+  forecastLower?: number;
+  forecastUpper?: number;
 }
 
 interface SentimentTrendsChartProps {
@@ -71,6 +79,8 @@ interface SentimentTrendsChartProps {
   compareByCity?: boolean;
   compareByCategory?: boolean;
   compareByNeighborhood?: boolean;
+  /** Forecast data points for sentiment predictions */
+  forecastData?: ForecastDataPoint[] | null;
 }
 
 function formatDateForPeriod(dateString: string, period: 'month' | 'year'): string {
@@ -101,6 +111,93 @@ interface TooltipContentProps {
 
 const TooltipContent: React.FC<TooltipContentProps> = ({ data, period }) => {
   if (!data) return null;
+
+  // Forecast tooltip rendering
+  if (data.isForecast) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        {/* Period Header */}
+        <div
+          style={{
+            color: '#06ffa5',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            marginBottom: '0.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <span style={{ fontSize: '0.7rem', padding: '2px 6px', background: 'rgba(6, 255, 165, 0.2)', borderRadius: '4px' }}>FORECAST</span>
+          {data.period}
+        </div>
+
+        {/* Predicted Value */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          <span style={{ color: '#d2d2d4', fontSize: '0.85rem' }}>Predicted</span>
+          <span
+            style={{
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              color: '#06ffa5',
+              fontSize: '0.95rem',
+            }}
+          >
+            {(data.forecastValue ?? 0) >= 0 ? '+' : ''}{data.forecastValue?.toFixed(3)}
+          </span>
+        </div>
+
+        {/* Upper Bound */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Upper bound</span>
+          <span
+            style={{
+              fontFamily: 'monospace',
+              color: '#d2d2d4',
+              fontSize: '0.85rem',
+            }}
+          >
+            {data.forecastUpper?.toFixed(3)}
+          </span>
+        </div>
+
+        {/* Lower Bound */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Lower bound</span>
+          <span
+            style={{
+              fontFamily: 'monospace',
+              color: '#d2d2d4',
+              fontSize: '0.85rem',
+            }}
+          >
+            {data.forecastLower?.toFixed(3)}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const change = data.change;
 
@@ -216,9 +313,20 @@ interface ChartProps {
   data: ChartDataPoint[];
   seriesNames: string[];
   period: 'month' | 'year';
+  hiddenSeries: Set<string>;
+  /** Forecast data points to render as dashed line with confidence band */
+  forecastData?: ForecastDataPoint[] | null;
 }
 
-const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period }) => {
+const Chart: React.FC<ChartProps> = ({ 
+  width, 
+  height, 
+  data, 
+  seriesNames, 
+  period, 
+  hiddenSeries,
+  forecastData,
+}) => {
   const margin = { top: 20, right: 60, bottom: 40, left: 60 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -236,19 +344,35 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
     scroll: true,
   });
 
+  // Build combined domain: historical periods + forecast periods
+  const allPeriods = useMemo(() => {
+    const historicalPeriods = data.map((d) => d.period);
+    if (forecastData && forecastData.length > 0) {
+      const forecastPeriods = forecastData.map((fp) => formatDateForPeriod(fp.period, period));
+      return [...historicalPeriods, ...forecastPeriods];
+    }
+    return historicalPeriods;
+  }, [data, forecastData, period]);
+
   const xScale = useMemo(
     () =>
       scaleBand<string>({
         range: [0, innerWidth],
-        domain: data.map((d) => d.period),
+        domain: allPeriods,
         padding: 0.2,
       }),
-    [innerWidth, data]
+    [innerWidth, allPeriods]
   );
+
+  // Get formatted forecast period labels
+  const forecastPeriodLabels = useMemo(() => {
+    if (!forecastData || forecastData.length === 0) return [];
+    return forecastData.map((fp) => formatDateForPeriod(fp.period, period));
+  }, [forecastData, period]);
 
   // Calculate optimal tick interval based on available width
   const tickInterval = useMemo(() => {
-    const numPoints = data.length;
+    const numPoints = allPeriods.length;
     if (numPoints <= 1) return 1;
 
     const estimatedLabelWidth = period === 'year' ? 40 : 35;
@@ -256,7 +380,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
 
     const interval = Math.max(1, Math.ceil(numPoints / maxLabels));
     return interval;
-  }, [data.length, innerWidth, period]);
+  }, [allPeriods.length, innerWidth, period]);
 
   const y1Scale = useMemo(
     () =>
@@ -287,6 +411,17 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
     [seriesNames]
   );
 
+  // Build formatted forecast data for tooltip lookup
+  const formattedForecastData = useMemo(() => {
+    if (!forecastData || forecastData.length === 0) return [];
+    return forecastData.map((fp) => ({
+      period: formatDateForPeriod(fp.period, period),
+      value: fp.value,
+      lower: fp.lower,
+      upper: fp.upper,
+    }));
+  }, [forecastData, period]);
+
   const handleTooltip = useCallback(
     (event: React.TouchEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>) => {
       const point = localPoint(event);
@@ -297,8 +432,33 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
       const step = xScale.step();
       const index = Math.floor(x0 / step);
       const safeIndex = Math.max(0, Math.min(index, domain.length - 1));
-      const selectedData = data[safeIndex];
+      const hoveredPeriod = domain[safeIndex];
 
+      // Check if this is a forecast period
+      const forecastPoint = formattedForecastData.find(fp => fp.period === hoveredPeriod);
+      
+      if (forecastPoint) {
+        // Show forecast tooltip
+        showTooltip({
+          tooltipData: {
+            period: forecastPoint.period,
+            volume: 0,
+            legendItems: [],
+            sentiments: {},
+            change: null,
+            isForecast: true,
+            forecastValue: forecastPoint.value,
+            forecastLower: forecastPoint.lower,
+            forecastUpper: forecastPoint.upper,
+          },
+          tooltipLeft: (xScale(hoveredPeriod) || 0) + xScale.bandwidth() / 2 + margin.left,
+          tooltipTop: innerHeight / 2,
+        });
+        return;
+      }
+
+      // Historical data tooltip
+      const selectedData = data[safeIndex];
       if (selectedData) {
         const sentiments: Record<string, number> = {};
         const legendItems = seriesNames.map((name) => {
@@ -338,7 +498,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
         });
       }
     },
-    [xScale, margin.left, innerHeight, showTooltip, data, seriesNames, colorScale]
+    [xScale, margin.left, innerHeight, showTooltip, data, seriesNames, colorScale, formattedForecastData]
   );
 
   if (width < 10) return null;
@@ -355,6 +515,16 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
         onTouchMove={handleTooltip}
         onTouchEnd={() => hideTooltip()}
       >
+        <defs>
+          {/* Glow filter for primary business line */}
+          <filter id="primaryGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
         <rect width={width} height={height} fill={BACKGROUND_COLOR} rx={8} />
 
         <Group left={margin.left} top={margin.top}>
@@ -388,30 +558,135 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
             );
           })}
 
-          {/* Sentiment Lines */}
-          {seriesNames.map((name) => (
-            <React.Fragment key={`line-group-${name}`}>
-              <LinePath
-                data={data}
-                x={(d) => (xScale(d.period) || 0) + xScale.bandwidth() / 2}
-                y={(d) => y1Scale((d[name] as number) || 0)}
-                stroke={colorScale(name)}
-                strokeWidth={3}
-                curve={curveMonotoneX}
-                strokeLinecap="round"
-              />
-              {tooltipOpen && tooltipData && (
-                <Circle
-                  cx={(xScale(tooltipData.period) || 0) + xScale.bandwidth() / 2}
-                  cy={y1Scale(tooltipData.sentiments[name] || 0)}
-                  r={6}
-                  fill={colorScale(name)}
-                  stroke="#fff"
-                  strokeWidth={2}
+          {/* Sentiment Lines - primary line gets enhanced styling */}
+          {seriesNames.map((name, seriesIndex) => {
+            const isPrimary = seriesIndex === 0;
+            const isHidden = hiddenSeries.has(name);
+            
+            // Don't render hidden series
+            if (isHidden) return null;
+            
+            return (
+              <React.Fragment key={`line-group-${name}`}>
+                <LinePath
+                  data={data}
+                  x={(d) => (xScale(d.period) || 0) + xScale.bandwidth() / 2}
+                  y={(d) => y1Scale((d[name] as number) || 0)}
+                  stroke={colorScale(name)}
+                  strokeWidth={isPrimary ? 4 : 2.5}
+                  curve={curveMonotoneX}
+                  strokeLinecap="round"
+                  filter={isPrimary ? 'url(#primaryGlow)' : undefined}
                 />
-              )}
-            </React.Fragment>
-          ))}
+                {/* "YOU" label for primary business line */}
+                {isPrimary && data.length > 0 && (
+                  <Text
+                    x={(xScale(data[data.length - 1].period) || 0) + xScale.bandwidth() / 2 + 8}
+                    y={y1Scale((data[data.length - 1][name] as number) || 0)}
+                    fill={colorScale(name)}
+                    fontSize={10}
+                    fontWeight={700}
+                    textAnchor="start"
+                    verticalAnchor="middle"
+                  >
+                    YOU
+                  </Text>
+                )}
+                {/* Only show historical data circles when NOT hovering a forecast period */}
+                {tooltipOpen && tooltipData && !tooltipData.isForecast && (
+                  <Circle
+                    cx={(xScale(tooltipData.period) || 0) + xScale.bandwidth() / 2}
+                    cy={y1Scale(tooltipData.sentiments[name] || 0)}
+                    r={isPrimary ? 8 : 6}
+                    fill={colorScale(name)}
+                    stroke="#fff"
+                    strokeWidth={isPrimary ? 3 : 2}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+
+          {/* Forecast Hover Circle - show when hovering forecast periods */}
+          {tooltipOpen && tooltipData?.isForecast && tooltipData.forecastValue !== undefined && (
+            <Circle
+              cx={(xScale(tooltipData.period) || 0) + xScale.bandwidth() / 2}
+              cy={y1Scale(tooltipData.forecastValue)}
+              r={8}
+              fill={FORECAST_COLOR}
+              stroke="#fff"
+              strokeWidth={3}
+            />
+          )}
+
+          {/* Forecast Confidence Band & Line */}
+          {forecastData && forecastData.length > 0 && data.length > 0 && (() => {
+            // Get the last historical data point position
+            const lastDataPeriod = data[data.length - 1].period;
+            const lastDataX = (xScale(lastDataPeriod) || 0) + xScale.bandwidth() / 2;
+
+            // Calculate forecast point positions using the extended xScale
+            const forecastPoints = forecastData.map((fp) => {
+              const formattedPeriod = formatDateForPeriod(fp.period, period);
+              return {
+                x: (xScale(formattedPeriod) || 0) + xScale.bandwidth() / 2,
+                value: fp.value,
+                lower: fp.lower,
+                upper: fp.upper,
+                period: formattedPeriod,
+              };
+            });
+
+            // Connection point from last historical value to first forecast
+            const lastHistoricalValue = data[data.length - 1][seriesNames[0]] as number || 0;
+            const connectionPoints = [
+              { x: lastDataX, y: y1Scale(lastHistoricalValue) },
+              ...forecastPoints.map(fp => ({ x: fp.x, y: y1Scale(fp.value) })),
+            ];
+
+            // Confidence band data points for smooth area - sentiment range is -1 to 1
+            const confidenceAreaData = [
+              { x: lastDataX, lower: lastHistoricalValue, upper: lastHistoricalValue },
+              ...forecastPoints.map(fp => ({
+                x: fp.x,
+                lower: Math.max(-1, fp.lower),
+                upper: Math.min(1, fp.upper),
+              })),
+            ];
+
+            // Create path for upper bound
+            const upperBoundPath = confidenceAreaData.map(d => ({ x: d.x, y: y1Scale(d.upper) }));
+            // Create path for lower bound (reversed for proper area fill)
+            const lowerBoundPath = [...confidenceAreaData].reverse().map(d => ({ x: d.x, y: y1Scale(d.lower) }));
+
+            return (
+              <React.Fragment key="forecast-group">
+                {/* Confidence Band Area - Smooth Fill */}
+                <path
+                  d={`
+                    M ${upperBoundPath[0].x},${upperBoundPath[0].y}
+                    ${upperBoundPath.slice(1).map(p => `L ${p.x},${p.y}`).join(' ')}
+                    ${lowerBoundPath.map(p => `L ${p.x},${p.y}`).join(' ')}
+                    Z
+                  `}
+                  fill={FORECAST_COLOR}
+                  opacity={0.2}
+                />
+
+                {/* Forecast Dashed Line */}
+                <LinePath
+                  data={connectionPoints}
+                  x={(d) => d.x}
+                  y={(d) => d.y}
+                  stroke={FORECAST_COLOR}
+                  strokeWidth={3}
+                  strokeDasharray="8,6"
+                  curve={curveMonotoneX}
+                  strokeLinecap="round"
+                />
+              </React.Fragment>
+            );
+          })()}
 
           {/* Hover Line */}
           {tooltipOpen && tooltipData && (
@@ -430,7 +705,8 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
             scale={xScale}
             top={innerHeight}
             stroke={AXIS_COLOR}
-            tickStroke={AXIS_COLOR}
+            hideAxisLine={false}
+            hideTicks={true}
             tickLabelProps={() => ({
               fill: AXIS_COLOR,
               fontSize: 12,
@@ -438,10 +714,13 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
               fontFamily: 'sans-serif',
               fontWeight: 500,
             })}
-            tickFormat={(value) => formatDateForPeriod(value, period)}
-            tickValues={data
-              .map((d, i) => (i % tickInterval === 0 ? d.period : null))
-              .filter((v): v is string => v !== null)}
+            tickFormat={(value) => value}
+            tickValues={[
+              ...data
+                .map((d, i) => (i % tickInterval === 0 ? d.period : null))
+                .filter((v): v is string => v !== null),
+              ...forecastPeriodLabels,
+            ]}
           />
 
           <AxisLeft
@@ -503,7 +782,7 @@ const Chart: React.FC<ChartProps> = ({ width, height, data, seriesNames, period 
             backgroundColor: '#1f2937',
             borderRadius: '6px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-            border: '1px solid #374151',
+            border: tooltipData.isForecast ? '1px solid rgba(6, 255, 165, 0.4)' : '1px solid #374151',
             color: '#fff',
             padding: '12px',
             zIndex: 100,
@@ -534,14 +813,15 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
   compareByCity = false,
   compareByCategory = false,
   compareByNeighborhood = false,
+  forecastData,
 }) => {
   // Determine comparison data source
   const comparisonSentimentSource = selectedNeighborhood ? neighborhoodSentimentData : citySentimentData;
 
   // Build chart data and series names
-  const { chartData, seriesNames, sentimentTrend, competitivePosition } = useMemo(() => {
+  const { chartData, seriesNames } = useMemo(() => {
     if (!sentimentData?.data || sentimentData.data.length === 0) {
-      return { chartData: [], seriesNames: [], sentimentTrend: null, competitivePosition: null };
+      return { chartData: [], seriesNames: [] };
     }
 
     // Collect periods only from the primary data source (business/city/category being viewed)
@@ -649,19 +929,16 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
       return point;
     });
 
-    // Calculate trend
-    const trend = calculateTrend(sentimentData.data, 'avg_sentiment_score', 3);
-
-    // Calculate competitive position
-    const position = comparisonSentimentSource?.data
-      ? calculateCompetitivePosition(sentimentData.data, comparisonSentimentSource.data, 'avg_sentiment_score')
-      : null;
+    // NOTE: Trend and competitive position calculated but not currently displayed
+    // These could be used for future enhancements like trend indicators
+    // const trend = calculateTrend(sentimentData.data, 'avg_sentiment_score', 3);
+    // const position = comparisonSentimentSource?.data
+    //   ? calculateCompetitivePosition(sentimentData.data, comparisonSentimentSource.data, 'avg_sentiment_score')
+    //   : null;
 
     return {
       chartData: data,
       seriesNames: names,
-      sentimentTrend: trend,
-      competitivePosition: position,
     };
   }, [
     sentimentData,
@@ -680,8 +957,21 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
     compareByNeighborhood,
   ]);
 
-  // Determine title text
-  const primaryName = seriesNames[0] || 'Sentiments';
+  // State for hidden series (interactive legend)
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+
+  // Toggle series visibility when clicking legend items
+  const toggleSeries = useCallback((seriesName: string) => {
+    setHiddenSeries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(seriesName)) {
+        newSet.delete(seriesName);
+      } else {
+        newSet.add(seriesName);
+      }
+      return newSet;
+    });
+  }, []);
 
   if (!business && !selectedCity && !selectedCategory) {
     return (
@@ -721,6 +1011,8 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
                 data={chartData}
                 seriesNames={seriesNames}
                 period={period}
+                hiddenSeries={hiddenSeries}
+                forecastData={forecastData}
               />
             )}
           </ParentSize>
@@ -734,7 +1026,7 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
         </div>
       )}
 
-      {/* Legend at the bottom */}
+      {/* Legend at the bottom - click to toggle series visibility */}
       {chartData.length > 0 && (
         <div className="sentiment-trends-chart__legend">
           <div className="sentiment-trends-chart__legend-items">
@@ -747,16 +1039,51 @@ const SentimentTrendsChart: React.FC<SentimentTrendsChartProps> = ({
               <span className="sentiment-trends-chart__legend-text">Review Volume</span>
             </div>
 
-            {/* Line Legend Items */}
-            {seriesNames.map((name, i) => (
-              <div key={`legend-${i}`} className="sentiment-trends-chart__legend-item">
+            {/* Line Legend Items - clickable to toggle visibility */}
+            {seriesNames.map((name, i) => {
+              const isHidden = hiddenSeries.has(name);
+              const isPrimary = i === 0;
+              return (
+                <button
+                  key={`legend-${i}`}
+                  className={`sentiment-trends-chart__legend-item sentiment-trends-chart__legend-item--interactive ${isHidden ? 'sentiment-trends-chart__legend-item--hidden' : ''} ${isPrimary ? 'sentiment-trends-chart__legend-item--primary' : ''}`}
+                  onClick={() => toggleSeries(name)}
+                  title={isHidden ? `Show ${name}` : `Hide ${name}`}
+                  type="button"
+                >
+                  <div
+                    className="sentiment-trends-chart__legend-line"
+                    style={{ 
+                      backgroundColor: LINE_COLORS[i % LINE_COLORS.length],
+                      opacity: isHidden ? 0.3 : 1
+                    }}
+                  />
+                  <span 
+                    className="sentiment-trends-chart__legend-text"
+                    style={{ opacity: isHidden ? 0.5 : 1 }}
+                  >
+                    {name}
+                    {isPrimary && ' (You)'}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* Forecast Legend Item */}
+            {forecastData && forecastData.length > 0 && (
+              <div className="sentiment-trends-chart__legend-item">
                 <div
                   className="sentiment-trends-chart__legend-line"
-                  style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }}
+                  style={{ 
+                    backgroundColor: FORECAST_COLOR,
+                    backgroundImage: `repeating-linear-gradient(90deg, ${FORECAST_COLOR} 0, ${FORECAST_COLOR} 4px, transparent 4px, transparent 8px)`,
+                  }}
                 />
-                <span className="sentiment-trends-chart__legend-text">{name}</span>
+                <span className="sentiment-trends-chart__legend-text">
+                  Forecast (80% CI)
+                </span>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}

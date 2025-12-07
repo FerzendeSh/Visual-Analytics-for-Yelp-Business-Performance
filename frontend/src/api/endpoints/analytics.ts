@@ -202,3 +202,57 @@ export const getCompetitiveSnapshot = (
     },
   });
 };
+
+// ============================================================================
+// Forecast Types & Endpoints
+// ============================================================================
+
+/**
+ * Single forecast data point with confidence interval
+ */
+export interface ForecastDataPoint {
+  period: string;
+  value: number;
+  lower: number;
+  upper: number;
+}
+
+/**
+ * Forecast result for a single metric (rating or sentiment)
+ */
+export interface ForecastResult {
+  forecast: ForecastDataPoint[];
+  model_type: 'arima' | 'fallback';
+  data_points_used: number;
+}
+
+/**
+ * Complete forecast response containing rating and sentiment predictions
+ */
+export interface ForecastData {
+  rating_forecast: ForecastResult | null;
+  sentiment_forecast: ForecastResult | null;
+  periods_requested: number;
+  period_type: string;
+}
+
+/**
+ * Get rating and sentiment forecasts for a business
+ * Uses ARIMA modeling with fallback to mean-based projection for sparse data
+ * 
+ * @param businessId - Business identifier
+ * @param periods - Number of periods to forecast (1-12, default 4)
+ * @param periodType - Period granularity ('month' or 'year')
+ */
+export const getBusinessForecast = (
+  businessId: string,
+  periods: number = 4,
+  periodType: 'month' | 'year' = 'month'
+): Promise<ForecastData> => {
+  return get<ForecastData>(`/api/analytics/business/${businessId}/forecast`, {
+    params: {
+      periods,
+      period_type: periodType,
+    },
+  });
+};
