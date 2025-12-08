@@ -56,19 +56,20 @@
   min-width: 200px;
   max-width: 300px;
   padding: 4px;
+  background: #ffffff;
 }
 
 .business-popup h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #2d3748;
-  line-height: 1.3;
+  color: #1a202c;
+  line-height: 0.2;
 }
 
 .popup-details {
   font-size: 13px;
-  color: #4a5568;
+  color: #2d3748;
 }
 
 .popup-details p {
@@ -76,40 +77,43 @@
 }
 
 .popup-location {
-  color: #718096;
+  color: #010101;
   font-size: 12px;
 }
 
 .popup-rating {
   margin: 6px 0;
+  color: #2d3748;
 }
 
 .popup-rating strong {
-  color: #091c89;
+  color: #baa117e6;
   font-weight: 600;
 }
 
 .popup-status {
   margin: 6px 0;
+  color: #2d3748;
 }
 
 .status-open {
-  color: #67a353; /* Cloudscape status-positive */
+  color: #059669;
   font-weight: 600;
 }
 
 .status-closed {
-  color: #ba2e0f; /* Cloudscape status-high */
+  color: #dc2626;
   font-weight: 600;
 }
 
 .popup-categories {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #09043a8d;
+  border-top: 3px solid #cbd5e0;
   font-size: 11px;
-  color: #030303;
+  color: #1a202c;
   font-style: italic;
+  line-height: 1.4;
 }
 
 .popup-actions {
@@ -245,7 +249,7 @@
   padding: 6px 10px;
   border-radius: 6px;
   background-color: #2b2b3c;
-  color: #fff;
+  color: #ffffffcc;
   border: 1px solid #444;
 }
 

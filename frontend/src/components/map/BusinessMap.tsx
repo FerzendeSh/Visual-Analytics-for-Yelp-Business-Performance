@@ -449,7 +449,8 @@ useEffect(() => {
     return;
   }
 
-  setPopupInfo(selectedBusiness);
+  // Don't automatically show popup - only show when user clicks marker
+  // setPopupInfo(selectedBusiness);
 
   const map = mapRef.current;
   if (!map) return;
@@ -564,8 +565,8 @@ useEffect(() => {
         duration: 0, // No animation on initial load for instant appearance
       });
 
-      // Open popup for my business
-      setPopupInfo(myBiz);
+      // Don't automatically open popup - only show when user clicks marker
+      // setPopupInfo(myBiz);
       onBusinessSelect?.(myBiz);
     }
   }, [filteredBusinesses, myBusinessId, onBusinessSelect]);

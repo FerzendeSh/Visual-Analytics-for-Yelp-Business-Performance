@@ -34,7 +34,7 @@ const Home: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [period, setPeriod] = useState<'month' | 'year'>('year');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  
+
   // Layout toggle state (grid or list view)
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
 
@@ -95,13 +95,45 @@ const Home: React.FC = () => {
     const currentYear = new Date().getFullYear();
     setSelectedYear(currentYear);
     setPeriod('year');
-    setSelectedBusiness(null);
+    // Set selected business back to myBusiness to center map on it
+    setSelectedBusiness(myBusiness);
     clearComparisons();
-  }, [setSelectedBusiness, clearComparisons]);
+  }, [setSelectedBusiness, clearComparisons, myBusiness]);
 
   const handleScatterPlotSelect = useCallback((business: Business | null) => {
     setSelectedBusiness(business);
   }, [setSelectedBusiness]);
+
+  // Handler for map popup "Add to Comparison" button click
+  const handleMapAddComparison = useCallback((business: Business) => {
+    const isAlreadyAdded = comparisonBusinesses.some(b => b.business_id === business.business_id);
+    if (isAlreadyAdded) {
+      toast.error(`${business.name} is already in comparison group`, { duration: 2000 });
+      return;
+    }
+
+    if (comparisonBusinesses.length >= maxComparisons) {
+      toast(
+        `Maximum ${maxComparisons} businesses allowed. Remove one to add another.`,
+        {
+          duration: 4000,
+          icon: '⚠️',
+          style: {
+            background: '#1e293b',
+            color: '#f59e0b',
+            border: '1px solid #f59e0b',
+          }
+        }
+      );
+      return;
+    }
+
+    addComparison(business);
+    toast.success(
+      `${business.name} added to comparison group (${comparisonBusinesses.length + 1}/${maxComparisons})`,
+      { duration: 3000 }
+    );
+  }, [addComparison, comparisonBusinesses, maxComparisons]);
 
   // Handler for FilterControlPanel business select (add to comparison)
   const handleFilterBusinessSelect = useCallback((business: Business | null) => {
@@ -331,6 +363,11 @@ const Home: React.FC = () => {
       label: `Status: ${selectedStatus === 1 ? 'Open' : 'Closed'}`,
       onRemove: () => setSelectedStatus(null),
     },
+    // Add comparison businesses to filter tags
+    ...comparisonBusinesses.map(business => ({
+      label: `Comparison: ${business.name}`,
+      onRemove: () => removeComparison(business.business_id),
+    })),
   ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
 
   // Calculate metrics for the cards (use allYearsData for overall metrics, not filtered by year)
@@ -537,7 +574,7 @@ const Home: React.FC = () => {
                       maxRating={maxRating}
                       selectedStatus={selectedStatus}
                       onMapCityChange={handleMapCityChange}
-                      onAddComparison={addComparison}
+                      onAddComparison={handleMapAddComparison}
                       onRemoveComparison={removeComparison}
                       onBusinessSelect={setSelectedBusiness}
                       myBusinessId={myBusiness?.business_id}

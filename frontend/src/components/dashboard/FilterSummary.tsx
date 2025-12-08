@@ -112,6 +112,29 @@ const FilterSummary: React.FC<FilterSummaryProps> = ({
               </button>
             </div>
           )}
+          {/* Render additional dynamic filter tags (e.g., comparison businesses) */}
+          {filters.map((filter, index) => {
+            // Skip filters that are already rendered above
+            if (filter.label.startsWith('City:') ||
+                filter.label.startsWith('Neighborhood:') ||
+                filter.label.startsWith('Category:') ||
+                filter.label.startsWith('Rating:') ||
+                filter.label.startsWith('Status:')) {
+              return null;
+            }
+            return (
+              <div className="filter-tag" key={index}>
+                <span className="filter-tag-label">{filter.label}</span>
+                <button
+                  className="filter-tag-remove"
+                  onClick={filter.onRemove}
+                  aria-label={`Remove ${filter.label}`}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

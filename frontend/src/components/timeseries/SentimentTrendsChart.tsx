@@ -217,6 +217,43 @@ const TooltipContent: React.FC<TooltipContentProps> = ({ data, period }) => {
         {data.period}
       </div>
 
+         {/* Review Volume */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          paddingBottom: '0.5rem',
+          marginBottom: '0.5rem',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div
+            style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '2px',
+              backgroundColor: VOLUME_COLOR,
+            }}
+          />
+          <span style={{ color: '#d2d2d4', fontSize: '0.85rem' }}>
+            Review Volume:
+          </span>
+        </div>
+        <span
+          style={{
+            fontFamily: 'monospace',
+            fontWeight: 700,
+            color: '#fff',
+            fontSize: '0.85rem',
+          }}
+        >
+          {data.volume.toLocaleString()}
+        </span>
+      </div>
+      
       {/* Legend Items */}
       {data.legendItems.map((item) => (
         <div
