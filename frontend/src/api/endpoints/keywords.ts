@@ -7,6 +7,7 @@ export interface KeywordCluster {
   avg_sentiment: number;
   avg_stars: number;
   sample_review: string;
+  all_reviews?: string[];  // Array of all review texts in the cluster
 }
 
 export interface PeriodIssuesResponse {

@@ -113,6 +113,7 @@ const BusinessMap: React.FC<BusinessMapProps> = ({
   const viewportRef = useRef({ ...computedInitialViewState });
   const isMapClickRef = useRef(false);
   const isProgrammaticMoveRef = useRef(false);
+  const isInitialLoadRef = useRef(true);
 
   const [accumulatedBusinesses, setAccumulatedBusinesses] = useState<Map<string, Business>>(new Map());
   const loadedBoundsRef = useRef<Set<string>>(new Set());
@@ -449,15 +450,17 @@ useEffect(() => {
     return;
   }
 
-  // Don't automatically show popup - only show when user clicks marker
-  // setPopupInfo(selectedBusiness);
-
   const map = mapRef.current;
   if (!map) return;
 
   if (isMapClickRef.current) {
     isMapClickRef.current = false;
     return;
+  }
+
+  // Show popup when business is selected (e.g., from scatter plot) - but not on initial load
+  if (!isInitialLoadRef.current) {
+    setPopupInfo(selectedBusiness);
   }
 
   const currentZoom = map.getZoom();
@@ -565,9 +568,13 @@ useEffect(() => {
         duration: 0, // No animation on initial load for instant appearance
       });
 
-      // Don't automatically open popup - only show when user clicks marker
-      // setPopupInfo(myBiz);
+      // Don't automatically open popup on initial load - only when actively selected
       onBusinessSelect?.(myBiz);
+
+      // After initial load, mark as complete so future selections will open popup
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 100);
     }
   }, [filteredBusinesses, myBusinessId, onBusinessSelect]);
 

@@ -32,6 +32,8 @@ interface LayoutProps {
   onBusinessSelect?: (business: Business | null) => void;
   comparisonBusinesses?: Business[];
   availableYears?: number[];
+  metricsCards?: ReactNode;
+  headerActions?: ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -60,6 +62,8 @@ const Layout: React.FC<LayoutProps> = ({
   onBusinessSelect,
   comparisonBusinesses,
   availableYears = [],
+  metricsCards,
+  headerActions,
 }) => {
   const dispatch = useAppDispatch();
   const isSidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
@@ -103,6 +107,8 @@ const Layout: React.FC<LayoutProps> = ({
         subtitle={subtitle}
         myBusinessName={myBusiness?.name}
         isSidebarCollapsed={showSidebar ? isSidebarCollapsed : false}
+        metricsCards={metricsCards}
+        headerActions={headerActions}
       >
         {children}
       </MainContent>

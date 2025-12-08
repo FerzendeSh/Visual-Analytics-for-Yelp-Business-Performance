@@ -60,7 +60,7 @@
     grid-column: 2;
   }
 
-  .competitive-card {
+  .keyword-insights-card {
     grid-row: 2;
     grid-column: 1;
   }
@@ -70,7 +70,7 @@
     grid-column: 2;
   }
 
-  .keyword-insights-card {
+  .competitive-card {
     grid-row: 3;
     grid-column: 1 / -1; /* Full width */
   }
@@ -109,7 +109,11 @@
 }
 
 .keyword-insights-card--visx {
-  height: 600px; /* Taller for better keyword visibility */
+  height: 500px;
+}
+
+.competitive-card--visx {
+  height: 600px; /* Full width for better visualization */
 }
 
 /* ============================================
@@ -179,17 +183,17 @@
   grid-row: auto !important;
 }
 
-.dashboard-grid--list .map-card,
-.dashboard-grid--list .competitive-card {
+.dashboard-grid--list .map-card {
   height: 400px;
 }
 
 .dashboard-grid--list .ratings-card,
-.dashboard-grid--list .sentiment-card {
+.dashboard-grid--list .sentiment-card,
+.dashboard-grid--list .keyword-insights-card {
   height: 350px;
 }
 
-.dashboard-grid--list .keyword-insights-card {
+.dashboard-grid--list .competitive-card {
   height: 600px;
 }
 

@@ -14,13 +14,6 @@ const BACKGROUND_COLOR = '#0F111A';
 const COMPLAINT_COLOR = '#ef4444';
 const PRAISE_COLOR = '#10b981';
 const AXIS_COLOR = '#f8fafc';
-const LINE_COLORS = [
-  '#9c8506ff', // Gold/Yellow - Your Business
-  '#9400fdff', // Purple - Competitor 1
-  '#8e2315ff', // Red/Brown - Competitor 2
-  '#05a763ff', // Green - Competitor 3
-  '#0199ffff', // Bright Blue - Competitor 4
-];
 
 interface KeywordInsightsChartProps {
   business: Business | null;
@@ -33,21 +26,53 @@ interface KeywordInsightsChartProps {
 interface TooltipData {
   keyword: string;
   type: 'complaints' | 'praises';
-  businesses: (BusinessKeywordData | null)[];
-  hoveredBusinessIndex: number;
+  businessData: BusinessKeywordData;
+  currentReviewIndex: number;
 }
 
 interface TooltipContentProps {
   data: TooltipData;
-  getCompetitiveInsight: (keyword: string, type: 'complaints' | 'praises') => any;
+  onNavigate: (direction: 'prev' | 'next') => void;
+  onClose: () => void;
+  isSticky: boolean;
 }
 
-const TooltipContent: React.FC<TooltipContentProps> = ({ data, getCompetitiveInsight }) => {
-  const insight = getCompetitiveInsight(data.keyword, data.type);
-  const yourBusiness = data.businesses[0];
+const TooltipContent: React.FC<TooltipContentProps> = ({ data, onNavigate, onClose, isSticky }) => {
+  const business = data.businessData;
+  const reviews = business.allReviews || [business.sample];
+  const currentReview = reviews[data.currentReviewIndex] || business.sample;
+  const totalReviews = reviews.length;
 
+  // Simple hover tooltip - just hint
+  if (!isSticky) {
+    // Get first sentence or first 100 chars of review as preview
+    const preview = currentReview.split(/[.!?]/)[0] || currentReview.substring(0, 100);
+    const previewText = preview.length < currentReview.length ? preview + '...' : preview;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '250px', maxWidth: '350px' }}>
+        <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.85rem' }}>
+          "{data.keyword}"
+        </div>
+        <div style={{ color: '#d2d2d4', fontSize: '0.75rem', fontStyle: 'italic', lineHeight: 1.4 }}>
+          {previewText}
+        </div>
+        <div style={{
+          color: '#9c8506',
+          fontSize: '0.7rem',
+          fontWeight: 500,
+          paddingTop: '0.25rem',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+        }}>
+          Click for more details
+        </div>
+      </div>
+    );
+  }
+
+  // Full detailed tooltip when pinned
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '280px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '320px', maxWidth: '500px' }}>
       {/* Header */}
       <div
         style={{
@@ -56,161 +81,129 @@ const TooltipContent: React.FC<TooltipContentProps> = ({ data, getCompetitiveIns
           fontSize: '0.9rem',
           paddingBottom: '0.5rem',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
         }}
       >
-        "{data.keyword}" - Competitive Analysis
+        <span>"{data.keyword}"</span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#94a3b8',
+            cursor: 'pointer',
+            fontSize: '1.2rem',
+            padding: '0',
+            lineHeight: 1,
+            fontWeight: 'bold',
+          }}
+          title="Close"
+        >
+          ×
+        </button>
       </div>
 
       {/* Business data */}
-      {data.businesses.map((business, index) => {
-        if (!business) {
-          return (
-            <div
-              key={index}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.25rem',
-                opacity: 0.5,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <div
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '2px',
-                    backgroundColor: LINE_COLORS[index % LINE_COLORS.length],
-                  }}
-                />
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-                  {index === 0 ? 'Your Business' : `Competitor ${index}`}: Not mentioned
-                </span>
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div
-            key={index}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.25rem',
+          backgroundColor: 'rgba(156, 133, 6, 0.1)',
+          padding: '0.5rem',
+          borderRadius: '4px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+          <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>
+            {business.businessName}
+          </span>
+          <span
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem',
-              backgroundColor: index === 0 ? 'rgba(156, 133, 6, 0.1)' : 'transparent',
-              padding: '0.5rem',
-              borderRadius: '4px',
+              color: '#fff',
+              fontSize: '0.85rem',
+              fontFamily: 'monospace',
+              marginLeft: 'auto',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <div
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '2px',
-                  backgroundColor: LINE_COLORS[index % LINE_COLORS.length],
-                }}
-              />
-              <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>
-                {business.businessName}
-                {index === 0 && ' (You)'}:
-              </span>
-              <span
-                style={{
-                  color: '#fff',
-                  fontSize: '0.85rem',
-                  fontFamily: 'monospace',
-                  marginLeft: 'auto',
-                }}
-              >
-                {business.count} mentions ({business.sentiment.toFixed(2)})
-              </span>
-            </div>
-            <p
-              style={{
-                color: '#d2d2d4',
-                fontSize: '0.75rem',
-                fontStyle: 'italic',
-                margin: 0,
-                lineHeight: 1.4,
-              }}
-            >
-              "{business.sample.substring(0, 100)}..."
-            </p>
-          </div>
-        );
-      })}
-
-      {/* Competitive insights */}
-      {insight && yourBusiness && (
+            {business.count} mentions ({business.sentiment.toFixed(2)})
+          </span>
+        </div>
         <div
           style={{
-            marginTop: '0.5rem',
-            paddingTop: '0.5rem',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.35rem',
+            color: '#d2d2d4',
+            fontSize: '0.75rem',
+            fontStyle: 'italic',
+            lineHeight: 1.5,
+            maxHeight: '400px',
+            overflowY: 'auto',
+            padding: '0.5rem',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px',
+            backgroundColor: 'rgba(0,0,0,0.2)',
           }}
         >
-          <div
+          "{currentReview}"
+        </div>
+      </div>
+
+      {/* Navigation controls - only show if there are multiple reviews */}
+      {totalReviews > 1 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: '0.5rem',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate('prev');
+            }}
+            disabled={data.currentReviewIndex === 0}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.8rem',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#fff',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '4px',
+              cursor: data.currentReviewIndex === 0 ? 'not-allowed' : 'pointer',
+              opacity: data.currentReviewIndex === 0 ? 0.5 : 1,
+              fontSize: '0.75rem',
             }}
           >
-            <span style={{ color: '#94a3b8' }}>📊 Your Position:</span>
-            <span style={{ color: '#fff', fontWeight: 600 }}>
-              {insight.position}
-              {insight.position === 1 ? 'st' : insight.position === 2 ? 'nd' : insight.position === 3 ? 'rd' : 'th'} out of {insight.totalBusinesses}
-            </span>
-          </div>
-          {insight.delta !== 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.8rem',
-              }}
-            >
-              {insight.status === 'lagging' && data.type === 'complaints' && (
-                <>
-                  <span style={{ color: '#94a3b8' }}>⚠️</span>
-                  <span style={{ color: '#ef4444' }}>
-                    {Math.abs(insight.delta * 100).toFixed(0)}% more complaints than avg competitor
-                  </span>
-                </>
-              )}
-              {insight.status === 'leading' && data.type === 'complaints' && (
-                <>
-                  <span style={{ color: '#94a3b8' }}>✅</span>
-                  <span style={{ color: '#10b981' }}>
-                    {Math.abs(insight.delta * 100).toFixed(0)}% fewer complaints than avg competitor
-                  </span>
-                </>
-              )}
-              {insight.status === 'lagging' && data.type === 'praises' && (
-                <>
-                  <span style={{ color: '#94a3b8' }}>⚡</span>
-                  <span style={{ color: '#ef4444' }}>
-                    {Math.abs(insight.delta * 100).toFixed(0)}% fewer praises than avg competitor
-                  </span>
-                </>
-              )}
-              {insight.status === 'leading' && data.type === 'praises' && (
-                <>
-                  <span style={{ color: '#94a3b8' }}>✅</span>
-                  <span style={{ color: '#10b981' }}>
-                    {Math.abs(insight.delta * 100).toFixed(0)}% more praises than avg competitor
-                  </span>
-                </>
-              )}
-            </div>
-          )}
+            ← Previous
+          </button>
+          <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+            {data.currentReviewIndex + 1} of {totalReviews}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate('next');
+            }}
+            disabled={data.currentReviewIndex >= totalReviews - 1}
+            style={{
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#fff',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '4px',
+              cursor: data.currentReviewIndex >= totalReviews - 1 ? 'not-allowed' : 'pointer',
+              opacity: data.currentReviewIndex >= totalReviews - 1 ? 0.5 : 1,
+              fontSize: '0.75rem',
+            }}
+          >
+            Next →
+          </button>
         </div>
       )}
     </div>
@@ -222,9 +215,9 @@ interface ChartSectionProps {
   height: number;
   data: AlignedKeyword[];
   type: 'complaints' | 'praises';
-  businessCount: number;
-  onTooltip: (data: TooltipData | null, coords?: { x: number; y: number }) => void;
+  onTooltip: (data: TooltipData | null, coords?: { x: number; y: number }, sticky?: boolean) => void;
   hoveredKeyword: string | null;
+  isSticky: boolean;
 }
 
 const ChartSection: React.FC<ChartSectionProps> = ({
@@ -232,11 +225,11 @@ const ChartSection: React.FC<ChartSectionProps> = ({
   height,
   data,
   type,
-  businessCount,
   onTooltip,
   hoveredKeyword,
+  isSticky,
 }) => {
-  const margin = { top: 20, right: 20, bottom: 50, left: 160 };
+  const margin = { top: 8, right: 20, bottom: 50, left: 165 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -246,7 +239,7 @@ const ChartSection: React.FC<ChartSectionProps> = ({
       scaleBand<string>({
         range: [0, innerHeight],
         domain: data.map(d => d.keyword),
-        padding: 0.3,
+        padding: 0.2,
       }),
     [innerHeight, data]
   );
@@ -255,11 +248,11 @@ const ChartSection: React.FC<ChartSectionProps> = ({
   const maxCount = useMemo(() => {
     let max = 0;
     data.forEach(keyword => {
-      keyword.businesses.forEach(business => {
-        if (business && business.count > max) {
-          max = business.count;
-        }
-      });
+      // Only look at the first business (the selected business)
+      const business = keyword.businesses[0];
+      if (business && business.count > max) {
+        max = business.count;
+      }
     });
     return max;
   }, [data]);
@@ -273,40 +266,63 @@ const ChartSection: React.FC<ChartSectionProps> = ({
     [innerWidth, maxCount]
   );
 
-  // Scale for grouping businesses within each keyword
-  const businessScale = useMemo(
-    () =>
-      scaleBand<number>({
-        range: [0, yScale.bandwidth()],
-        domain: Array.from({ length: businessCount }, (_, i) => i),
-        padding: 0.1,
-      }),
-    [yScale, businessCount]
-  );
-
   const handleMouseMove = useCallback(
-    (event: React.MouseEvent<SVGRectElement>, keyword: AlignedKeyword, businessIndex: number) => {
+    (event: React.MouseEvent<SVGRectElement>, keyword: AlignedKeyword) => {
+      // Don't show hover tooltip if already sticky/pinned
+      if (isSticky) return;
+
       const point = localPoint(event);
       if (!point) return;
+
+      const business = keyword.businesses[0];
+      if (!business) return;
 
       onTooltip(
         {
           keyword: keyword.keyword,
           type,
-          businesses: keyword.businesses,
-          hoveredBusinessIndex: businessIndex,
+          businessData: business,
+          currentReviewIndex: 0,
         },
-        { x: point.x, y: point.y }
+        { x: point.x, y: point.y },
+        false  // not sticky on hover
+      );
+    },
+    [type, onTooltip, isSticky]
+  );
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent<SVGRectElement>, keyword: AlignedKeyword) => {
+      event.stopPropagation(); // Prevent event bubbling
+      const point = localPoint(event);
+      if (!point) return;
+
+      const business = keyword.businesses[0];
+      if (!business) return;
+
+      onTooltip(
+        {
+          keyword: keyword.keyword,
+          type,
+          businessData: business,
+          currentReviewIndex: 0,
+        },
+        { x: point.x, y: point.y },
+        true  // sticky on click
       );
     },
     [type, onTooltip]
   );
 
   const handleMouseLeave = useCallback(() => {
-    onTooltip(null);
-  }, [onTooltip]);
+    // Don't hide tooltip on mouse leave if it's sticky
+    if (isSticky) return;
+    onTooltip(null, undefined, false);
+  }, [onTooltip, isSticky]);
 
   if (width < 10 || data.length === 0) return null;
+
+  const barColor = type === 'complaints' ? COMPLAINT_COLOR : PRAISE_COLOR;
 
   return (
     <svg width={width} height={height}>
@@ -314,41 +330,33 @@ const ChartSection: React.FC<ChartSectionProps> = ({
         {/* Bars */}
         {data.map((keyword, keywordIndex) => {
           const keywordY = yScale(keyword.keyword) || 0;
+          const business = keyword.businesses[0];
+
+          if (!business) return null;
+
+          const barWidth = xScale(business.count);
+          const barHeight = yScale.bandwidth();
+          const opacity = business.confidence;
+          const isHovered = hoveredKeyword === keyword.keyword;
 
           return (
-            <Group key={`keyword-${keywordIndex}`} top={keywordY}>
-              {keyword.businesses.map((business, businessIndex) => {
-                if (!business) return null;
-
-                const barWidth = xScale(business.count);
-                const barHeight = businessScale.bandwidth();
-                const barY = businessScale(businessIndex) || 0;
-                const barColor = LINE_COLORS[businessIndex % LINE_COLORS.length];
-                const opacity = business.confidence;
-                const isHovered = hoveredKeyword === keyword.keyword;
-
-                return (
-                  <Bar
-                    key={`bar-${businessIndex}`}
-                    x={0}
-                    y={barY}
-                    width={Math.max(0, barWidth)}
-                    height={barHeight}
-                    fill={barColor}
-                    opacity={isHovered ? Math.min(1, opacity + 0.2) : opacity}
-                    rx={3}
-                    onMouseMove={(event) => handleMouseMove(event, keyword, businessIndex)}
-                    onMouseLeave={handleMouseLeave}
-                    style={{
-                      cursor: 'pointer',
-                      stroke: businessIndex === 0 ? barColor : 'transparent',
-                      strokeWidth: businessIndex === 0 ? 2 : 0,
-                      filter: businessIndex === 0 && isHovered ? 'brightness(1.2)' : 'none',
-                    }}
-                  />
-                );
-              })}
-            </Group>
+            <Bar
+              key={`keyword-${keywordIndex}`}
+              x={0}
+              y={keywordY}
+              width={Math.max(0, barWidth)}
+              height={barHeight}
+              fill={barColor}
+              opacity={isHovered ? Math.min(1, opacity + 0.2) : opacity}
+              rx={3}
+              onMouseMove={(event) => handleMouseMove(event, keyword)}
+              onClick={(event) => handleClick(event, keyword)}
+              onMouseLeave={handleMouseLeave}
+              style={{
+                cursor: 'pointer',
+                filter: isHovered ? 'brightness(1.2)' : 'none',
+              }}
+            />
           );
         })}
 
@@ -360,10 +368,10 @@ const ChartSection: React.FC<ChartSectionProps> = ({
           tickStroke="transparent"
           tickLabelProps={() => ({
             fill: AXIS_COLOR,
-            fontSize: 12,
+            fontSize: 11,
             textAnchor: 'end' as const,
-            dy: 4,
-            dx: -5,
+            dy: 3,
+            dx: -4,
             fontWeight: 500,
           })}
         />
@@ -373,11 +381,14 @@ const ChartSection: React.FC<ChartSectionProps> = ({
           top={innerHeight}
           stroke={AXIS_COLOR}
           tickStroke={AXIS_COLOR}
+          numTicks={5}
+          tickFormat={(value) => Math.floor(value as number).toString()}
           tickLabelProps={() => ({
             fill: AXIS_COLOR,
-            fontSize: 11,
+            fontSize: 10,
             textAnchor: 'middle' as const,
             fontWeight: 500,
+            dy: 2,
           })}
           label="Number of Mentions"
           labelProps={{
@@ -385,6 +396,7 @@ const ChartSection: React.FC<ChartSectionProps> = ({
             fontSize: 11,
             textAnchor: 'middle' as const,
             fontWeight: 600,
+            dy: 32,
           }}
         />
       </Group>
@@ -397,8 +409,6 @@ interface ChartProps {
   height: number;
   complaints: AlignedKeyword[];
   praises: AlignedKeyword[];
-  businessCount: number;
-  getCompetitiveInsight: (keyword: string, type: 'complaints' | 'praises') => any;
 }
 
 const Chart: React.FC<ChartProps> = ({
@@ -406,8 +416,6 @@ const Chart: React.FC<ChartProps> = ({
   height,
   complaints,
   praises,
-  businessCount,
-  getCompetitiveInsight,
 }) => {
   const {
     tooltipOpen,
@@ -423,28 +431,67 @@ const Chart: React.FC<ChartProps> = ({
   });
 
   const [hoveredKeyword, setHoveredKeyword] = React.useState<string | null>(null);
+  const [isSticky, setIsSticky] = React.useState(false);
 
   const handleTooltip = useCallback(
-    (data: TooltipData | null, coords?: { x: number; y: number }) => {
+    (data: TooltipData | null, coords?: { x: number; y: number }, sticky = false) => {
       if (!data || !coords) {
-        hideTooltip();
-        setHoveredKeyword(null);
+        // Don't hide if it's sticky (unless explicitly closing)
+        if (!isSticky || sticky === false) {
+          hideTooltip();
+          setHoveredKeyword(null);
+          setIsSticky(false);
+        }
         return;
       }
 
       setHoveredKeyword(data.keyword);
+      if (sticky) {
+        setIsSticky(true);
+      }
       showTooltip({
         tooltipData: data,
         tooltipLeft: coords.x,
         tooltipTop: coords.y,
       });
     },
-    [showTooltip, hideTooltip]
+    [showTooltip, hideTooltip, isSticky]
   );
+
+  const handleNavigate = useCallback(
+    (direction: 'prev' | 'next') => {
+      if (!tooltipData || !tooltipLeft || !tooltipTop) return;
+
+      const newIndex = direction === 'prev'
+        ? Math.max(0, tooltipData.currentReviewIndex - 1)
+        : tooltipData.currentReviewIndex + 1;
+
+      const reviews = tooltipData.businessData.allReviews || [tooltipData.businessData.sample];
+      if (newIndex >= reviews.length) return;
+
+      // Update tooltip data with new review index
+      showTooltip({
+        tooltipData: {
+          ...tooltipData,
+          currentReviewIndex: newIndex,
+        },
+        tooltipLeft: tooltipLeft,
+        tooltipTop: tooltipTop,
+      });
+    },
+    [tooltipData, tooltipLeft, tooltipTop, showTooltip]
+  );
+
+  // Close handler
+  const handleClose = useCallback(() => {
+    hideTooltip();
+    setIsSticky(false);
+    setHoveredKeyword(null);
+  }, [hideTooltip]);
 
   // Split width for two columns
   const columnWidth = width / 2;
-  const chartHeight = height - 60; // Reserve space for title
+  const chartHeight = height - 35; // Reserve space for title
 
   return (
     <div ref={containerRef} className="keyword-insights__chart-container">
@@ -460,9 +507,9 @@ const Chart: React.FC<ChartProps> = ({
             height={chartHeight}
             data={complaints}
             type="complaints"
-            businessCount={businessCount}
             onTooltip={handleTooltip}
             hoveredKeyword={hoveredKeyword}
+            isSticky={isSticky}
           />
         </div>
 
@@ -476,9 +523,9 @@ const Chart: React.FC<ChartProps> = ({
             height={chartHeight}
             data={praises}
             type="praises"
-            businessCount={businessCount}
             onTooltip={handleTooltip}
             hoveredKeyword={hoveredKeyword}
+            isSticky={isSticky}
           />
         </div>
       </div>
@@ -493,13 +540,21 @@ const Chart: React.FC<ChartProps> = ({
             backgroundColor: '#1f2937',
             borderRadius: '6px',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-            border: '1px solid #374151',
+            border: isSticky ? '2px solid #9c8506' : '1px solid #374151',
             color: '#fff',
             padding: '12px',
             zIndex: 100,
+            pointerEvents: 'auto',
           }}
         >
-          <TooltipContent data={tooltipData} getCompetitiveInsight={getCompetitiveInsight} />
+          <div onClick={(e) => e.stopPropagation()}>
+            <TooltipContent
+              data={tooltipData}
+              onNavigate={handleNavigate}
+              onClose={handleClose}
+              isSticky={isSticky}
+            />
+          </div>
         </TooltipInPortal>
       )}
     </div>
@@ -513,7 +568,7 @@ const KeywordInsightsChart: React.FC<KeywordInsightsChartProps> = ({
   isLoading: externalLoading = false,
   error: externalError = null,
 }) => {
-  const { data, isLoading, error, getCompetitiveInsight, displayPeriod } = useKeywordData(
+  const { data, isLoading, error, displayPeriod } = useKeywordData(
     business,
     comparisonBusinesses,
     ratingsTimeline
@@ -521,10 +576,6 @@ const KeywordInsightsChart: React.FC<KeywordInsightsChartProps> = ({
 
   const loading = isLoading || externalLoading;
   const displayError = error || externalError;
-
-  const businessCount = useMemo(() => {
-    return 1 + comparisonBusinesses.length;
-  }, [comparisonBusinesses]);
 
   if (!business) {
     return (
@@ -541,7 +592,7 @@ const KeywordInsightsChart: React.FC<KeywordInsightsChartProps> = ({
       {/* Header */}
       <div className="keyword-insights-chart__header">
         <h2 className="keyword-insights-chart__title">
-          Competitive Keyword Insights
+          Keyword Insights
           {displayPeriod && data && (
             <span className="keyword-insights-chart__period"> ({displayPeriod})</span>
           )}
@@ -590,8 +641,6 @@ const KeywordInsightsChart: React.FC<KeywordInsightsChartProps> = ({
                 height={Math.max(height, 400)}
                 complaints={data.complaints}
                 praises={data.praises}
-                businessCount={businessCount}
-                getCompetitiveInsight={getCompetitiveInsight}
               />
             )}
           </ParentSize>

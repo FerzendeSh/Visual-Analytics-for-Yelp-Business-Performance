@@ -474,6 +474,42 @@ const Home: React.FC = () => {
       onBusinessSelect={handleFilterBusinessSelect}
       comparisonBusinesses={comparisonBusinesses}
       availableYears={availableYears}
+      headerActions={
+        !loading && !error && businesses.length > 0 ? (
+          <div className="layout-toggle">
+            <button
+              className={`layout-toggle__btn ${layoutMode === 'grid' ? 'layout-toggle__btn--active' : ''}`}
+              onClick={() => setLayoutMode('grid')}
+              title="Grid view (press G)"
+              aria-label="Grid view"
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              className={`layout-toggle__btn ${layoutMode === 'list' ? 'layout-toggle__btn--active' : ''}`}
+              onClick={() => setLayoutMode('list')}
+              title="List view (press G)"
+              aria-label="List view"
+            >
+              <List size={18} />
+            </button>
+          </div>
+        ) : null
+      }
+      metricsCards={
+        !loading && !error && businesses.length > 0 ? (
+          timelineLoading ? (
+            <MetricsCardsSkeleton />
+          ) : (
+            <MetricsCards
+              starRating={metricsData.starRating}
+              sentimentScore={metricsData.sentimentScore}
+              reviewVolume={metricsData.reviewVolume}
+              isLoading={timelineLoading}
+            />
+          )
+        ) : null
+      }
     >
       <div className="home-content">
         <section className="home-section">
@@ -504,61 +540,22 @@ const Home: React.FC = () => {
 
           {!loading && !error && businesses.length > 0 && (
             <>
-              {/* Filter Summary and Layout Controls */}
-              <div className="dashboard-controls">
-                <FilterSummary
-                  filters={filterTags}
-                  selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
-                  selectedCategory={selectedCategory}
-                  selectedNeighborhood={selectedNeighborhood}
-                  minRating={minRating}
-                  maxRating={maxRating}
-                  selectedStatus={selectedStatus}
-                  onCityChange={handleCityChange}
-                  onCategoryChange={setSelectedCategory}
-                  onNeighborhoodChange={setSelectedNeighborhood}
-                  onMinRatingChange={setMinRating}
-                  onMaxRatingChange={setMaxRating}
-                  onStatusChange={setSelectedStatus}
-                />
-                
-                {/* Layout Toggle */}
-                <div className="layout-toggle">
-                  <button
-                    className={`layout-toggle__btn ${layoutMode === 'grid' ? 'layout-toggle__btn--active' : ''}`}
-                    onClick={() => setLayoutMode('grid')}
-                    title="Grid view (press G)"
-                    aria-label="Grid view"
-                  >
-                    <LayoutGrid size={18} />
-                  </button>
-                  <button
-                    className={`layout-toggle__btn ${layoutMode === 'list' ? 'layout-toggle__btn--active' : ''}`}
-                    onClick={() => setLayoutMode('list')}
-                    title="List view (press G)"
-                    aria-label="List view"
-                  >
-                    <List size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {timelineLoading ? (
-                <MetricsCardsSkeleton />
-              ) : (
-                <MetricsCards
-                  starRating={metricsData.starRating}
-                  sentimentScore={metricsData.sentimentScore}
-                  reviewVolume={metricsData.reviewVolume}
-                  ratingChange={metricsData.ratingChange}
-                  sentimentChange={metricsData.sentimentChange}
-                  reviewVolumeChange={metricsData.reviewVolumeChange}
-                  cityAvgRating={metricsData.cityAvgRating}
-                  cityAvgSentiment={metricsData.cityAvgSentiment}
-                  neighborhoodAvgRating={metricsData.neighborhoodAvgRating}
-                  isLoading={timelineLoading}
-                />
-              )}
+              {/* Filter Summary */}
+              <FilterSummary
+                filters={filterTags}
+                selectedCity={selectedCity && selectedState ? `${selectedCity}|${selectedState}` : ""}
+                selectedCategory={selectedCategory}
+                selectedNeighborhood={selectedNeighborhood}
+                minRating={minRating}
+                maxRating={maxRating}
+                selectedStatus={selectedStatus}
+                onCityChange={handleCityChange}
+                onCategoryChange={setSelectedCategory}
+                onNeighborhoodChange={setSelectedNeighborhood}
+                onMinRatingChange={setMinRating}
+                onMaxRatingChange={setMaxRating}
+                onStatusChange={setSelectedStatus}
+              />
 
               <div className={`dashboard-grid ${layoutMode === 'list' ? 'dashboard-grid--list' : ''}`}>
                 {/* Map Card */}
@@ -585,30 +582,6 @@ const Home: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Competitive Positioning Card */}
-                <div className="dashboard-card competitive-card competitive-card--visx">
-                  {competitiveLoading ? (
-                    <div className="loading-state">
-                      Loading competitive data...
-                    </div>
-                  ) : competitiveError ? (
-                    <div className="error-state">
-                      Error loading competitive data
-                    </div>
-                  ) : (
-                    <CompetitivePositioningChart
-                      data={competitiveData || null}
-                      comparisonBusinessIds={comparisonBusinesses.map(b => b.business_id)}
-                      myBusinessId={myBusiness?.business_id}
-                      onBusinessSelect={handleCompetitiveBusinessSelect}
-                      selectedBusinessId={selectedBusiness?.business_id}
-                      compareByCity={false}
-                      compareByCategory={false}
-                      compareByNeighborhood={false}
-                    />
-                  )}
-                </div>
-
                 {/* Rating Trends Card */}
                 <div className="dashboard-card ratings-card ratings-card--visx">
                   <RatingTrendsChart
@@ -631,6 +604,17 @@ const Home: React.FC = () => {
                     compareByCategory={!!selectedCategory}
                     compareByNeighborhood={!!selectedNeighborhood}
                     forecastData={shouldShowForecast ? ratingForecast : null}
+                  />
+                </div>
+
+                {/* Keyword Insights Card */}
+                <div className="dashboard-card keyword-insights-card keyword-insights-card--visx">
+                  <KeywordInsightsChart
+                    business={myBusiness}
+                    comparisonBusinesses={comparisonBusinesses}
+                    ratingsTimeline={(timelineData as TimelineData)?.business_ratings || null}
+                    isLoading={timelineLoading}
+                    error={timelineError}
                   />
                 </div>
 
@@ -659,15 +643,28 @@ const Home: React.FC = () => {
                   />
                 </div>
 
-                {/* Keyword Insights Card */}
-                <div className="dashboard-card keyword-insights-card keyword-insights-card--visx">
-                  <KeywordInsightsChart
-                    business={myBusiness}
-                    comparisonBusinesses={comparisonBusinesses}
-                    ratingsTimeline={(timelineData as TimelineData)?.business_ratings || null}
-                    isLoading={timelineLoading}
-                    error={timelineError}
-                  />
+                {/* Competitive Positioning Card */}
+                <div className="dashboard-card competitive-card competitive-card--visx">
+                  {competitiveLoading ? (
+                    <div className="loading-state">
+                      Loading competitive data...
+                    </div>
+                  ) : competitiveError ? (
+                    <div className="error-state">
+                      Error loading competitive data
+                    </div>
+                  ) : (
+                    <CompetitivePositioningChart
+                      data={competitiveData || null}
+                      comparisonBusinessIds={comparisonBusinesses.map(b => b.business_id)}
+                      myBusinessId={myBusiness?.business_id}
+                      onBusinessSelect={handleCompetitiveBusinessSelect}
+                      selectedBusinessId={selectedBusiness?.business_id}
+                      compareByCity={false}
+                      compareByCategory={false}
+                      compareByNeighborhood={false}
+                    />
+                  )}
                 </div>
               </div>
             </>

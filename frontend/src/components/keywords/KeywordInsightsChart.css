@@ -1,7 +1,7 @@
 .keyword-insights-chart {
   background-color: #0F111A;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px;
   color: #f8fafc;
   min-height: 500px;
   display: flex;
@@ -9,18 +9,18 @@
 }
 
 .keyword-insights-chart__header {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .keyword-insights-chart__title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .keyword-insights-chart__subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: #94a3b8;
   margin: 0;
   font-weight: 400;
@@ -28,14 +28,14 @@
 
 .keyword-insights-chart__period {
   color: #9c8506ff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  margin-left: 8px;
+  margin-left: 6px;
 }
 
 .keyword-insights-chart__review-count {
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .keyword-insights-chart__chart {
@@ -54,27 +54,30 @@
   width: 100%;
   height: 100%;
   gap: 0;
+  justify-content: center;
+  align-items: center;
 }
 
 .keyword-insights__column {
   flex: 1;
   display: flex;
   flex-direction: column;
+  max-width: 600px;
 }
 
 .keyword-insights__column--complaints {
   border-right: 1px solid #2d3748;
-  padding-right: 10px;
+  padding-right: 15px;
 }
 
 .keyword-insights__column--praises {
-  padding-left: 10px;
+  padding-left: 15px;
 }
 
 .keyword-insights__section-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin: 0 0 10px 120px;
+  margin: 0 0 6px 125px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }

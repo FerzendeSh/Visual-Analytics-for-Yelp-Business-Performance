@@ -7,6 +7,7 @@ export interface BusinessKeywordData {
   count: number;
   sentiment: number;
   sample: string;
+  allReviews?: string[];  // All reviews mentioning this keyword
   confidence: number;
 }
 
@@ -178,6 +179,7 @@ export function useKeywordData(
           count: match.count,
           sentiment: match.sentiment,
           sample: match.sample,
+          allReviews: match.allReviews,
           confidence: match.confidence,
         };
       });
@@ -206,6 +208,7 @@ export function useKeywordData(
           count: match.count,
           sentiment: match.sentiment,
           sample: match.sample,
+          allReviews: match.allReviews,
           confidence: match.confidence,
         };
       });
@@ -351,7 +354,7 @@ function extractTopKeywords(
 function findKeywordInClusters(
   clusters: KeywordCluster[],
   targetKeyword: string
-): { count: number; sentiment: number; sample: string; confidence: number } | null {
+): { count: number; sentiment: number; sample: string; allReviews?: string[]; confidence: number } | null {
   for (const cluster of clusters) {
     const keywordMatch = cluster.keywords.find(([kw]) => kw === targetKeyword);
     if (keywordMatch) {
@@ -359,6 +362,7 @@ function findKeywordInClusters(
         count: cluster.size,
         sentiment: cluster.avg_sentiment,
         sample: cluster.sample_review,
+        allReviews: cluster.all_reviews,
         confidence: keywordMatch[1],
       };
     }
