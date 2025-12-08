@@ -19,9 +19,7 @@ interface LayoutProps {
   maxRating?: number;
   selectedStatus?: number | null;
   period?: 'month' | 'year';
-  startYear?: number;
-  endYear?: number;
-  availableYears?: number[];
+  selectedYear?: number;
   onCityChange?: (city: string) => void;
   onCategoryChange?: (category: string) => void;
   onNeighborhoodChange?: (neighborhood: string) => void;
@@ -29,10 +27,11 @@ interface LayoutProps {
   onMaxRatingChange?: (rating: number) => void;
   onStatusChange?: (status: number | null) => void;
   onPeriodChange?: (period: 'month' | 'year') => void;
-  onYearRangeChange?: (startYear: number, endYear: number) => void;
+  onYearChange?: (year: number) => void;
   onResetFilters?: () => void;
   onBusinessSelect?: (business: Business | null) => void;
   comparisonBusinesses?: Business[];
+  availableYears?: number[];
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -48,9 +47,7 @@ const Layout: React.FC<LayoutProps> = ({
   maxRating = 5,
   selectedStatus = null,
   period = 'year',
-  startYear = new Date().getFullYear(),
-  endYear = new Date().getFullYear(),
-  availableYears = [],
+  selectedYear = new Date().getFullYear(),
   onCityChange,
   onCategoryChange,
   onNeighborhoodChange,
@@ -58,10 +55,11 @@ const Layout: React.FC<LayoutProps> = ({
   onMaxRatingChange,
   onStatusChange,
   onPeriodChange,
-  onYearRangeChange,
+  onYearChange,
   onResetFilters,
   onBusinessSelect,
   comparisonBusinesses,
+  availableYears = [],
 }) => {
   const dispatch = useAppDispatch();
   const isSidebarCollapsed = useAppSelector((state) => state.ui.sidebarCollapsed);
@@ -85,9 +83,7 @@ const Layout: React.FC<LayoutProps> = ({
           maxRating={maxRating}
           selectedStatus={selectedStatus}
           period={period}
-          startYear={startYear}
-          endYear={endYear}
-          availableYears={availableYears}
+          selectedYear={selectedYear}
           onCityChange={onCityChange}
           onCategoryChange={onCategoryChange}
           onNeighborhoodChange={onNeighborhoodChange}
@@ -95,10 +91,11 @@ const Layout: React.FC<LayoutProps> = ({
           onMaxRatingChange={onMaxRatingChange}
           onStatusChange={onStatusChange}
           onPeriodChange={onPeriodChange}
-          onYearRangeChange={onYearRangeChange}
+          onYearChange={onYearChange}
           onResetFilters={onResetFilters}
           onBusinessSelect={onBusinessSelect}
           comparisonBusinesses={comparisonBusinesses}
+          availableYears={availableYears}
         />
       )}
       <MainContent
@@ -112,5 +109,6 @@ const Layout: React.FC<LayoutProps> = ({
     </div>
   );
 };
+
 
 export default Layout;

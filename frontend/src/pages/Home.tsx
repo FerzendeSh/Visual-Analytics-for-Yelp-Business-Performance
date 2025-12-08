@@ -33,27 +33,14 @@ const Home: React.FC = () => {
   const [maxRating, setMaxRating] = useState<number>(5);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
   const [period, setPeriod] = useState<'month' | 'year'>('year');
-  const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
-  const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   
   // Layout toggle state (grid or list view)
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
 
-  // Auto-set period based on year selection
-  useEffect(() => {
-    if (startYear === endYear) {
-      // Single year selected -> show monthly data
-      setPeriod('month');
-    } else {
-      // Range of years selected -> show yearly data
-      setPeriod('year');
-    }
-  }, [startYear, endYear]);
-
-  // Handler for year range changes
-  const handleYearRangeChange = useCallback((start: number, end: number) => {
-    setStartYear(start);
-    setEndYear(end);
+  // Handler for year change
+  const handleYearChange = useCallback((year: number) => {
+    setSelectedYear(year);
   }, []);
 
   // Keyboard shortcuts
@@ -106,8 +93,8 @@ const Home: React.FC = () => {
     setMaxRating(5);
     setSelectedStatus(null);
     const currentYear = new Date().getFullYear();
-    setStartYear(currentYear);
-    setEndYear(currentYear);
+    setSelectedYear(currentYear);
+    setPeriod('year');
     setSelectedBusiness(null);
     clearComparisons();
   }, [setSelectedBusiness, clearComparisons]);
@@ -156,8 +143,20 @@ const Home: React.FC = () => {
     selectedCategory: selectedCategory || "",
     selectedNeighborhood: selectedNeighborhood || "",
     period,
-    selectedYear: period === 'month' ? startYear : undefined,
-  }), [myBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, startYear]);
+    selectedYear: period === 'month' ? selectedYear : undefined,
+  }), [myBusiness, selectedCity, selectedState, selectedCategory, selectedNeighborhood, period, selectedYear]);
+
+  // Fetch timeline data for ALL years to get available years (no date filter)
+  // Only fetch for the business itself, not city/neighborhood/category
+  const allYearsTimelineParams = useMemo(() => ({
+    business: myBusiness,
+    selectedCity: "",
+    selectedState: "",
+    selectedCategory: "",
+    selectedNeighborhood: "",
+    period: 'year' as const, // Always fetch yearly to get all years
+    selectedYear: undefined, // No year filter
+  }), [myBusiness]);
 
   const {
     isLoading: timelineLoading,
@@ -165,6 +164,71 @@ const Home: React.FC = () => {
     data: timelineData,
     primaryCategory,
   } = useTimelineData(timelineParams);
+
+  // Fetch all years data separately to populate year dropdown
+  const {
+    data: allYearsData,
+  } = useTimelineData(allYearsTimelineParams);
+
+  // Extract available years from ALL timeline data (not filtered by selected year)
+  const availableYears = useMemo(() => {
+    const dataToUse = allYearsData || timelineData;
+    if (!dataToUse) return [];
+
+    const ratingsData = (dataToUse as TimelineData)?.business_ratings;
+    if (!ratingsData?.data || ratingsData.data.length === 0) return [];
+
+    // Extract years from period_start dates
+    const yearsSet = new Set<number>();
+    ratingsData.data.forEach((dataPoint) => {
+      if (dataPoint.period_start) {
+        const year = new Date(dataPoint.period_start).getFullYear();
+        if (!isNaN(year)) {
+          yearsSet.add(year);
+        }
+      }
+    });
+
+    return Array.from(yearsSet).sort((a, b) => a - b);
+  }, [allYearsData, timelineData]);
+
+  const lastAvailableYear = availableYears.length > 0 ? availableYears[availableYears.length - 1] : new Date().getFullYear();
+
+  // Check if the selected year has incomplete months (less than 12 months of data)
+  const hasIncompleteYear = useMemo(() => {
+    if (!timelineData || period !== 'month') return false;
+
+    const ratingsData = (timelineData as TimelineData)?.business_ratings;
+    if (!ratingsData?.data || ratingsData.data.length === 0) return false;
+
+    // Filter data points for the selected year
+    const yearData = ratingsData.data.filter((dataPoint) => {
+      if (!dataPoint.period_start) return false;
+      const year = new Date(dataPoint.period_start).getFullYear();
+      return year === selectedYear;
+    });
+
+    // If we have less than 12 months for the selected year, it's incomplete
+    return yearData.length < 12;
+  }, [timelineData, selectedYear, period]);
+
+  const shouldShowForecast = useMemo(() => {
+    if (!myBusiness?.business_id) return false; // No forecast if no business selected
+
+    if (period === 'year') {
+      // For time series (all years view), show forecast
+      return true;
+    }
+
+    if (period === 'month') {
+      // For monthly view, only show forecast if:
+      // 1. The selected year is the most recent year, AND
+      // 2. That year has incomplete months
+      return selectedYear === lastAvailableYear && hasIncompleteYear;
+    }
+
+    return false;
+  }, [myBusiness?.business_id, period, selectedYear, lastAvailableYear, hasIncompleteYear]);
 
   // Fetch forecast data for the selected business
   const {
@@ -175,8 +239,7 @@ const Home: React.FC = () => {
     businessId: myBusiness?.business_id,
     periods: 4,
     periodType: period,
-    // Only fetch forecast when we have a business selected
-    enabled: !!myBusiness?.business_id,
+    enabled: !!myBusiness?.business_id && shouldShowForecast, // Only fetch forecast if we intend to show it
   });
 
   const competitiveCity = selectedCity || myBusiness?.city || "";
@@ -196,14 +259,14 @@ const Home: React.FC = () => {
 
   // Calculate date range for monthly view
   const comparisonDateRange = useMemo(() => {
-    if (period === 'month' && startYear) {
+    if (period === 'month' && selectedYear) {
       return {
-        startDate: `${startYear}-01-01`,
-        endDate: `${startYear}-12-31`,
+        startDate: `${selectedYear}-01-01`,
+        endDate: `${selectedYear}-12-31`,
       };
     }
     return { startDate: '', endDate: '' };
-  }, [period, startYear]);
+  }, [period, selectedYear]);
 
   // Fetch timeline data for comparison businesses
   const {
@@ -270,28 +333,7 @@ const Home: React.FC = () => {
     },
   ].filter(Boolean) as Array<{ label: string; onRemove: () => void }>;
 
-  // Extract available years from timeline data for the business
-  const availableYears = useMemo(() => {
-    if (!timelineData) return [];
-
-    const ratingsData = (timelineData as TimelineData)?.business_ratings;
-    if (!ratingsData?.data || ratingsData.data.length === 0) return [];
-
-    // Extract years from period_start dates
-    const yearsSet = new Set<number>();
-    ratingsData.data.forEach((dataPoint) => {
-      if (dataPoint.period_start) {
-        const year = new Date(dataPoint.period_start).getFullYear();
-        if (!isNaN(year)) {
-          yearsSet.add(year);
-        }
-      }
-    });
-
-    return Array.from(yearsSet).sort((a, b) => a - b);
-  }, [timelineData]);
-
-  // Calculate metrics for the cards
+  // Calculate metrics for the cards (use allYearsData for overall metrics, not filtered by year)
   const metricsData = useMemo(() => {
     if (!myBusiness) {
       return {
@@ -309,8 +351,10 @@ const Home: React.FC = () => {
       };
     }
 
-    const ratingsData = (timelineData as TimelineData)?.business_ratings;
-    const sentimentData = (timelineData as TimelineData)?.business_sentiment;
+    // Use allYearsData for business metrics (not filtered by selected year)
+    // Use timelineData for city/category/neighborhood comparisons (respects filters)
+    const ratingsData = (allYearsData as TimelineData)?.business_ratings;
+    const sentimentData = (allYearsData as TimelineData)?.business_sentiment;
     const cityRatingsData = (timelineData as TimelineData)?.city_ratings;
     const citySentimentData = (timelineData as TimelineData)?.city_sentiment;
     const categoryRatingsData = (timelineData as TimelineData)?.category_ratings;
@@ -366,7 +410,7 @@ const Home: React.FC = () => {
       categoryAvgSentiment,
       neighborhoodAvgRating,
     };
-  }, [myBusiness, timelineData]);
+  }, [myBusiness, allYearsData, timelineData]);
 
   return (
     <Layout
@@ -380,9 +424,7 @@ const Home: React.FC = () => {
       maxRating={maxRating}
       selectedStatus={selectedStatus}
       period={period}
-      startYear={startYear}
-      endYear={endYear}
-      availableYears={availableYears}
+      selectedYear={selectedYear}
       onCityChange={handleCityChange}
       onCategoryChange={setSelectedCategory}
       onNeighborhoodChange={setSelectedNeighborhood}
@@ -390,10 +432,11 @@ const Home: React.FC = () => {
       onMaxRatingChange={setMaxRating}
       onStatusChange={setSelectedStatus}
       onPeriodChange={setPeriod}
-      onYearRangeChange={handleYearRangeChange}
+      onYearChange={handleYearChange}
       onResetFilters={handleResetFilters}
       onBusinessSelect={handleFilterBusinessSelect}
       comparisonBusinesses={comparisonBusinesses}
+      availableYears={availableYears}
     >
       <div className="home-content">
         <section className="home-section">
@@ -550,7 +593,7 @@ const Home: React.FC = () => {
                     compareByCity={!!selectedCity}
                     compareByCategory={!!selectedCategory}
                     compareByNeighborhood={!!selectedNeighborhood}
-                    forecastData={ratingForecast}
+                    forecastData={shouldShowForecast ? ratingForecast : null}
                   />
                 </div>
 
@@ -574,8 +617,8 @@ const Home: React.FC = () => {
                     comparisonSentimentDataArray={comparisonSentimentDataArray}
                     compareByCity={!!selectedCity}
                     compareByCategory={!!selectedCategory}
-                    compareByNeighborhood={!!selectedNeighborhood}
-                    forecastData={sentimentForecast}
+                    compareByNeighborhood={false}
+                    forecastData={shouldShowForecast ? sentimentForecast : null}
                   />
                 </div>
 

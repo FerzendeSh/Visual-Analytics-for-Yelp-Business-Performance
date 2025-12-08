@@ -98,7 +98,7 @@ export function useKeywordData(
 
           // Try to fetch data for this year
           const promises = allBusinesses.map(b =>
-            getPeriodIssues(b.business_id, yearStart, yearEnd, 3)
+            getPeriodIssues(b.business_id, yearStart, yearEnd)
               .then(data => ({ businessId: b.business_id, businessName: b.name, data }))
               .catch(err => {
                 console.error(`Failed to fetch keywords for ${b.name} (${year}):`, err);

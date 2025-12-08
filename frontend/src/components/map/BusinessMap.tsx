@@ -545,6 +545,31 @@ useEffect(() => {
     }
   }, [filteredBusinesses, myBusinessId, onBusinessSelect]);
 
+  // Automatically fly to my business on initial load
+  const hasFlownToBusinessRef = useRef(false);
+  useEffect(() => {
+    // Only fly to business once on initial load
+    if (hasFlownToBusinessRef.current || !myBusinessId) return;
+
+    // Wait for businesses to load
+    const myBiz = filteredBusinesses.find(b => b.business_id === myBusinessId);
+    if (myBiz && myBiz.latitude && myBiz.longitude) {
+      hasFlownToBusinessRef.current = true;
+      isProgrammaticMoveRef.current = true;
+
+      // Use flyTo with shorter duration for initial load
+      mapRef.current?.flyTo({
+        center: [myBiz.longitude, myBiz.latitude],
+        zoom: 12,
+        duration: 0, // No animation on initial load for instant appearance
+      });
+
+      // Open popup for my business
+      setPopupInfo(myBiz);
+      onBusinessSelect?.(myBiz);
+    }
+  }, [filteredBusinesses, myBusinessId, onBusinessSelect]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '+' || e.key === '=' || e.key === 'Add') {

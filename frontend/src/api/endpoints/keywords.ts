@@ -5,6 +5,7 @@ export interface KeywordCluster {
   size: number;
   keywords: Array<[string, number]>;
   avg_sentiment: number;
+  avg_stars: number;
   sample_review: string;
 }
 
@@ -19,11 +20,10 @@ export interface PeriodIssuesResponse {
 export const getPeriodIssues = async (
   businessId: string,
   startDate: string,
-  endDate: string,
-  nClusters: number = 3
+  endDate: string
 ): Promise<PeriodIssuesResponse> => {
   return get<PeriodIssuesResponse>(
     `/api/analytics/business/${businessId}/period-issues`,
-    { params: { start_date: startDate, end_date: endDate, n_clusters: nClusters } }
+    { params: { start_date: startDate, end_date: endDate } }
   );
 };

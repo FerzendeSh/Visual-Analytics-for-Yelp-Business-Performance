@@ -18,9 +18,7 @@ interface SidebarProps {
   maxRating?: number;
   selectedStatus?: number | null;
   period?: 'month' | 'year';
-  startYear?: number;
-  endYear?: number;
-  availableYears?: number[];
+  selectedYear?: number;
   onCityChange?: (city: string) => void;
   onCategoryChange?: (category: string) => void;
   onNeighborhoodChange?: (neighborhood: string) => void;
@@ -28,10 +26,11 @@ interface SidebarProps {
   onMaxRatingChange?: (rating: number) => void;
   onStatusChange?: (status: number | null) => void;
   onPeriodChange?: (period: 'month' | 'year') => void;
-  onYearRangeChange?: (startYear: number, endYear: number) => void;
+  onYearChange?: (year: number) => void;
   onResetFilters?: () => void;
   onBusinessSelect?: (business: Business | null) => void;
   comparisonBusinesses?: Business[];
+  availableYears?: number[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -45,9 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   maxRating = 5,
   selectedStatus = null,
   period = 'year',
-  startYear = new Date().getFullYear(),
-  endYear = new Date().getFullYear(),
-  availableYears = [],
+  selectedYear = new Date().getFullYear(),
   onCityChange = () => {},
   onCategoryChange = () => {},
   onNeighborhoodChange = () => {},
@@ -55,11 +52,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   onMaxRatingChange = () => {},
   onStatusChange = () => {},
   onPeriodChange = () => {},
-  onYearRangeChange = () => {},
+  onYearChange = () => {},
   onResetFilters = () => {},
   onBusinessSelect = () => {},
   comparisonBusinesses = [],
+  availableYears = [],
 }) => {
+  const currentYear = new Date().getFullYear();
+  const yearsToDisplay = availableYears.length > 0
+    ? [...availableYears].sort((a, b) => b - a) // Sort descending
+    : [currentYear]; // Default to current year if no available years
   // Note: myBusiness context is available for future use (e.g., highlighting in comparison)
   const { myBusiness: _myBusiness } = useMyBusiness();
 
@@ -93,10 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     .slice(0, 200)
     .sort();
 
-  // Use available years from business data ONLY (no fallback)
-  const years = availableYears;
-  const minYear = years.length > 0 ? Math.min(...years) : startYear;
-  const maxYear = years.length > 0 ? Math.max(...years) : endYear;
+
 
   // Fetch neighborhoods when city changes
   useEffect(() => {
@@ -137,7 +136,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   ].filter(Boolean).length;
 
   const timeFiltersCount = [
-    startYear !== endYear || startYear !== new Date().getFullYear(),
+    period === 'month' && selectedYear !== new Date().getFullYear(),
   ].filter(Boolean).length;
 
   const appliedFiltersCount = locationFiltersCount + attributeFiltersCount + timeFiltersCount;
@@ -354,47 +353,39 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {timeExpanded && (
               <div className="sidebar-filter-group-content">
-                {/* Year Range Selector */}
-                {years.length > 0 && (
-                  <div className="sidebar-form-group">
-                    <label className="sidebar-label-text">
-                      Year Range: <span className="sidebar-year-value">{startYear === endYear ? startYear : `${startYear}-${endYear}`}</span>
-                      {startYear === endYear && <span className="sidebar-period-hint"> (Monthly)</span>}
-                      {startYear !== endYear && <span className="sidebar-period-hint"> (Yearly)</span>}
-                    </label>
-                    <div className="sidebar-year-slider">
-                      <span className="sidebar-year-label">{minYear}</span>
-                      <div className="sidebar-year-range-container">
-                        <input
-                          type="range"
-                          min={minYear}
-                          max={maxYear}
-                          step="1"
-                          value={startYear}
-                          onChange={(e) => {
-                            const newStart = Number(e.target.value);
-                            if (newStart <= endYear) {
-                              onYearRangeChange(newStart, endYear);
-                            }
-                          }}
-                          className="sidebar-slider sidebar-slider-start"
-                        />
-                        <input
-                          type="range"
-                          min={minYear}
-                          max={maxYear}
-                          step="1"
-                          value={endYear}
-                          onChange={(e) => {
-                            const newEnd = Number(e.target.value);
-                            if (newEnd >= startYear) {
-                              onYearRangeChange(startYear, newEnd);
-                            }
-                          }}
-                          className="sidebar-slider sidebar-slider-end"
-                        />
-                      </div>
-                      <span className="sidebar-year-label">{maxYear}</span>
+                {/* Time Period Dropdown */}
+                <div className="sidebar-form-group">
+                  <label className="sidebar-label-text">View</label>
+                  <div className="sidebar-select-wrapper">
+                    <select
+                      value={period}
+                      onChange={(e) => onPeriodChange(e.target.value as 'month' | 'year')}
+                      className="sidebar-select"
+                    >
+                      <option value="year">Yearly</option>
+                      <option value="month">Monthly (per Year)</option>
+                    </select>
+                    <ChevronDown className="sidebar-select-icon" size={14} />
+                  </div>
+                </div>
+
+                {/* Year Selector (Conditional) */}
+                {period === 'month' && (
+                  <div className="sidebar-form-group sidebar-form-group--animate">
+                    <label className="sidebar-label-text">Year</label>
+                    <div className="sidebar-select-wrapper">
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => onYearChange(Number(e.target.value))}
+                        className="sidebar-select"
+                      >
+                        {yearsToDisplay.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="sidebar-select-icon" size={14} />
                     </div>
                   </div>
                 )}
