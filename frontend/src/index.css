@@ -1,299 +1,43 @@
-/* ============================================
-   CSS Custom Properties (Design Tokens)
-   ============================================ */
+@import "tailwindcss";
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
 :root {
-  /* Colors */
-  --color-bg-primary: #0F111A;
-  --color-bg-secondary: #0f1b2a;
-  --color-bg-card: #0f1b2a;
-  --color-border: rgba(102, 126, 234, 0.25);
-  --color-border-accent: rgba(102, 126, 234, 0.4);
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #e2e8f0;
-  --color-text-muted: #cbd5e1;
-  --color-link: #688ae8;
-  --color-link-hover: #88bbff;
-  
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  
-  /* Shadows */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(102, 126, 234, 0.15);
-  
-  /* Layout */
-  --header-height: 56px;
-  --sidebar-width: 260px;
-  --sidebar-width-collapsed: 50px;
-  --comparison-bar-height: 50px;
-  
-  /* Chart sizing - responsive defaults */
-  --chart-min-height: 300px;
-  --chart-aspect-ratio: 16 / 9;
-  
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow: 350ms ease;
-
-  /* Interactive states */
-  --state-hover-bg: rgba(102, 126, 234, 0.15);
-  --state-active-bg: rgba(102, 126, 234, 0.25);
-  --state-disabled-opacity: 0.4;
-
-  /* Status colors */
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
-
-  /* Gradients */
-  --gradient-card: linear-gradient(135deg, #111428 0%, #0f111a 100%);
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 224.3 76.3% 48%;
+  --radius: 0.5rem;
 }
 
-/* ============================================
-   CSS Reset & Base Styles
-   ============================================ */
-*, *::before, *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
+* {
+  border-color: hsl(var(--border));
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  line-height: 1.5;
-  min-height: 100vh;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ============================================
-   Typography
-   ============================================ */
-h1 {
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: var(--spacing-md);
-}
-
-h2 {
-  font-size: clamp(1.25rem, 3vw, 2rem);
-  font-weight: 600;
-  line-height: 1.3;
-  margin-bottom: var(--spacing-sm);
-}
-
-h3 {
-  font-size: clamp(1rem, 2vw, 1.5rem);
-  font-weight: 600;
-  line-height: 1.4;
-  margin-bottom: var(--spacing-sm);
-}
-
-p {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--color-text-secondary);
-}
-
-a {
-  color: var(--color-link);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-
-a:hover {
-  color: var(--color-link-hover);
-}
-
-/* ============================================
-   Dashboard Grid System
-   ============================================ */
-.dashboard-grid {
-  display: grid;
-  gap: var(--spacing-md);
-  width: 100%;
-  
-  /* Mobile-first: single column */
-  grid-template-columns: 1fr;
-  grid-auto-rows: auto;
-}
-
-/* Tablet and up: 2x2 grid */
-@media (min-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto auto;
-  }
-}
-
-/* Large desktop - just add more gap */
-@media (min-width: 1600px) {
-  .dashboard-grid {
-    gap: var(--spacing-lg);
-  }
-}
-
-/* ============================================
-   Dashboard Card Component
-   ============================================ */
-.dashboard-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.dashboard-card:hover {
-  border-color: var(--color-border-accent);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(102, 126, 234, 0.3);
-}
-
-.dashboard-card__header {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  flex-shrink: 0;
-  flex-shrink: 0;
-}
-
-.dashboard-card__title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.dashboard-card__body {
-  flex: 1;
-  min-height: 0; /* Critical for flex children with overflow */
-  position: relative;
-  padding: var(--spacing-sm);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ============================================
-   Chart Container - visx/Recharts ready
-   ============================================ */
-.chart-container {
-  width: 100%;
-  flex: 1;
-  min-height: 200px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-/* For SVG-based charts (visx) */
-.chart-container svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* ============================================
-   Map Container
-   ============================================ */
-.map-card {
-  min-height: 350px;
-}
-
-@media (min-width: 1200px) {
-  .map-card {
-    grid-row: 1;
-    grid-column: 1;
-  }
-}
-
-/* ============================================
-   Loading & Error States
-   ============================================ */
-.loading-state,
-.error-state,
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-xl);
-  text-align: center;
-  height: 100%;
-  min-height: 200px;
-}
-
-.loading-state {
-  color: var(--color-text-muted);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-}
-
-.error-state {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: var(--radius-md);
-  color: #ef4444;
-}
-
-.empty-state {
-  color: var(--color-text-muted);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-/* ============================================
-   Utility Classes
-   ============================================ */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.text-truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Custom glassmorphism utility */
+.glass {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

@@ -1,63 +1,62 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
-import { BusinessProvider } from './context/BusinessContext';
-import Home from './pages/Home';
-import NotFound from './pages/NotFound';
+import { motion } from 'framer-motion';
+import { AppLayout } from '@/features/shell/AppLayout';
+import { ScannerMode } from '@/features/scanner/ScannerMode';
+import { ComparisonMode } from '@/features/comparison/ComparisonMode';
+import { useAppStore } from '@/stores/useAppStore';
 
-// Create a client with optimized caching settings
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes
-      gcTime: 10 * 60 * 1000, // Keep unused data in cache for 10 minutes
-      refetchOnWindowFocus: false, // Don't refetch when window regains focus
-      retry: 1, // Only retry failed requests once
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes default
+      gcTime: 10 * 60 * 1000, // Keep unused data for 10 minutes
     },
   },
 });
 
-const App: React.FC = () => {
+function AppContent() {
+  const viewMode = useAppStore((state) => state.viewMode);
+
+  // Keep both modes mounted to preserve React Query cache
+  // Use CSS-based visibility instead of unmounting
+  return (
+    <AppLayout>
+      <div className="w-full h-full relative">
+        <motion.div
+          initial={false}
+          animate={{ opacity: viewMode === 'SCAN' ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0"
+          style={{
+            pointerEvents: viewMode === 'SCAN' ? 'auto' : 'none',
+            zIndex: viewMode === 'SCAN' ? 1 : 0
+          }}
+        >
+          <ScannerMode />
+        </motion.div>
+        <motion.div
+          initial={false}
+          animate={{ opacity: viewMode === 'COMPARE' ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0"
+          style={{
+            pointerEvents: viewMode === 'COMPARE' ? 'auto' : 'none',
+            zIndex: viewMode === 'COMPARE' ? 1 : 0
+          }}
+        >
+          <ComparisonMode />
+        </motion.div>
+      </div>
+    </AppLayout>
+  );
+}
+
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BusinessProvider>
-        <BrowserRouter>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#1e293b',
-                color: '#f8fafc',
-                border: '1px solid #475569',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                fontSize: '0.875rem',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#22c55e',
-                  secondary: '#ffffff',
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#ffffff',
-                },
-              },
-            }}
-          />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/404" element={<NotFound />} />
-            <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </BusinessProvider>
+      <AppContent />
     </QueryClientProvider>
   );
-};
-
-export default App;
+}

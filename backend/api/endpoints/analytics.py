@@ -342,3 +342,76 @@ async def get_period_issues(
         'end_date': end_date.isoformat()
     }
     return result
+
+
+@router.get("/business/{business_id}/keyword-insights-auto", response_model=Dict[str, Any])
+async def get_keyword_insights_auto(
+    business_id: str = Path(..., description="Business identifier"),
+    max_years: int = Query(5, ge=1, le=10, description="Maximum number of years to search back"),
+    review_repository: ReviewRepositoryInterface = Depends(get_review_repository),
+    business_repository: BusinessRepositoryInterface = Depends(get_business_repository),
+    keyword_service: KeywordService = Depends(get_keyword_service)
+):
+    """
+    Automatically find and return keyword insights from the most recent year with sufficient data.
+
+    Searches backwards from the current year up to `max_years` years ago,
+    and returns insights from the first year with meaningful keyword data.
+
+    This endpoint is optimized for frontend performance by eliminating the need
+    for multiple sequential API calls to find valid data.
+    """
+    from datetime import datetime
+
+    business = await business_repository.get_by_id(business_id)
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    business_name = business.name
+    current_year = datetime.now().year
+
+    # Try years in descending order (most recent first)
+    for year_offset in range(max_years):
+        year = current_year - year_offset
+        start_date = date(year, 1, 1)
+        end_date = date(year, 12, 31)
+
+        reviews = await review_repository.get_by_business_and_date_range(
+            business_id=business_id,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        if not reviews:
+            continue
+
+        result = keyword_service.analyze_period(reviews, business_name)
+
+        # Check if this year has meaningful data
+        has_data = (
+            len(result.get('complaints', [])) > 0 or
+            len(result.get('praises', [])) > 0
+        )
+
+        if has_data:
+            result['period'] = {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'year': year
+            }
+            return result
+
+    # No data found in any year
+    return {
+        'complaints': [],
+        'praises': [],
+        'total_reviews': 0,
+        'negative_count': 0,
+        'positive_count': 0,
+        'period': {
+            'start_date': None,
+            'end_date': None,
+            'year': None
+        },
+        'message': f'No keyword data found in the past {max_years} years'
+    }

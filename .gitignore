@@ -128,4 +128,5 @@ backend/scripts/*/
 backend/public/
 backend/public_old/
 
+frontend_old/
 data/

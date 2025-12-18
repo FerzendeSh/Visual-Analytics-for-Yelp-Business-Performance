@@ -1,85 +1,39 @@
-import React from 'react';
-import { SearchX, Filter, TrendingDown, AlertCircle, Inbox } from 'lucide-react';
-import './EmptyState.css';
+import { LucideIcon } from 'lucide-react';
 
 interface EmptyStateProps {
-  variant?: 'no-results' | 'no-filters' | 'no-data' | 'error' | 'default';
-  title?: string;
-  description?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  icon?: React.ReactNode;
+  icon?: LucideIcon;
+  message: string;
+  subtitle?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({
-  variant = 'default',
-  title,
-  description,
-  actionLabel,
-  onAction,
-  icon,
-}) => {
-  const getDefaultContent = () => {
-    switch (variant) {
-      case 'no-results':
-        return {
-          icon: <SearchX size={48} strokeWidth={1.5} />,
-          title: title || 'No businesses found',
-          description: description || 'Try adjusting your filters to see results',
-          actionLabel: actionLabel || 'Clear filters',
-        };
-      case 'no-filters':
-        return {
-          icon: <Filter size={48} strokeWidth={1.5} />,
-          title: title || 'No filters applied',
-          description: description || 'Apply filters to refine your search',
-          actionLabel: actionLabel || 'Apply filters',
-        };
-      case 'no-data':
-        return {
-          icon: <TrendingDown size={48} strokeWidth={1.5} />,
-          title: title || 'No data available',
-          description: description || 'There is no data for the selected period',
-          actionLabel: actionLabel,
-        };
-      case 'error':
-        return {
-          icon: <AlertCircle size={48} strokeWidth={1.5} />,
-          title: title || 'Something went wrong',
-          description: description || 'We encountered an error loading this data',
-          actionLabel: actionLabel || 'Try again',
-        };
-      default:
-        return {
-          icon: <Inbox size={48} strokeWidth={1.5} />,
-          title: title || 'Nothing here yet',
-          description: description || 'Start by selecting some options',
-          actionLabel: actionLabel,
-        };
-    }
-  };
-
-  const content = getDefaultContent();
-
+export function EmptyState({ icon: Icon, message, subtitle, action }: EmptyStateProps) {
   return (
-    <div className={`empty-state empty-state--${variant}`}>
-      <div className="empty-state__icon">
-        {icon || content.icon}
-      </div>
-      <h3 className="empty-state__title">{content.title}</h3>
-      {content.description && (
-        <p className="empty-state__description">{content.description}</p>
+    <div className="flex flex-col items-center justify-center h-full space-y-4 p-6 text-center">
+      {Icon && (
+        <div className="p-3 rounded-full glass">
+          <Icon className="w-8 h-8 text-muted-foreground" />
+        </div>
       )}
-      {content.actionLabel && onAction && (
+      <div className="space-y-2">
+        <p className="text-muted-foreground text-sm">{message}</p>
+        {subtitle && (
+          <p className="text-muted-foreground text-xs opacity-70 max-w-md">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action && (
         <button
-          className="empty-state__action"
-          onClick={onAction}
+          onClick={action.onClick}
+          className="px-4 py-2 glass rounded-lg hover:bg-white/10 transition-colors text-sm font-medium"
         >
-          {content.actionLabel}
+          {action.label}
         </button>
       )}
     </div>
   );
-};
-
-export default EmptyState;
+}
