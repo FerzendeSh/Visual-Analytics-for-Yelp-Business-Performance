@@ -12,6 +12,19 @@ import { Text } from '@visx/text';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 import { TimelineDataPoint, ForecastData } from '../../lib/api';
+import {
+  VOLUME_COLOR,
+  VOLUME_HIGHLIGHT,
+  AXIS_COLOR,
+  GRID_COLOR,
+  FORECAST_COLOR,
+  LINE_COLORS,
+  formatPercentChange,
+  formatDateForPeriod,
+  getDateSortKey,
+  calculateTickInterval,
+} from './helpers/chartHelpers';
+import { useChartData, ChartDataPoint } from './hooks/useChartData';
 
 // Local type definitions
 export interface RatingsTimeline {
@@ -27,59 +40,7 @@ export interface ForecastDataPoint {
   upper_80: number;
 }
 
-// --- Constants & Helpers (Inlined from chartConstants.ts) ---
-
-const VOLUME_COLOR = '#3b2f5c';
-const VOLUME_HIGHLIGHT = '#504278';
-const AXIS_COLOR = '#94a3b8'; // text-muted-foreground
-const GRID_COLOR = '#1e293b'; // slate-800
-const FORECAST_COLOR = '#06ffa5'; // Cyan for forecast
-
-const LINE_COLORS = [
-  '#3b82f6', // Blue (Primary)
-  '#a855f7', // Purple
-  '#ef4444', // Red
-  '#22c55e', // Green
-  '#f59e0b', // Amber
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#8b5cf6', // Violet
-];
-
-function formatPercentChange(changePercent: number): string {
-  const sign = changePercent >= 0 ? '+' : '';
-  return `${sign}${(changePercent * 100).toFixed(1)}%`;
-}
-
-function formatDateForPeriod(dateString: string, period: 'month' | 'year'): string {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    return period === 'year' 
-      ? `${date.getFullYear()}` 
-      : date.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-  } catch {
-    return dateString;
-  }
-}
-
-function getDateSortKey(dateString: string): number {
-  try {
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? 0 : date.getTime();
-  } catch {
-    return 0;
-  }
-}
-
 // --- Interfaces ---
-
-interface ChartDataPoint {
-  period: string;
-  periodDate: string; // Original ISO date string for synchronization
-  volume: number;
-  [key: string]: number | string;
-}
 
 interface LegendItem {
   name: string;
@@ -758,70 +719,14 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
   hideVolume: hideVolumeProp,
   onHideVolumeChange,
 }) => {
-  const { chartData, seriesNames } = useMemo(() => {
-    if (!primaryTimeline?.data || primaryTimeline.data.length === 0) {
-      return { chartData: [], seriesNames: [] };
-    }
-
-    const primaryPeriods = primaryTimeline.data.map((p) => p.period_start);
-    const sortedPeriods = primaryPeriods.sort((a, b) => getDateSortKey(a) - getDateSortKey(b));
-
-    const names: string[] = [];
-    const primaryName = primaryTimeline.business_name || 'Primary Business';
-    names.push(primaryName);
-
-    // Benchmarks
-    if (showBenchmarks?.showCityAvg && benchmarkTimelines?.city) {
-      names.push(benchmarkTimelines.city.business_name || 'City Avg');
-    }
-    if (showBenchmarks?.showNeighborhoodAvg && benchmarkTimelines?.neighborhood) {
-      names.push(benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg');
-    }
-    if (showBenchmarks?.showCategoryAvg && benchmarkTimelines?.category) {
-      names.push(benchmarkTimelines.category.business_name || 'Category Avg');
-    }
-
-    // Comparisons
-    comparisonTimelines.forEach((comp) => {
-      names.push(comp.business_name || comp.business_id || 'Competitor');
-    });
-
-    const data: ChartDataPoint[] = sortedPeriods.map((periodStart) => {
-      const primaryPoint = primaryTimeline.data.find((p) => p.period_start === periodStart);
-
-      const point: ChartDataPoint = {
-        period: formatDateForPeriod(periodStart, period),
-        periodDate: periodStart, // Store original date for synchronization
-        volume: primaryPoint?.review_count || 0,
-        [primaryName]: primaryPoint?.avg_rating || 0,
-      };
-
-      // Add Benchmarks
-      if (showBenchmarks?.showCityAvg && benchmarkTimelines?.city) {
-        const p = benchmarkTimelines.city.data.find(d => d.period_start === periodStart);
-        point[benchmarkTimelines.city.business_name || 'City Avg'] = p?.avg_rating || 0;
-      }
-      if (showBenchmarks?.showNeighborhoodAvg && benchmarkTimelines?.neighborhood) {
-        const p = benchmarkTimelines.neighborhood.data.find(d => d.period_start === periodStart);
-        point[benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg'] = p?.avg_rating || 0;
-      }
-      if (showBenchmarks?.showCategoryAvg && benchmarkTimelines?.category) {
-        const p = benchmarkTimelines.category.data.find(d => d.period_start === periodStart);
-        point[benchmarkTimelines.category.business_name || 'Category Avg'] = p?.avg_rating || 0;
-      }
-
-      // Add Comparisons
-      comparisonTimelines.forEach((comp) => {
-        const p = comp.data.find(d => d.period_start === periodStart);
-        const name = comp.business_name || comp.business_id || 'Competitor';
-        point[name] = p?.avg_rating || 0;
-      });
-
-      return point;
-    });
-
-    return { chartData: data, seriesNames: names };
-  }, [primaryTimeline, comparisonTimelines, benchmarkTimelines, showBenchmarks, period]);
+  // Extract chart data transformation to custom hook
+  const { chartData, seriesNames } = useChartData({
+    primaryTimeline,
+    comparisonTimelines,
+    benchmarkTimelines,
+    showBenchmarks,
+    period,
+  });
 
   // Use shared hiddenSeries if provided, otherwise use local state
   const [localHiddenSeries, setLocalHiddenSeries] = useState<Set<string>>(new Set());

@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, memo } from 'react';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { useAppStore } from '../../stores/useAppStore';
 import {
   Wine,
@@ -217,16 +218,21 @@ function AttributeCell({ value }: AttributeCellProps) {
   return <CompactBadge text={formatted.display} />;
 }
 
-export function BusinessAttributesComparison() {
+const BusinessAttributesComparisonComponent = () => {
   // ✅ Atomic selectors - only re-render when these specific values change
   const primaryBusinessId = useAppStore((state) => state.primaryBusinessId);
   const comparisonIds = useAppStore((state) => state.comparisonIds);
 
   const primaryQuery = useBusinessDetails(primaryBusinessId);
-  const comparisonQueries = comparisonIds.map(id =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useBusinessDetails(id)
-  );
+
+  // FIXED: Use useQueries instead of mapping over hooks (Hook Rules violation)
+  const comparisonQueries = useQueries({
+    queries: comparisonIds.map((id) => ({
+      queryKey: ['business-details', id],
+      queryFn: () => fetchBusinessDetails(id),
+      enabled: !!id,
+    })),
+  });
 
   const isLoading = primaryQuery.isLoading || comparisonQueries.some(q => q.isLoading);
   const hasError = primaryQuery.isError || comparisonQueries.some(q => q.isError);
@@ -250,14 +256,16 @@ export function BusinessAttributesComparison() {
     );
   }
 
-  // Build businesses array, filtering out duplicates (primary should not appear in comparisons)
-  const businesses = [
-    primaryQuery.data,
-    ...comparisonQueries
-      .map(q => q.data)
-      .filter((b): b is BusinessDetails => b !== undefined)
-      .filter(b => b.business_id !== primaryBusinessId), // Defensive: exclude primary from comparisons
-  ] as BusinessDetails[];
+  // Memoize businesses array, filtering out duplicates
+  const businesses = useMemo(() => {
+    return [
+      primaryQuery.data,
+      ...comparisonQueries
+        .map(q => q.data)
+        .filter((b): b is BusinessDetails => b !== undefined)
+        .filter(b => b.business_id !== primaryBusinessId), // Defensive: exclude primary from comparisons
+    ] as BusinessDetails[];
+  }, [primaryQuery.data, comparisonQueries, primaryBusinessId]);
 
   const MEANINGFUL_ATTRIBUTES = [
     'Alcohol',
@@ -294,21 +302,23 @@ export function BusinessAttributesComparison() {
     'BestNights',
   ];
 
-  const allAttributes = new Set<string>();
-  businesses.forEach(business => {
-    if (business.attributes) {
-      Object.keys(business.attributes).forEach(key => {
-        if (MEANINGFUL_ATTRIBUTES.includes(key)) {
-          const value = business.attributes?.[key];
-          if (isTruthyValue(value)) {
-            allAttributes.add(key);
+  // Memoize expensive attribute processing
+  const attributeKeys = useMemo(() => {
+    const allAttributes = new Set<string>();
+    businesses.forEach(business => {
+      if (business.attributes) {
+        Object.keys(business.attributes).forEach(key => {
+          if (MEANINGFUL_ATTRIBUTES.includes(key)) {
+            const value = business.attributes?.[key];
+            if (isTruthyValue(value)) {
+              allAttributes.add(key);
+            }
           }
-        }
-      });
-    }
-  });
-
-  const attributeKeys = Array.from(allAttributes).sort();
+        });
+      }
+    });
+    return Array.from(allAttributes).sort();
+  }, [businesses]);
 
   if (attributeKeys.length === 0) {
     return (
@@ -397,4 +407,7 @@ export function BusinessAttributesComparison() {
       </div>
     </div>
   );
-}
+};
+
+// Memoized export
+export const BusinessAttributesComparison = memo(BusinessAttributesComparisonComponent);

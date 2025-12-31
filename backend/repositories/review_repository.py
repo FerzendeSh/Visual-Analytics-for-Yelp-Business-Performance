@@ -142,6 +142,52 @@ class ReviewRepository(ReviewRepositoryInterface):
             for row in rows
         ]
 
+    async def get_most_recent_year_with_reviews(
+        self,
+        business_id: str,
+        max_years_back: int = 5,
+        min_review_count: int = 1
+    ) -> Optional[int]:
+        """
+        Find the most recent year with reviews for a business.
+
+        OPTIMIZED: Single SQL query instead of looping through years.
+
+        Args:
+            business_id: Business identifier
+            max_years_back: Maximum years to search backwards
+            min_review_count: Minimum reviews required for a year to be considered
+
+        Returns:
+            Most recent year with sufficient reviews, or None if no data found
+        """
+        from datetime import datetime
+
+        current_year = datetime.now().year
+        min_year = current_year - max_years_back
+
+        query = (
+            select(
+                func.extract('year', Review.date).label('year'),
+                func.count(Review.review_id).label('review_count')
+            )
+            .where(
+                and_(
+                    Review.business_id == business_id,
+                    Review.date >= date(min_year, 1, 1)
+                )
+            )
+            .group_by(func.extract('year', Review.date))
+            .having(func.count(Review.review_id) >= min_review_count)
+            .order_by(func.extract('year', Review.date).desc())
+            .limit(1)
+        )
+
+        result = await self.db.execute(query)
+        row = result.first()
+
+        return int(row.year) if row else None
+
     async def get_business_ratings_over_time(
         self,
         business_id: str,

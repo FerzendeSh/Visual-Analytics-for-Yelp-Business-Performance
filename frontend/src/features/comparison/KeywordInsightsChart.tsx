@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import { ParentSize } from '@visx/responsive';
 import { scaleBand, scaleLinear } from '@visx/scale';
 import { Bar } from '@visx/shape';
@@ -83,31 +83,34 @@ function KeywordChart({
     );
   }
 
-  // Combine and process data
-  const keywordMap = new Map<string, KeywordPair>();
+  // Memoize expensive keyword processing and sorting
+  const keywords = useMemo(() => {
+    // Combine and process data
+    const keywordMap = new Map<string, KeywordPair>();
 
-  insights.complaints.forEach(({ keyword, count }) => {
-    if (!keywordMap.has(keyword)) {
-      keywordMap.set(keyword, { keyword, complaintCount: 0, praiseCount: 0 });
-    }
-    keywordMap.get(keyword)!.complaintCount = count;
-  });
+    insights.complaints.forEach(({ keyword, count }) => {
+      if (!keywordMap.has(keyword)) {
+        keywordMap.set(keyword, { keyword, complaintCount: 0, praiseCount: 0 });
+      }
+      keywordMap.get(keyword)!.complaintCount = count;
+    });
 
-  insights.praises.forEach(({ keyword, count }) => {
-    if (!keywordMap.has(keyword)) {
-      keywordMap.set(keyword, { keyword, complaintCount: 0, praiseCount: 0 });
-    }
-    keywordMap.get(keyword)!.praiseCount = count;
-  });
+    insights.praises.forEach(({ keyword, count }) => {
+      if (!keywordMap.has(keyword)) {
+        keywordMap.set(keyword, { keyword, complaintCount: 0, praiseCount: 0 });
+      }
+      keywordMap.get(keyword)!.praiseCount = count;
+    });
 
-  // Sort by total mentions (complaints + praises)
-  const keywords = Array.from(keywordMap.values())
-    .sort((a, b) => {
-      const totalA = a.complaintCount + a.praiseCount;
-      const totalB = b.complaintCount + b.praiseCount;
-      return totalB - totalA;
-    })
-    .slice(0, 10); // Show top 10
+    // Sort by total mentions (complaints + praises)
+    return Array.from(keywordMap.values())
+      .sort((a, b) => {
+        const totalA = a.complaintCount + a.praiseCount;
+        const totalB = b.complaintCount + b.praiseCount;
+        return totalB - totalA;
+      })
+      .slice(0, 10); // Show top 10
+  }, [insights]);
 
   if (!keywords.length) {
     return (
@@ -125,39 +128,55 @@ function KeywordChart({
     return null;
   }
 
-  const maxCount = Math.max(
-    ...keywords.map(k => Math.max(k.complaintCount, k.praiseCount))
+  const maxCount = useMemo(
+    () => Math.max(...keywords.map(k => Math.max(k.complaintCount, k.praiseCount))),
+    [keywords]
   );
 
-  // Scales
-  const yScale = scaleBand({
-    domain: keywords.map(k => k.keyword),
-    range: [0, innerHeight],
-    padding: 0.2,
-  });
+  // Memoize scales
+  const yScale = useMemo(
+    () =>
+      scaleBand({
+        domain: keywords.map(k => k.keyword),
+        range: [0, innerHeight],
+        padding: 0.2,
+      }),
+    [keywords, innerHeight]
+  );
 
   // Center point for the chart
   const centerX = innerWidth / 2;
 
   // Left scale (complaints - negative direction)
-  const leftScale = scaleLinear({
-    domain: [0, maxCount],
-    range: [0, centerX - 40], // Leave space for labels
-  });
+  const leftScale = useMemo(
+    () =>
+      scaleLinear({
+        domain: [0, maxCount],
+        range: [0, centerX - 40], // Leave space for labels
+      }),
+    [maxCount, centerX]
+  );
 
   // Right scale (praises - positive direction)
-  const rightScale = scaleLinear({
-    domain: [0, maxCount],
-    range: [0, centerX - 40], // Leave space for labels
-  });
+  const rightScale = useMemo(
+    () =>
+      scaleLinear({
+        domain: [0, maxCount],
+        range: [0, centerX - 40], // Leave space for labels
+      }),
+    [maxCount, centerX]
+  );
 
-  const handleKeywordClick = (keyword: string) => {
-    if (selectedKeyword === keyword) {
-      onKeywordSelect(null);
-    } else {
-      onKeywordSelect(keyword);
-    }
-  };
+  const handleKeywordClick = useCallback(
+    (keyword: string) => {
+      if (selectedKeyword === keyword) {
+        onKeywordSelect(null);
+      } else {
+        onKeywordSelect(keyword);
+      }
+    },
+    [selectedKeyword, onKeywordSelect]
+  );
 
   return (
     <svg width={width} height={height}>

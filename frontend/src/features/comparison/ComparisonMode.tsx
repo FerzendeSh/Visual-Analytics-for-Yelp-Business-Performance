@@ -1,5 +1,9 @@
+import { memo } from 'react';
 import { ComparisonLayout } from './ComparisonLayout';
 
-export function ComparisonMode() {
+const ComparisonModeComponent = () => {
   return <ComparisonLayout />;
-}
+};
+
+// Memoized export
+export const ComparisonMode = memo(ComparisonModeComponent);

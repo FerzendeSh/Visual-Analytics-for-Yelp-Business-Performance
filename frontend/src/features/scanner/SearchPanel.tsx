@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Command } from '@/components/ui/command';
@@ -11,7 +11,7 @@ interface SearchPanelProps {
   onSelectBusiness: (business: Business) => void;
 }
 
-export function SearchPanel({ isOpen, onClose, onSelectBusiness }: SearchPanelProps) {
+const SearchPanelComponent = ({ isOpen, onClose, onSelectBusiness }: SearchPanelProps) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { data: searchResults, isLoading: isLoadingSearchResults } = useBusinessSearch(searchQuery);
 
@@ -113,4 +113,7 @@ export function SearchPanel({ isOpen, onClose, onSelectBusiness }: SearchPanelPr
       )}
     </AnimatePresence>
   );
-}
+};
+
+// Memoized export
+export const SearchPanel = memo(SearchPanelComponent);

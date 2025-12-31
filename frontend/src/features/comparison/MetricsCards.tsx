@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react';
 import { ParentSize } from '@visx/responsive';
 import { AreaClosed, Bar } from '@visx/shape';
 import { scaleLinear, scaleTime, scaleBand } from '@visx/scale';
@@ -18,14 +19,14 @@ interface MetricsCardsProps {
   currentVolume: number;
 }
 
-export function MetricsCards({
+const MetricsCardsComponent = ({
   ratingTrend,
   sentimentTrend,
   volumeTrend,
   currentRating,
   currentSentiment,
   currentVolume,
-}: MetricsCardsProps) {
+}: MetricsCardsProps) => {
   return (
     <div className="grid grid-cols-3 gap-4">
       <RatingCard trend={ratingTrend} current={currentRating} />
@@ -33,7 +34,10 @@ export function MetricsCards({
       <VolumeCard trend={volumeTrend} current={currentVolume} />
     </div>
   );
-}
+};
+
+// Memoized export
+export const MetricsCards = memo(MetricsCardsComponent);
 
 function RatingCard({ trend, current }: { trend: MetricData[]; current: number }) {
   return (
@@ -96,15 +100,23 @@ function VolumeCard({ trend, current }: { trend: MetricData[]; current: number }
 function RatingSparkline({ data, width, height }: { data: MetricData[]; width: number; height: number }) {
   if (!data.length || width === 0) return null;
 
-  const xScale = scaleTime({
-    domain: [data[0].date, data[data.length - 1].date],
-    range: [0, width],
-  });
+  const xScale = useMemo(
+    () =>
+      scaleTime({
+        domain: [data[0].date, data[data.length - 1].date],
+        range: [0, width],
+      }),
+    [data, width]
+  );
 
-  const yScale = scaleLinear({
-    domain: [Math.min(...data.map(d => d.value)) * 0.95, Math.max(...data.map(d => d.value)) * 1.05],
-    range: [height, 0],
-  });
+  const yScale = useMemo(
+    () =>
+      scaleLinear({
+        domain: [Math.min(...data.map(d => d.value)) * 0.95, Math.max(...data.map(d => d.value)) * 1.05],
+        range: [height, 0],
+      }),
+    [data, height]
+  );
 
   return (
     <svg width={width} height={height}>
@@ -122,21 +134,32 @@ function RatingSparkline({ data, width, height }: { data: MetricData[]; width: n
 }
 
 function SentimentGauge({ value, width, height }: { value: number; width: number; height: number }) {
-  const radius = Math.min(width, height) / 2;
-  const arcAngle = value * 180; // 0-180 degrees
-  const arcRadians = (arcAngle - 90) * (Math.PI / 180);
+  const arcPath = useMemo(() => {
+    const radius = Math.min(width, height) / 2;
+    const arcAngle = value * 180; // 0-180 degrees
+    const arcRadians = (arcAngle - 90) * (Math.PI / 180);
 
-  const centerX = width / 2;
-  const centerY = height;
+    const centerX = width / 2;
+    const centerY = height;
 
-  // Calculate arc path
-  const startAngle = -Math.PI;
-  const endAngle = startAngle + (arcRadians + Math.PI);
+    // Calculate arc path
+    const startAngle = -Math.PI;
+    const endAngle = startAngle + (arcRadians + Math.PI);
 
-  const arcPath = `
-    M ${centerX + radius * Math.cos(startAngle)} ${centerY + radius * Math.sin(startAngle)}
-    A ${radius} ${radius} 0 ${arcAngle > 180 ? 1 : 0} 1 ${centerX + radius * Math.cos(endAngle)} ${centerY + radius * Math.sin(endAngle)}
-  `;
+    return `
+      M ${centerX + radius * Math.cos(startAngle)} ${centerY + radius * Math.sin(startAngle)}
+      A ${radius} ${radius} 0 ${arcAngle > 180 ? 1 : 0} 1 ${centerX + radius * Math.cos(endAngle)} ${centerY + radius * Math.sin(endAngle)}
+    `;
+  }, [value, width, height]);
+
+  const { radius, centerX, centerY } = useMemo(
+    () => ({
+      radius: Math.min(width, height) / 2,
+      centerX: width / 2,
+      centerY: height,
+    }),
+    [width, height]
+  );
 
   return (
     <svg width={width} height={height}>
@@ -166,16 +189,24 @@ function SentimentGauge({ value, width, height }: { value: number; width: number
 function VolumeBars({ data, width, height }: { data: MetricData[]; width: number; height: number }) {
   if (!data.length || width === 0) return null;
 
-  const xScale = scaleBand({
-    domain: data.map((_, i) => i),
-    range: [0, width],
-    padding: 0.3,
-  });
+  const xScale = useMemo(
+    () =>
+      scaleBand({
+        domain: data.map((_, i) => i),
+        range: [0, width],
+        padding: 0.3,
+      }),
+    [data, width]
+  );
 
-  const yScale = scaleLinear({
-    domain: [0, Math.max(...data.map(d => d.value))],
-    range: [height, 0],
-  });
+  const yScale = useMemo(
+    () =>
+      scaleLinear({
+        domain: [0, Math.max(...data.map(d => d.value))],
+        range: [height, 0],
+      }),
+    [data, height]
+  );
 
   return (
     <svg width={width} height={height}>

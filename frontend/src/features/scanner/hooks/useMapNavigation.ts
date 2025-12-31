@@ -1,0 +1,162 @@
+/**
+ * Map navigation hook for auto-flying to city and neighborhood bounds.
+ * Calculates optimal viewport from GeoJSON boundaries.
+ */
+import { useEffect, useRef } from 'react';
+import type { MapRef } from 'react-map-gl/maplibre';
+
+interface MapViewState {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  pitch: number;
+  bearing: number;
+  transitionDuration?: number;
+}
+
+interface GeoJSONFeature {
+  properties?: Record<string, any>;
+  geometry?: {
+    coordinates: any;
+  };
+}
+
+interface GeoJSONFeatureCollection {
+  features?: GeoJSONFeature[];
+}
+
+/**
+ * Calculate bounds from GeoJSON coordinates
+ */
+function calculateBounds(coords: any): { minLng: number; minLat: number; maxLng: number; maxLat: number } | null {
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+
+  const flattenCoords = (c: any): void => {
+    if (Array.isArray(c[0])) {
+      c.forEach(flattenCoords);
+    } else {
+      const [lng, lat] = c;
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+    }
+  };
+
+  flattenCoords(coords);
+
+  if (!isFinite(minLng) || !isFinite(minLat) || !isFinite(maxLng) || !isFinite(maxLat)) {
+    return null;
+  }
+
+  return { minLng, minLat, maxLng, maxLat };
+}
+
+/**
+ * Calculate appropriate zoom level based on bounds size
+ */
+function calculateZoomLevel(bounds: { minLng: number; minLat: number; maxLng: number; maxLat: number }): number {
+  const lngDiff = bounds.maxLng - bounds.minLng;
+  const latDiff = bounds.maxLat - bounds.minLat;
+  const maxDiff = Math.max(lngDiff, latDiff);
+
+  if (maxDiff < 0.05) return 13;
+  if (maxDiff < 0.1) return 12;
+  if (maxDiff < 0.2) return 11;
+  if (maxDiff < 0.5) return 10;
+  return 9;
+}
+
+/**
+ * Auto-navigate to city boundary when city changes
+ */
+export function useNavigateToCity(
+  cityBoundary: GeoJSONFeatureCollection | null,
+  mapRef: MapRef | null,
+  setMapViewState: (state: MapViewState) => void,
+  isProgrammaticMoveRef: React.MutableRefObject<boolean>
+) {
+  useEffect(() => {
+    if (!cityBoundary || !mapRef) return;
+
+    try {
+      const features = cityBoundary.features || [cityBoundary as any];
+      let allCoords: any[] = [];
+
+      features.forEach((feature: any) => {
+        if (feature.geometry?.coordinates) {
+          allCoords.push(feature.geometry.coordinates);
+        }
+      });
+
+      if (allCoords.length === 0) return;
+
+      // Calculate bounds from all features
+      const bounds = calculateBounds(allCoords);
+      if (!bounds) return;
+
+      const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+      const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+      const zoom = calculateZoomLevel(bounds);
+
+      isProgrammaticMoveRef.current = true;
+      setMapViewState({
+        longitude: centerLng,
+        latitude: centerLat,
+        zoom,
+        pitch: 0,
+        bearing: 0,
+        transitionDuration: 1000,
+      });
+    } catch (error) {
+      console.warn('Failed to fit city boundary:', error);
+    }
+  }, [cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef]);
+}
+
+/**
+ * Auto-navigate to selected neighborhood
+ */
+export function useNavigateToNeighborhood(
+  neighborhoodId: string | null,
+  neighborhoods: GeoJSONFeatureCollection | null,
+  mapRef: MapRef | null,
+  setMapViewState: (state: MapViewState) => void,
+  isProgrammaticMoveRef: React.MutableRefObject<boolean>
+) {
+  useEffect(() => {
+    if (!neighborhoodId || !neighborhoods || !mapRef) return;
+
+    try {
+      // Find the selected neighborhood feature
+      const selectedFeature = neighborhoods.features?.find(
+        (f: any) => f.properties?.neighborhood === neighborhoodId
+      );
+
+      if (!selectedFeature || !selectedFeature.geometry?.coordinates) return;
+
+      // Calculate bounds from neighborhood GeoJSON
+      const bounds = calculateBounds(selectedFeature.geometry.coordinates);
+      if (!bounds) return;
+
+      const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+      const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+
+      // Zoom to neighborhood level (typically 13-14)
+      isProgrammaticMoveRef.current = true;
+      setMapViewState({
+        longitude: centerLng,
+        latitude: centerLat,
+        zoom: 13,
+        pitch: 0,
+        bearing: 0,
+        transitionDuration: 1000,
+      });
+    } catch (error) {
+      console.warn('Failed to fit neighborhood boundary:', error);
+    }
+  }, [neighborhoodId, neighborhoods, mapRef, setMapViewState, isProgrammaticMoveRef]);
+}

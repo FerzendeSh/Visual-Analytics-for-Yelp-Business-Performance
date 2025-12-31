@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Search, Plus, Minus, Compass, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -12,7 +13,7 @@ interface MapControlsProps {
   currentZoom: number;
 }
 
-export function MapControls({
+const MapControlsComponent = ({
   onZoomIn,
   onZoomOut,
   onResetNorth,
@@ -20,7 +21,7 @@ export function MapControls({
   onSetFilterToView,
   isSearchOpen,
   currentZoom,
-}: MapControlsProps) {
+}: MapControlsProps) => {
   return (
     <div className="absolute top-6 right-6 z-30 flex flex-col gap-2">
       {/* Search Toggle Button */}
@@ -106,4 +107,7 @@ export function MapControls({
       </div>
     </div>
   );
-}
+};
+
+// Memoized export
+export const MapControls = memo(MapControlsComponent);
