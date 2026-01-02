@@ -9,14 +9,17 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useState, useMemo } from 'react';
 import * as React from 'react';
+import { format } from 'date-fns';
 
 export function ControlTower() {
   // ✅ Atomic selectors - only re-render when these specific values change
   const viewMode = useAppStore((state) => state.viewMode);
   const filters = useAppStore((state) => state.filters);
   const benchmarks = useAppStore((state) => state.benchmarks);
+  const comparisonIds = useAppStore((state) => state.comparisonIds);
   const updateFilters = useAppStore((state) => state.updateFilters);
   const toggleBenchmark = useAppStore((state) => state.toggleBenchmark);
+  const toggleComparison = useAppStore((state) => state.toggleComparison);
   const resetFilters = useAppStore((state) => state.resetFilters);
 
   // Initialize local state from global filters
@@ -125,81 +128,6 @@ export function ControlTower() {
         </Button>
       </div>
 
-      {/* SCAN MODE: Status & Rating Filters */}
-      {viewMode === 'SCAN' && (
-        <>
-          {/* Status Filter */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Status</label>
-            <Select
-              value={filters.status}
-              onChange={(e) =>
-                updateFilters({ status: e.target.value as 'ALL' | 'OPEN' | 'CLOSED' })
-              }
-              options={[
-                { value: 'ALL', label: 'All' },
-                { value: 'OPEN', label: 'Open' },
-                { value: 'CLOSED', label: 'Closed' },
-              ]}
-            />
-          </div>
-
-          {/* Rating Range */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">Rating</label>
-              <span className="text-xs text-muted-foreground">
-                {filters.ratingRange[0].toFixed(1)} - {filters.ratingRange[1].toFixed(1)} ⭐
-              </span>
-            </div>
-            <Slider
-              min={1.0}
-              max={5.0}
-              step={0.1}
-              value={filters.ratingRange}
-              onValueChange={(value) => updateFilters({ ratingRange: value })}
-            />
-          </div>
-        </>
-      )}
-
-      {/* COMPARE MODE: Time Range & Granularity */}
-      {viewMode === 'COMPARE' && (
-        <>
-          {/* Time Range */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Time Range</label>
-            <ToggleGroup
-              value={filters.timeRange}
-              onValueChange={(value) =>
-                updateFilters({ timeRange: value as '1Y' | '5Y' })
-              }
-              options={[
-                { value: '1Y', label: '1Y' },
-                { value: '5Y', label: '5Y' },
-              ]}
-              className="w-full"
-            />
-          </div>
-
-          {/* Granularity */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Granularity</label>
-            <ToggleGroup
-              value={filters.granularity}
-              onValueChange={(value) =>
-                updateFilters({ granularity: value as 'MONTHLY' | 'YEARLY' })
-              }
-              options={[
-                { value: 'MONTHLY', label: 'Monthly' },
-                { value: 'YEARLY', label: 'Yearly' },
-              ]}
-              className="w-full"
-            />
-          </div>
-        </>
-      )}
-
       {/* City Filter with Search */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground">City</label>
@@ -219,37 +147,126 @@ export function ControlTower() {
         <Combobox
           value={filters.neighborhoodId || ''}
           onChange={(value) => updateFilters({ neighborhoodId: value || null })}
-          options={neighborhoods?.map(n => ({ value: n, label: n })) || []}
+          options={[
+            { value: '', label: 'All Neighborhoods' },
+            ...(neighborhoods?.map(n => ({ value: n, label: n })) || [])
+          ]}
           placeholder="Select neighborhood"
           searchPlaceholder="Search neighborhoods..."
           emptyText="No neighborhoods found"
-          disabled={!selectedCity || (neighborhoods?.length === 0)}
+          disabled={!selectedCity}
         />
       </div>
 
-      {/* COMPARE MODE ONLY: Benchmarks */}
-      {viewMode === 'COMPARE' && (
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Benchmarks</label>
+      {/* SCAN MODE: Rating Filter */}
+      {viewMode === 'SCAN' && (
+        <>
+          {/* Rating Range */}
           <div className="space-y-1.5">
-            <Checkbox
-              checked={benchmarks.showCityAvg}
-              onCheckedChange={() => toggleBenchmark('showCityAvg')}
-              label="City Average"
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground">Rating</label>
+              <span className="text-xs text-muted-foreground">
+                {filters.ratingRange[0].toFixed(1)} - {filters.ratingRange[1].toFixed(1)} ⭐
+              </span>
+            </div>
+            <Slider
+              min={1.0}
+              max={5.0}
+              step={0.1}
+              value={filters.ratingRange}
+              onValueChange={(value) => updateFilters({ ratingRange: value })}
             />
-            <Checkbox
-              checked={benchmarks.showNeighborhoodAvg}
-              onCheckedChange={() => toggleBenchmark('showNeighborhoodAvg')}
-              label="Neighborhood Average"
+          </div>
+
+          {/* Status Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Status</label>
+            <Select
+              value={filters.status}
+              onChange={(e) =>
+                updateFilters({ status: e.target.value as 'ALL' | 'OPEN' | 'CLOSED' })
+              }
+              options={[
+                { value: 'ALL', label: 'All' },
+                { value: 'OPEN', label: 'Open' },
+                { value: 'CLOSED', label: 'Closed' },
+              ]}
             />
-            <Checkbox
-              checked={benchmarks.showCategoryAvg}
-              onCheckedChange={() => toggleBenchmark('showCategoryAvg')}
-              label="Category Average"
-            />
+          </div>
+        </>
+      )}
+
+      {/* COMPARE MODE ONLY: Selected Comparison Businesses */}
+      {viewMode === 'COMPARE' && comparisonIds.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-border/40">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-foreground">
+              Comparing
+            </label>
+            <span className="text-[10px] text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded-full">
+              {comparisonIds.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {comparisonIds.map((id) => (
+              <ComparisonBusinessItem key={id} businessId={id} onRemove={() => toggleComparison(id)} />
+            ))}
           </div>
         </div>
       )}
+
+    </div>
+  );
+}
+
+// Component to display a single comparison business
+function ComparisonBusinessItem({ businessId, onRemove }: { businessId: string; onRemove: () => void }) {
+  const { data: business, isLoading } = useQuery({
+    queryKey: ['business-details', businessId],
+    queryFn: () => api.businesses.getById(businessId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="glass rounded-lg p-2.5 border border-border/40">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-muted-foreground/20 animate-pulse" />
+          <span className="text-[11px] text-muted-foreground">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!business) {
+    return null;
+  }
+
+  return (
+    <div className="glass rounded-lg p-2.5 border border-border/40 hover:border-border/60 transition-all group relative">
+      <div className="flex items-start gap-2 pr-6">
+        {/* Color indicator dot */}
+        <div className="h-2 w-2 rounded-full bg-primary/60 mt-1 flex-shrink-0" />
+
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-medium text-foreground truncate leading-tight">
+            {business.name}
+          </p>
+          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+            {business.city}, {business.state}
+          </p>
+        </div>
+
+        {/* Remove button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          className="absolute top-1.5 right-1.5 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+          title="Remove from comparison"
+        >
+          <span className="text-sm leading-none">×</span>
+        </Button>
+      </div>
     </div>
   );
 }

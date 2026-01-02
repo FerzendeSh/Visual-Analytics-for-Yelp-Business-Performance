@@ -74,6 +74,7 @@ class AnalyticsService(AnalyticsServiceInterface):
             'business_name': business.name,
             'city': business.city,
             'state': business.state,
+            'neighborhood': business.neighborhood,
             'categories': business.categories,
             'period': period,
             'metric': 'rating',
@@ -114,6 +115,7 @@ class AnalyticsService(AnalyticsServiceInterface):
             'business_name': business.name,
             'city': business.city,
             'state': business.state,
+            'neighborhood': business.neighborhood,
             'period': period,
             'metric': 'sentiment',
             'start_date': start_date.isoformat() if start_date else None,
@@ -250,6 +252,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         )
 
         return {
+            'business_name': f'{normalized_city}, {normalized_state} Avg',
             'city': normalized_city,
             'state': normalized_state,
             'period': period,
@@ -389,6 +392,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         )
 
         return {
+            'business_name': f'{normalized_city}, {normalized_state} Avg',
             'city': normalized_city,
             'state': normalized_state,
             'period': period,
@@ -483,6 +487,8 @@ class AnalyticsService(AnalyticsServiceInterface):
 
         business_data: List[Dict[str, Any]] = []
         selected_business_data = None
+        maggianos_id = 'RiC_-68qxtDJqiIs5mRR6g'  # Hardcoded Maggiano's Tampa ID
+        maggianos_included = False
 
         for b in business_result.scalars():
             formatted = {
@@ -499,8 +505,33 @@ class AnalyticsService(AnalyticsServiceInterface):
             }
             business_data.append(formatted)
 
+            if b.business_id == maggianos_id:
+                maggianos_included = True
+
             if business_id and b.business_id == business_id:
                 selected_business_data = formatted
+
+        # Always include Maggiano's as a reference point, even if it's in a different city
+        if not maggianos_included:
+            maggianos_stmt = select(Business).where(Business.business_id == maggianos_id)
+            maggianos_result = await self.db.execute(maggianos_stmt)
+            maggianos_business = maggianos_result.scalar_one_or_none()
+
+            if maggianos_business:
+                maggianos_formatted = {
+                    'business_id': maggianos_business.business_id,
+                    'name': maggianos_business.name,
+                    'stars': maggianos_business.stars,
+                    'review_count': maggianos_business.review_count,
+                    'city': maggianos_business.city,
+                    'state': maggianos_business.state,
+                    'categories': maggianos_business.categories,
+                    'is_open': maggianos_business.is_open,
+                    'latitude': maggianos_business.latitude,
+                    'longitude': maggianos_business.longitude
+                }
+                # Add Maggiano's to the beginning of the list for prominence
+                business_data.insert(0, maggianos_formatted)
 
         return {
             'businesses': business_data,
@@ -537,6 +568,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         )
 
         return {
+            'business_name': f'{normalized_neighborhood} Avg',
             'neighborhood': normalized_neighborhood,
             'city': normalized_city,
             'state': normalized_state,
@@ -573,6 +605,7 @@ class AnalyticsService(AnalyticsServiceInterface):
         )
 
         return {
+            'business_name': f'{normalized_neighborhood} Avg',
             'neighborhood': normalized_neighborhood,
             'city': normalized_city,
             'state': normalized_state,

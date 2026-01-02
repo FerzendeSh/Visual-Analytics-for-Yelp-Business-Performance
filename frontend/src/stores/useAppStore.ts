@@ -3,6 +3,10 @@ import { persist } from 'zustand/middleware';
 
 export type ViewMode = 'SCAN' | 'COMPARE';
 
+// Hardcoded business: Maggiano's Little Italy - Tampa, FL
+export const MAGGIANOS_TAMPA_BUSINESS_ID = 'RiC_-68qxtDJqiIs5mRR6g';
+export const MAGGIANOS_TAMPA_CITY_ID = 'Tampa_FL';
+
 export interface MapViewState {
   longitude: number;
   latitude: number;
@@ -24,6 +28,7 @@ export interface AppState {
   primaryBusinessId: string | null;
   comparisonIds: string[]; // Supports multiple competitors
   selectedKeyword: string | null; // For Keyword Chart interaction
+  highlightedBusinessId: string | null; // For map-scatter plot bidirectional linking
 
   // Benchmarking
   benchmarks: {
@@ -39,7 +44,8 @@ export interface AppState {
     categories: string[];
     status: 'ALL' | 'OPEN' | 'CLOSED';
     ratingRange: [number, number];
-    timeRange: '1Y' | '5Y';
+    timeRange: '1Y' | '5Y' | 'CUSTOM';
+    customDateRange: { start: string; end: string } | null; // Format: 'YYYY-MM-DD'
     granularity: 'MONTHLY' | 'YEARLY';
   };
 
@@ -52,23 +58,25 @@ export interface AppState {
   toggleBenchmark: (type: keyof AppState['benchmarks']) => void;
   updateFilters: (partial: Partial<AppState['filters']>) => void;
   setKeyword: (keyword: string | null) => void;
+  setHighlightedBusiness: (id: string | null) => void;
   resetFilters: () => void;
 }
 
 const initialFilters: AppState['filters'] = {
-  cityId: null,
+  cityId: MAGGIANOS_TAMPA_CITY_ID,
   neighborhoodId: null,
   categories: [],
   status: 'ALL',
   ratingRange: [1.0, 5.0],
   timeRange: '5Y',
-  granularity: 'MONTHLY',
+  customDateRange: null,
+  granularity: 'YEARLY',
 };
 
 const initialMapViewState: MapViewState = {
-  longitude: -86.7816, // Nashville, TN
-  latitude: 36.1627,
-  zoom: 11,
+  longitude: -82.526348, // Tampa, FL (Maggiano's exact location)
+  latitude: 27.946453,
+  zoom: 15.1, // Focused zoom on Maggiano's business showing nearby area
   pitch: 0,
   bearing: 0,
 };
@@ -79,9 +87,10 @@ export const useAppStore = create<AppState>()(
       // Initial state
       viewMode: 'SCAN',
       mapViewState: initialMapViewState,
-      primaryBusinessId: null,
+      primaryBusinessId: MAGGIANOS_TAMPA_BUSINESS_ID,
       comparisonIds: [],
       selectedKeyword: null,
+      highlightedBusinessId: null,
 
       benchmarks: {
         showCityAvg: false,
@@ -96,7 +105,11 @@ export const useAppStore = create<AppState>()(
 
       setMapViewState: (viewState) => set({ mapViewState: viewState }),
 
-      setPrimaryBusiness: (id) => set({ primaryBusinessId: id }),
+      // Primary business is hardcoded to Maggiano's - no changes allowed
+      setPrimaryBusiness: (id) => {
+        // Do nothing - primary business is fixed
+        console.warn('Primary business is hardcoded to Maggiano\'s Little Italy and cannot be changed');
+      },
 
       toggleComparison: (id) => set((state) => {
         const isSelected = state.comparisonIds.includes(id);
@@ -125,10 +138,13 @@ export const useAppStore = create<AppState>()(
 
       setKeyword: (keyword) => set({ selectedKeyword: keyword }),
 
+      setHighlightedBusiness: (id) => set({ highlightedBusinessId: id }),
+
       resetFilters: () => set({ filters: initialFilters }),
     }),
     {
       name: 'yelp-analytics-storage',
+      version: 4, // Incremented to force reset to Maggiano's default location
       partialize: (state) => ({
         primaryBusinessId: state.primaryBusinessId,
         comparisonIds: state.comparisonIds,

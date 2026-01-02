@@ -75,7 +75,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 onClick={() => setMode(mode.id)}
                 className={`
                   relative flex items-center gap-2 px-4 py-2 rounded-full
-                  text-sm font-medium transition-colors
+                  text-sm font-medium transition-colors cursor-pointer
                   ${isActive ? 'text-white' : 'text-slate-400 hover:text-slate-200'}
                 `}
                 whileHover={{ scale: 1.05 }}

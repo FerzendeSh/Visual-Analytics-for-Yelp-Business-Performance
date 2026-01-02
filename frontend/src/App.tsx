@@ -36,39 +36,42 @@ function FeatureLoadingFallback() {
 function AppContent() {
   const viewMode = useAppStore((state) => state.viewMode);
 
-  // Lazy load modes on demand
-  // React Query cache is preserved across mode switches
+  // Keep both modes mounted but toggle visibility to prevent re-rendering
+  // This preserves map state, scatter plot zoom, and component state across tab switches
   return (
     <AppLayout>
       <div className="w-full h-full relative">
-        {viewMode === 'SCAN' && (
-          <motion.div
-            key="scanner"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0"
-          >
-            <Suspense fallback={<FeatureLoadingFallback />}>
-              <ScannerMode />
-            </Suspense>
-          </motion.div>
-        )}
-        {viewMode === 'COMPARE' && (
-          <motion.div
-            key="comparison"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0"
-          >
-            <Suspense fallback={<FeatureLoadingFallback />}>
-              <ComparisonMode />
-            </Suspense>
-          </motion.div>
-        )}
+        <motion.div
+          key="scanner"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: viewMode === 'SCAN' ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0"
+          style={{
+            pointerEvents: viewMode === 'SCAN' ? 'auto' : 'none',
+            visibility: viewMode === 'SCAN' ? 'visible' : 'hidden'
+          }}
+        >
+          <Suspense fallback={<FeatureLoadingFallback />}>
+            <ScannerMode />
+          </Suspense>
+        </motion.div>
+
+        <motion.div
+          key="comparison"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: viewMode === 'COMPARE' ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0"
+          style={{
+            pointerEvents: viewMode === 'COMPARE' ? 'auto' : 'none',
+            visibility: viewMode === 'COMPARE' ? 'visible' : 'hidden'
+          }}
+        >
+          <Suspense fallback={<FeatureLoadingFallback />}>
+            <ComparisonMode />
+          </Suspense>
+        </motion.div>
       </div>
     </AppLayout>
   );

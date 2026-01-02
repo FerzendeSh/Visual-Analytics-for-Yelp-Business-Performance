@@ -141,11 +141,24 @@ async def get_batch_timelines(
         if loc[0] and loc[1]:
             locations.add(loc)
 
-    first_business_id = request.business_ids[0] if request.business_ids else None
-    first_business_ratings = businesses_data.get(first_business_id, {}).get('ratings', {}) if first_business_id else {}
-    city = first_business_ratings.get('city')
-    state = first_business_ratings.get('state')
-    neighborhood = first_business_ratings.get('neighborhood')
+    # Use location overrides from request if provided, otherwise extract from first business
+    if request.city and request.state:
+        city = request.city
+        state = request.state
+        neighborhood = request.neighborhood
+    else:
+        first_business_id = request.business_ids[0] if request.business_ids else None
+        first_business_ratings = businesses_data.get(first_business_id, {}).get('ratings', {}) if first_business_id else {}
+        city = first_business_ratings.get('city')
+        state = first_business_ratings.get('state')
+        neighborhood = first_business_ratings.get('neighborhood')
+
+    # Debug logging
+    print(f"🔍 Batch Timelines Debug:")
+    print(f"  City: {city} (override: {request.city})")
+    print(f"  State: {state} (override: {request.state})")
+    print(f"  Neighborhood: {neighborhood} (override: {request.neighborhood})")
+    print(f"  Include neighborhood benchmark: {request.include_neighborhood_benchmark}")
 
     mixed_locations = len(locations) > 1
     location_warning = None

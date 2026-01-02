@@ -20,7 +20,7 @@ export function ToggleGroup({
           key={option.value}
           onClick={() => onValueChange(option.value)}
           className={cn(
-            "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+            "px-3 py-1.5 text-sm font-medium rounded-md transition-all cursor-pointer",
             value === option.value
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"

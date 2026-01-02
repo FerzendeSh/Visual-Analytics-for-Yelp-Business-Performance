@@ -8,9 +8,22 @@ import { useTooltip, useTooltipInPortal, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { ParentSize } from '@visx/responsive';
 import { curveMonotoneX } from '@visx/curve';
-import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, Move } from 'lucide-react';
+import { format } from 'date-fns';
 
 import { TimelineDataPoint, ForecastData } from '@/lib/api';
+import {
+  VOLUME_COLOR,
+  VOLUME_HIGHLIGHT,
+  AXIS_COLOR,
+  GRID_COLOR,
+  FORECAST_COLOR,
+  LINE_COLORS,
+  getSeriesColor,
+  formatPercentChange,
+  formatDateForPeriod,
+  getDateSortKey,
+} from './helpers/chartHelpers';
 
 // Local type definition
 export interface ForecastDataPoint {
@@ -18,51 +31,10 @@ export interface ForecastDataPoint {
   predicted_value: number;
   lower_80: number;
   upper_80: number;
-}
-
-// --- Constants & Helpers ---
-
-const VOLUME_COLOR = '#3b2f5c';
-const VOLUME_HIGHLIGHT = '#504278';
-const AXIS_COLOR = '#94a3b8'; // text-muted-foreground
-const GRID_COLOR = '#1e293b'; // slate-800
-const FORECAST_COLOR = '#06ffa5'; // Cyan for forecast
-
-const LINE_COLORS = [
-  '#3b82f6', // Blue (Primary)
-  '#a855f7', // Purple
-  '#ef4444', // Red
-  '#22c55e', // Green
-  '#f59e0b', // Amber
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#8b5cf6', // Violet
-];
-
-function formatPercentChange(changePercent: number): string {
-  const sign = changePercent >= 0 ? '+' : '';
-  return `${sign}${(changePercent * 100).toFixed(1)}%`;
-}
-
-function formatDateForPeriod(dateString: string, period: 'month' | 'year'): string {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    return period === 'year'
-      ? `${date.getFullYear()}`
-      : date.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-  } catch {
-    return dateString;
-  }
-}
-
-function getDateSortKey(dateString: string): number {
-  try {
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? 0 : date.getTime();
-  } catch {
-    return 0;
-  }
+  // Mapped properties for internal use
+  value?: number;
+  lower?: number;
+  upper?: number;
 }
 
 // --- Interfaces ---
@@ -118,8 +90,13 @@ export interface SentimentTrendsProps {
   onHoverDateChange?: (date: Date | null) => void;
   hiddenSeries?: Set<string>;
   onHiddenSeriesChange?: (hidden: Set<string>) => void;
-  hideVolume?: boolean;
-  onHideVolumeChange?: (hidden: boolean) => void;
+  // Brush selection props
+  isBrushMode?: boolean;
+  brushSelection?: {start: Date, end: Date} | null;
+  onBrushChange?: (selection: {start: Date, end: Date} | null) => void;
+  onBrushModeChange?: (enabled: boolean) => void;
+  // Year drill-down
+  onYearClick?: (year: string) => void;
 }
 
 // --- Sub-components ---
@@ -204,11 +181,15 @@ interface ChartProps {
   seriesNames: string[];
   period: 'month' | 'year';
   hiddenSeries: Set<string>;
-  hideVolume?: boolean;
   hideForecast?: boolean;
   forecastData?: ForecastDataPoint[] | null;
   sharedHoverDate?: Date | null;
   onHoverDateChange?: (date: Date | null) => void;
+  isBrushMode?: boolean;
+  brushSelection?: {start: Date, end: Date} | null;
+  onBrushChange?: (selection: {start: Date, end: Date} | null) => void;
+  onBrushModeChange?: (enabled: boolean) => void;
+  onYearClick?: (year: string) => void;
 }
 
 const Chart: React.FC<ChartProps> = ({
@@ -218,15 +199,27 @@ const Chart: React.FC<ChartProps> = ({
   seriesNames,
   period,
   hiddenSeries,
-  hideVolume = false,
   hideForecast = false,
   forecastData,
   sharedHoverDate,
   onHoverDateChange,
+  isBrushMode = false,
+  brushSelection,
+  onBrushChange,
+  onBrushModeChange,
+  onYearClick,
 }) => {
   const margin = { top: 20, right: 60, bottom: 40, left: 60 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
+
+  // Volume bars are always visible (non-hideable)
+  const hideVolume = false;
+
+  // Brush state
+  const [brushStart, setBrushStart] = useState<number | null>(null);
+  const [brushEnd, setBrushEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const {
     tooltipOpen,
@@ -322,7 +315,7 @@ const Chart: React.FC<ChartProps> = ({
     () =>
       scaleOrdinal<string, string>({
         domain: seriesNames,
-        range: LINE_COLORS.slice(0, seriesNames.length),
+        range: seriesNames.map((name, index) => getSeriesColor(name, index)),
       }),
     [seriesNames]
   );
@@ -480,6 +473,147 @@ const Chart: React.FC<ChartProps> = ({
     [xScale, margin.left, innerHeight, showTooltip, data, seriesNames, colorScale, formattedForecastData, onHoverDateChange]
   );
 
+  // Helper function to parse period string back to Date
+  const parsePeriodToDate = useCallback((periodStr: string): Date => {
+    // Try to parse as ISO date string first (e.g., "2010-01-01")
+    const isoDate = new Date(periodStr);
+    if (!isNaN(isoDate.getTime())) {
+      return isoDate;
+    }
+
+    // Period format is like "Jan 2021" or "2021"
+    if (period === 'year') {
+      // Extract year from string (handles both "2021" and "2021-01-01" formats)
+      const yearMatch = periodStr.match(/\d{4}/);
+      if (yearMatch) {
+        return new Date(parseInt(yearMatch[0]), 0, 1); // January 1st of the year
+      }
+    }
+
+    // Parse "Jan 2021" format
+    const date = new Date(periodStr + ' 1'); // Add day for parsing
+    return date;
+  }, [period]);
+
+  // Brush event handlers
+  const handleBrushMouseDown = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>) => {
+      if (!isBrushMode) return;
+
+      const point = localPoint(event);
+      if (!point) return;
+
+      const x = point.x - margin.left;
+      // Only start brush if within chart bounds
+      if (x >= 0 && x <= innerWidth) {
+        setBrushStart(x);
+        setBrushEnd(x);
+        setIsDragging(true);
+        // Clear any existing selection
+        onBrushChange?.(null);
+      }
+    },
+    [isBrushMode, margin.left, innerWidth, onBrushChange]
+  );
+
+  const handleBrushMouseMove = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>) => {
+      if (!isBrushMode || !isDragging || brushStart === null) {
+        // Fall back to tooltip behavior when not brushing
+        if (!isBrushMode) {
+          handleTooltip(event);
+        }
+        return;
+      }
+
+      const point = localPoint(event);
+      if (!point) return;
+
+      const x = point.x - margin.left;
+      // Clamp to chart bounds
+      const clampedX = Math.max(0, Math.min(x, innerWidth));
+      setBrushEnd(clampedX);
+    },
+    [isBrushMode, isDragging, brushStart, margin.left, innerWidth, handleTooltip]
+  );
+
+  const handleBrushMouseUp = useCallback(() => {
+    if (!isBrushMode || !isDragging || brushStart === null || brushEnd === null) {
+      setIsDragging(false);
+      return;
+    }
+
+    setIsDragging(false);
+
+    // Calculate the selected date range
+    const minX = Math.min(brushStart, brushEnd);
+    const maxX = Math.max(brushStart, brushEnd);
+
+    // Convert X positions to period indices
+    const step = xScale.step();
+    const domain = xScale.domain();
+    const startIndex = Math.floor(minX / step);
+    const endIndex = Math.floor(maxX / step);
+
+    // Clamp indices
+    const safeStartIndex = Math.max(0, Math.min(startIndex, domain.length - 1));
+    const safeEndIndex = Math.max(0, Math.min(endIndex, domain.length - 1));
+
+    if (safeStartIndex !== safeEndIndex) {
+      const startPeriod = domain[safeStartIndex];
+      const endPeriod = domain[safeEndIndex];
+
+      // Parse period strings back to dates
+      const startDate = parsePeriodToDate(startPeriod);
+      const endDate = parsePeriodToDate(endPeriod);
+
+      onBrushChange?.({ start: startDate, end: endDate });
+
+      // Automatically turn off brush mode after selection
+      onBrushModeChange?.(false);
+    }
+
+    // Clear brush visual
+    setBrushStart(null);
+    setBrushEnd(null);
+  }, [isBrushMode, isDragging, brushStart, brushEnd, xScale, parsePeriodToDate, onBrushChange, onBrushModeChange]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (isBrushMode && isDragging) {
+      // Cancel brush on mouse leave
+      setIsDragging(false);
+      setBrushStart(null);
+      setBrushEnd(null);
+    } else {
+      hideTooltip();
+      onHoverDateChange?.(null);
+    }
+  }, [isBrushMode, isDragging, hideTooltip, onHoverDateChange]);
+
+  // Calculate brush rectangle for rendering
+  const brushRect = useMemo(() => {
+    if (brushSelection && !isDragging) {
+      // Show brush selection from props - use raw ISO dates to match xScale domain
+      const startPeriod = brushSelection.start.toISOString().split('T')[0];
+      const endPeriod = brushSelection.end.toISOString().split('T')[0];
+
+      const startX = xScale(startPeriod);
+      const endX = xScale(endPeriod);
+
+      if (startX !== undefined && endX !== undefined) {
+        const minX = Math.min(startX, endX);
+        const maxX = Math.max(startX, endX) + xScale.bandwidth();
+        return { x: minX, width: maxX - minX };
+      }
+    } else if (isDragging && brushStart !== null && brushEnd !== null) {
+      // Show active brush drag
+      const minX = Math.min(brushStart, brushEnd);
+      const maxX = Math.max(brushStart, brushEnd);
+      return { x: minX, width: maxX - minX };
+    }
+    return null;
+  }, [brushSelection, isDragging, brushStart, brushEnd, xScale]);
+
   if (width < 10) return null;
 
   return (
@@ -489,11 +623,11 @@ const Chart: React.FC<ChartProps> = ({
         width={width}
         height={height}
         className="touch-none select-none"
-        onMouseMove={handleTooltip}
-        onMouseLeave={() => {
-          hideTooltip();
-          onHoverDateChange?.(null);
-        }}
+        style={{ cursor: isBrushMode ? 'crosshair' : 'default' }}
+        onMouseDown={handleBrushMouseDown}
+        onMouseMove={handleBrushMouseMove}
+        onMouseUp={handleBrushMouseUp}
+        onMouseLeave={handleMouseLeave}
         onTouchMove={handleTooltip}
         onTouchEnd={() => {
           hideTooltip();
@@ -542,6 +676,17 @@ const Chart: React.FC<ChartProps> = ({
                 fill={isHovered ? VOLUME_HIGHLIGHT : VOLUME_COLOR}
                 rx={4}
                 opacity={0.8}
+                style={{ cursor: !isBrushMode ? 'pointer' : 'default' }}
+                onClick={() => {
+                  if (onYearClick && !isBrushMode) {
+                    // Extract year from period (e.g., "2010-01-01" -> "2010")
+                    const match = d.period.match(/\d{4}/);
+                    if (match) {
+                      console.log('Year clicked:', match[0]); // Debug log
+                      onYearClick(match[0]);
+                    }
+                  }
+                }}
               />
             );
           })}
@@ -590,24 +735,24 @@ const Chart: React.FC<ChartProps> = ({
               const formattedPeriod = formatDateForPeriod(fp.period, period);
               return {
                 x: (xScale(formattedPeriod) || 0) + xScale.bandwidth() / 2,
-                value: fp.value,
-                lower: fp.lower,
-                upper: fp.upper,
+                value: fp.value ?? fp.predicted_value,
+                lower: fp.lower ?? fp.lower_80,
+                upper: fp.upper ?? fp.upper_80,
                 period: formattedPeriod,
               };
             });
 
             const connectionPoints = [
               { x: lastDataX, y: y1Scale(lastHistoricalValue) },
-              ...forecastPoints.map(fp => ({ x: fp.x, y: y1Scale(fp.value) })),
+              ...forecastPoints.map(fp => ({ x: fp.x, y: y1Scale(fp.value ?? 0) })),
             ];
 
             const confidenceAreaData = [
               { x: lastDataX, lower: lastHistoricalValue, upper: lastHistoricalValue },
               ...forecastPoints.map(fp => ({
                 x: fp.x,
-                lower: Math.max(-1, fp.lower),
-                upper: Math.min(1, fp.upper),
+                lower: Math.max(-1, fp.lower ?? -1),
+                upper: Math.min(1, fp.upper ?? 1),
               })),
             ];
 
@@ -641,7 +786,7 @@ const Chart: React.FC<ChartProps> = ({
           })()}
 
           {/* Tooltip Hover Line */}
-          {tooltipOpen && tooltipData && (
+          {tooltipOpen && tooltipData && !isBrushMode && (
             <Line
               from={{ x: (xScale(tooltipData.period) || 0) + xScale.bandwidth() / 2, y: 0 }}
               to={{ x: (xScale(tooltipData.period) || 0) + xScale.bandwidth() / 2, y: innerHeight }}
@@ -649,6 +794,21 @@ const Chart: React.FC<ChartProps> = ({
               strokeWidth={1}
               pointerEvents="none"
               opacity={0.2}
+            />
+          )}
+
+          {/* Brush Selection Overlay - Only show when actively in brush mode */}
+          {brushRect && isBrushMode && (
+            <rect
+              x={brushRect.x}
+              y={0}
+              width={brushRect.width}
+              height={innerHeight}
+              fill="#3b82f6"
+              opacity={0.2}
+              stroke="#3b82f6"
+              strokeWidth={1}
+              pointerEvents="none"
             />
           )}
           </Group>
@@ -667,12 +827,42 @@ const Chart: React.FC<ChartProps> = ({
               textAnchor: 'middle' as const,
               fontFamily: 'sans-serif',
             })}
-            tickFormat={(value) => value}
-            tickValues={
-              data
-                .map((d, i) => (i % tickInterval === 0 ? d.period : null))
-                .filter((v): v is string => v !== null)
-            }
+            tickFormat={(value) => {
+              if (period === 'month') {
+                // Show month names for monthly data (e.g., "2021-01-01" -> "Jan")
+                try {
+                  const date = new Date(value.toString());
+                  return format(date, 'MMM');
+                } catch {
+                  return value.toString();
+                }
+              }
+              // Extract year from period (e.g., "2021-01-01" -> "2021")
+              const match = value.toString().match(/\d{4}/);
+              return match ? match[0] : value.toString();
+            }}
+            tickValues={(() => {
+              if (period === 'month') {
+                // Show all months when in monthly view
+                return data.map(d => d.period);
+              }
+
+              // Get unique years only for yearly view
+              const seenYears = new Set<string>();
+              const uniqueYearPeriods: string[] = [];
+
+              data.forEach((d) => {
+                const match = d.period.match(/\d{4}/);
+                const year = match ? match[0] : d.period;
+
+                if (!seenYears.has(year)) {
+                  seenYears.add(year);
+                  uniqueYearPeriods.push(d.period);
+                }
+              });
+
+              return uniqueYearPeriods;
+            })()}
           />
 
           <AxisLeft
@@ -756,8 +946,11 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
   onHoverDateChange,
   hiddenSeries,
   onHiddenSeriesChange,
-  hideVolume: hideVolumeProp,
-  onHideVolumeChange,
+  isBrushMode = false,
+  brushSelection,
+  onBrushChange,
+  onBrushModeChange,
+  onYearClick,
 }) => {
   const { chartData, seriesNames } = useMemo(() => {
     if (!primaryTimeline?.data || primaryTimeline.data.length === 0) {
@@ -771,15 +964,12 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
     const primaryName = primaryTimeline.business_name || 'Primary Business';
     names.push(primaryName);
 
-    // Benchmarks
-    if (showBenchmarks?.showCityAvg && benchmarkTimelines?.city) {
+    // Always add benchmark names if data exists (user can toggle via legend)
+    if (benchmarkTimelines?.city) {
       names.push(benchmarkTimelines.city.business_name || 'City Avg');
     }
-    if (showBenchmarks?.showNeighborhoodAvg && benchmarkTimelines?.neighborhood) {
+    if (benchmarkTimelines?.neighborhood) {
       names.push(benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg');
-    }
-    if (showBenchmarks?.showCategoryAvg && benchmarkTimelines?.category) {
-      names.push(benchmarkTimelines.category.business_name || 'Category Avg');
     }
 
     // Comparisons
@@ -791,24 +981,20 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
       const primaryPoint = primaryTimeline.data.find((p) => p.period_start === periodStart);
 
       const point: ChartDataPoint = {
-        period: formatDateForPeriod(periodStart, period),
+        period: periodStart, // Keep original date to ensure unique keys
         periodDate: periodStart, // Store original date for synchronization
         volume: primaryPoint?.review_count || 0,
         [primaryName]: primaryPoint?.avg_sentiment_score || 0,
       };
 
-      // Add Benchmarks
-      if (showBenchmarks?.showCityAvg && benchmarkTimelines?.city) {
+      // Always add benchmark data if it exists
+      if (benchmarkTimelines?.city) {
         const p = benchmarkTimelines.city.data.find(d => d.period_start === periodStart);
         point[benchmarkTimelines.city.business_name || 'City Avg'] = p?.avg_sentiment_score || 0;
       }
-      if (showBenchmarks?.showNeighborhoodAvg && benchmarkTimelines?.neighborhood) {
+      if (benchmarkTimelines?.neighborhood) {
         const p = benchmarkTimelines.neighborhood.data.find(d => d.period_start === periodStart);
         point[benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg'] = p?.avg_sentiment_score || 0;
-      }
-      if (showBenchmarks?.showCategoryAvg && benchmarkTimelines?.category) {
-        const p = benchmarkTimelines.category.data.find(d => d.period_start === periodStart);
-        point[benchmarkTimelines.category.business_name || 'Category Avg'] = p?.avg_sentiment_score || 0;
       }
 
       // Add Comparisons
@@ -829,28 +1015,24 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
   const effectiveHiddenSeries = hiddenSeries ?? localHiddenSeries;
   const effectiveSetHiddenSeries = onHiddenSeriesChange ?? setLocalHiddenSeries;
 
-  // Use shared hideVolume if provided, otherwise use local state
-  const [localHideVolume, setLocalHideVolume] = useState(false);
-  const hideVolume = hideVolumeProp ?? localHideVolume;
-  const setHideVolume = onHideVolumeChange ?? setLocalHideVolume;
-
   const [hideForecast, setHideForecast] = useState(false);
 
   const toggleSeries = useCallback((seriesName: string) => {
-    effectiveSetHiddenSeries(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(seriesName)) newSet.delete(seriesName);
-      else newSet.add(seriesName);
-      return newSet;
-    });
-  }, [effectiveSetHiddenSeries]);
+    const newSet = new Set(effectiveHiddenSeries);
+    if (newSet.has(seriesName)) {
+      newSet.delete(seriesName);
+    } else {
+      newSet.add(seriesName);
+    }
+    effectiveSetHiddenSeries(newSet);
+  }, [effectiveHiddenSeries, effectiveSetHiddenSeries]);
 
   if (!primaryTimeline) return null;
 
   return (
     <div className="glass rounded-lg p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-white">Sentiment Trends</h2>
+      <div className="flex items-center justify-between mb-4 mt-2">
+        <h2 className="text-base font-semibold text-white">Sentiment Trends</h2>
       </div>
 
       <div className="flex-1 min-h-0">
@@ -863,11 +1045,15 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
               seriesNames={seriesNames}
               period={period}
               hiddenSeries={effectiveHiddenSeries}
-              hideVolume={hideVolume}
               hideForecast={hideForecast}
               forecastData={forecastData}
               sharedHoverDate={sharedHoverDate}
               onHoverDateChange={onHoverDateChange}
+              isBrushMode={isBrushMode}
+              brushSelection={brushSelection}
+              onBrushChange={onBrushChange}
+              onBrushModeChange={onBrushModeChange}
+              onYearClick={onYearClick}
             />
           )}
         </ParentSize>
@@ -875,20 +1061,17 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
 
       {/* Interactive Legend */}
       <div className="mt-4 flex flex-wrap gap-3 justify-center border-t border-white/10 pt-3">
-        <button
-          className={`flex items-center gap-2 text-xs transition-opacity ${hideVolume ? 'opacity-50' : 'opacity-100'}`}
-          onClick={() => setHideVolume(!hideVolume)}
-        >
+        <div className="flex items-center gap-2 text-xs opacity-100">
           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: VOLUME_COLOR }} />
           <span className="text-slate-300">Volume</span>
-        </button>
+        </div>
 
         {seriesNames.map((name, i) => {
           const isHidden = effectiveHiddenSeries.has(name);
           return (
             <button
               key={name}
-              className={`flex items-center gap-2 text-xs transition-opacity ${isHidden ? 'opacity-50' : 'opacity-100'}`}
+              className={`flex items-center gap-2 text-xs transition-opacity cursor-pointer ${isHidden ? 'opacity-50' : 'opacity-100'}`}
               onClick={() => toggleSeries(name)}
             >
               <div className="w-3 h-1 rounded-full" style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }} />
@@ -899,7 +1082,7 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
 
         {forecastData && forecastData.length > 0 && (
           <button
-            className={`flex items-center gap-2 text-xs transition-opacity ${hideForecast ? 'opacity-50' : 'opacity-100'}`}
+            className={`flex items-center gap-2 text-xs transition-opacity cursor-pointer ${hideForecast ? 'opacity-50' : 'opacity-100'}`}
             onClick={() => setHideForecast(!hideForecast)}
           >
             <div className="w-3 h-1 rounded-full border-t border-dashed" style={{ borderColor: FORECAST_COLOR }} />
@@ -923,6 +1106,9 @@ export const SentimentTrends = memo(SentimentTrendsComponent, (prev, next) => {
     prev.showBenchmarks === next.showBenchmarks &&
     prev.sharedHoverDate === next.sharedHoverDate &&
     prev.hiddenSeries === next.hiddenSeries &&
-    prev.hideVolume === next.hideVolume
+    prev.isBrushMode === next.isBrushMode &&
+    prev.brushSelection === next.brushSelection
+    // Note: Function props (onHoverDateChange, onBrushChange, etc.) are excluded from comparison
+    // as they're typically stable references
   );
 });

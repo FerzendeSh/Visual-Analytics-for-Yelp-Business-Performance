@@ -234,30 +234,10 @@ const BusinessAttributesComparisonComponent = () => {
     })),
   });
 
-  const isLoading = primaryQuery.isLoading || comparisonQueries.some(q => q.isLoading);
-  const hasError = primaryQuery.isError || comparisonQueries.some(q => q.isError);
-
-  if (isLoading) {
-    return (
-      <div className="glass rounded-lg p-6 h-full flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading business attributes...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (hasError || !primaryQuery.data) {
-    return (
-      <div className="glass rounded-lg p-6 h-full flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Unable to load business attributes</p>
-      </div>
-    );
-  }
-
+  // ✅ ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   // Memoize businesses array, filtering out duplicates
   const businesses = useMemo(() => {
+    if (!primaryQuery.data) return [];
     return [
       primaryQuery.data,
       ...comparisonQueries
@@ -267,7 +247,7 @@ const BusinessAttributesComparisonComponent = () => {
     ] as BusinessDetails[];
   }, [primaryQuery.data, comparisonQueries, primaryBusinessId]);
 
-  const MEANINGFUL_ATTRIBUTES = [
+  const MEANINGFUL_ATTRIBUTES = useMemo(() => [
     'Alcohol',
     'NoiseLevel',
     'WiFi',
@@ -300,7 +280,7 @@ const BusinessAttributesComparisonComponent = () => {
     'BusinessAcceptsCreditCards',
     'Music',
     'BestNights',
-  ];
+  ], []);
 
   // Memoize expensive attribute processing
   const attributeKeys = useMemo(() => {
@@ -318,7 +298,30 @@ const BusinessAttributesComparisonComponent = () => {
       }
     });
     return Array.from(allAttributes).sort();
-  }, [businesses]);
+  }, [businesses, MEANINGFUL_ATTRIBUTES]);
+
+  // NOW we can do conditional rendering after all hooks are called
+  const isLoading = primaryQuery.isLoading || comparisonQueries.some(q => q.isLoading);
+  const hasError = primaryQuery.isError || comparisonQueries.some(q => q.isError);
+
+  if (isLoading) {
+    return (
+      <div className="glass rounded-lg p-6 h-full flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading business attributes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError || !primaryQuery.data) {
+    return (
+      <div className="glass rounded-lg p-6 h-full flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Unable to load business attributes</p>
+      </div>
+    );
+  }
 
   if (attributeKeys.length === 0) {
     return (

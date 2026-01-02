@@ -48,15 +48,12 @@ export function useChartData({
     const primaryName = primaryTimeline.business_name || 'Primary Business';
     names.push(primaryName);
 
-    // Add benchmark names
-    if (showBenchmarks?.showCityAvg && benchmarkTimelines?.city) {
+    // Always add benchmark names if data exists (user can toggle via legend)
+    if (benchmarkTimelines?.city) {
       names.push(benchmarkTimelines.city.business_name || 'City Avg');
     }
-    if (showBenchmarks?.showNeighborhoodAvg && benchmarkTimelines?.neighborhood) {
+    if (benchmarkTimelines?.neighborhood) {
       names.push(benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg');
-    }
-    if (showBenchmarks?.showCategoryAvg && benchmarkTimelines?.category) {
-      names.push(benchmarkTimelines.category.business_name || 'Category Avg');
     }
 
     // Add comparison names
@@ -69,25 +66,21 @@ export function useChartData({
       const primaryPoint = primaryTimeline.data.find((p) => p.period_start === periodStart);
 
       const point: ChartDataPoint = {
-        period: formatDateForPeriod(periodStart, period),
+        period: periodStart, // Keep original date to ensure unique keys
         periodDate: periodStart, // Store original date for synchronization
         volume: primaryPoint?.review_count || 0,
         [primaryName]: primaryPoint?.avg_rating || 0,
       };
 
-      // Add benchmark data
-      if (showBenchmarks?.showCityAvg && benchmarkTimelines?.city) {
+      // Always add benchmark data if it exists
+      if (benchmarkTimelines?.city) {
         const p = benchmarkTimelines.city.data.find((d) => d.period_start === periodStart);
         point[benchmarkTimelines.city.business_name || 'City Avg'] = p?.avg_rating || 0;
       }
-      if (showBenchmarks?.showNeighborhoodAvg && benchmarkTimelines?.neighborhood) {
+      if (benchmarkTimelines?.neighborhood) {
         const p = benchmarkTimelines.neighborhood.data.find((d) => d.period_start === periodStart);
         point[benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg'] =
           p?.avg_rating || 0;
-      }
-      if (showBenchmarks?.showCategoryAvg && benchmarkTimelines?.category) {
-        const p = benchmarkTimelines.category.data.find((d) => d.period_start === periodStart);
-        point[benchmarkTimelines.category.business_name || 'Category Avg'] = p?.avg_rating || 0;
       }
 
       // Add comparison data

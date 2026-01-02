@@ -165,3 +165,21 @@ export function useMultipleTimelines(businessIds: string[]) {
     staleTime: 10 * 60 * 1000, // 10 minutes - historical data changes slowly
   });
 }
+
+/**
+ * Fetch comparison businesses that might be from different cities
+ * This allows showing cross-city comparisons on the scatter plot
+ */
+export function useComparisonBusinesses(comparisonIds: string[]) {
+  return useQuery({
+    queryKey: ['comparison-businesses', comparisonIds],
+    queryFn: async () => {
+      if (comparisonIds.length === 0) return [];
+
+      const promises = comparisonIds.map(id => api.businesses.getById(id));
+      return Promise.all(promises);
+    },
+    enabled: comparisonIds.length > 0,
+    staleTime: 10 * 60 * 1000, // 10 minutes - business data doesn't change often
+  });
+}

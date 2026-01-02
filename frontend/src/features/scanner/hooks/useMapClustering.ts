@@ -25,6 +25,7 @@ interface UseMapClusteringResult {
   clusterData: ClusterPoint[];
   pointData: Business[];
   showClusters: boolean;
+  showBoth: boolean; // Show both clusters and businesses (zoom 10-11)
 }
 
 export function useMapClustering(
@@ -71,14 +72,18 @@ export function useMapClustering(
       clusters: clusters.length,
       zoom,
       clusterZoom,
-      showingClusters: clusterZoom < 12,
+      mode: clusterZoom < 10 ? 'clusters-only' : clusterZoom < 12 ? 'hybrid' : 'businesses-only',
     });
 
     return { clusters, supercluster: index };
   }, [businesses, viewport, zoom]);
 
-  // Determine if we should show clusters or individual points
+  // Determine display mode based on zoom level
+  // < 10: Only clusters
+  // 10-11: Both clusters and businesses (hybrid mode)
+  // >= 12: Only businesses
   const showClusters = zoom < 12;
+  const showBoth = zoom >= 10 && zoom < 12;
 
   // Separate cluster points from individual business points
   const { clusterData, pointData } = useMemo(() => {
@@ -110,5 +115,6 @@ export function useMapClustering(
     clusterData,
     pointData,
     showClusters,
+    showBoth,
   };
 }

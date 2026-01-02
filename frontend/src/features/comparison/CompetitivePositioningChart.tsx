@@ -7,12 +7,13 @@ import { GridRows, GridColumns } from '@visx/grid';
 import { useTooltip, useTooltipInPortal, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { ParentSize } from '@visx/responsive';
-import { Star, MapPin, Info, Maximize2, Move } from 'lucide-react';
+import { Star, MapPin, Info, Maximize2, Move, MousePointer2 } from 'lucide-react';
 import { Text } from '@visx/text';
 import { Brush } from '@visx/brush';
 import { Bounds } from '@visx/brush/lib/types';
 import { CompetitiveSnapshot } from '../../lib/api';
-import { useAppStore } from '../../stores/useAppStore';
+import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID } from '../../stores/useAppStore';
+import { useComparisonBusinesses } from '../../hooks/useComparisonData';
 
 // --- Constants ---
 const BACKGROUND_COLOR = '#0F111A';
@@ -22,7 +23,7 @@ const GRID_COLOR = '#1e293b';
 const CHART_COLORS = {
   textPrimary: '#f8fafc',
   business: '#8b5cf6',
-  myBusiness: '#FFD700',
+  myBusiness: '#FFD700', // Yellow for Maggiano's
   gridlines: '#1e293b',
 };
 
@@ -30,7 +31,7 @@ const QUADRANT_COLORS: Record<string, string> = {
   'Market Leaders': '#22c55e',
   'Hidden Gems': '#3b82f6',
   'Struggling': '#ef4444',
-  'Volume Drivers': '#f97316',
+  'Volume Drivers': '#d4a817', // Dark yellow
 };
 
 const QUADRANT_DESCRIPTIONS: Record<string, string> = {
@@ -65,6 +66,8 @@ interface ChartDataPoint {
   isComparison: boolean;
   comparisonIndex: number;
   category: string;
+  city?: string;
+  isFromDifferentCity?: boolean;
 }
 
 interface TooltipData extends ChartDataPoint {}
@@ -120,6 +123,20 @@ const TooltipContent = ({ data, colorScale }: { data: TooltipData; colorScale: a
         </div>
         <span className="font-mono font-bold text-white">{data.reviewVolume.toLocaleString()}</span>
       </div>
+
+      {data.city && (
+        <div className="pt-2 mt-2 border-t border-white/10">
+          <div className="flex items-center gap-1.5 text-xs">
+            <MapPin size={12} className="text-blue-400" />
+            <span className="text-gray-300">{data.city}</span>
+            {data.isFromDifferentCity && (
+              <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-400">
+                External
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -131,14 +148,18 @@ const QuadrantChart = ({
   data,
   stats,
   selectedBusinessId,
+  highlightedBusinessId,
   onSelectBusiness,
+  onBusinessClick,
 }: {
   width: number;
   height: number;
   data: ChartDataPoint[];
   stats: { avgRating: number; medianReviews: number };
   selectedBusinessId?: string | null;
+  highlightedBusinessId?: string | null;
   onSelectBusiness?: (id: string | null) => void;
+  onBusinessClick?: (business: ChartDataPoint) => void;
 }) => {
   const margin = { top: 20, right: 60, bottom: 50, left: 60 };
   const innerWidth = width - margin.left - margin.right;
@@ -165,11 +186,20 @@ const QuadrantChart = ({
   // Zoom mode toggle
   const [isZoomMode, setIsZoomMode] = useState(false);
 
-  // Update filtered domain when data changes
+  // Click mode toggle - enables clicking dots to zoom map
+  const [isClickMode, setIsClickMode] = useState(false);
+
+  // Check if currently zoomed
+  const isZoomed = filteredXDomain[0] !== initialXDomain[0] ||
+                   filteredXDomain[1] !== initialXDomain[1];
+
+  // Update filtered domain when data changes, but only if not currently zoomed
   React.useEffect(() => {
-    setFilteredXDomain(initialXDomain);
-    setFilteredYDomain(initialYDomain);
-  }, [initialXDomain]);
+    if (!isZoomed) {
+      setFilteredXDomain(initialXDomain);
+      setFilteredYDomain(initialYDomain);
+    }
+  }, [initialXDomain, isZoomed]);
 
   const xScale = useMemo(() => scaleLinear({
     range: [0, innerWidth],
@@ -249,28 +279,48 @@ const QuadrantChart = ({
 
   if (width < 10) return null;
 
-  const isZoomed = filteredXDomain[0] !== initialXDomain[0] ||
-                   filteredXDomain[1] !== initialXDomain[1];
-
   return (
     <div className="relative">
-      {/* Zoom Controls */}
-      <div className="absolute top-2 right-2 flex gap-2 z-10">
+      {/* Zoom Controls - Vertical Stack */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
         <button
           className={`p-1.5 rounded transition-colors ${isZoomMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-          onClick={() => setIsZoomMode(!isZoomMode)}
-          title={isZoomMode ? "Switch to Selection Mode" : "Switch to Zoom Mode"}
+          onClick={() => {
+            setIsZoomMode(!isZoomMode);
+            // Disable click mode when enabling zoom mode
+            if (!isZoomMode) {
+              setIsClickMode(false);
+            }
+          }}
+          title={isZoomMode ? "Exit zoom mode (drag to select area)" : "Enable zoom mode"}
         >
           <Move size={16} />
         </button>
+
         {isZoomed && (
-          <button
-            className="p-1.5 rounded bg-white/5 text-slate-400 hover:bg-white/10 transition-colors"
-            onClick={resetZoom}
-            title="Reset Zoom"
-          >
-            <Maximize2 size={16} />
-          </button>
+          <>
+            <button
+              className={`p-1.5 rounded transition-colors ${isClickMode ? 'bg-green-500/30 text-green-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+              onClick={() => {
+                setIsClickMode(!isClickMode);
+                // Disable zoom mode when enabling click mode
+                if (!isClickMode) {
+                  setIsZoomMode(false);
+                }
+              }}
+              title={isClickMode ? "Click mode active - click dots to zoom map" : "Enable click mode"}
+            >
+              <MousePointer2 size={16} />
+            </button>
+
+            <button
+              className="p-1.5 rounded bg-white/5 text-slate-400 hover:bg-white/10 transition-colors"
+              onClick={resetZoom}
+              title="Reset zoom"
+            >
+              <Maximize2 size={16} />
+            </button>
+          </>
         )}
       </div>
 
@@ -279,7 +329,12 @@ const QuadrantChart = ({
         width={width}
         height={height}
         className="touch-none select-none"
-        onClick={() => { if (selectedBusinessId && onSelectBusiness) onSelectBusiness(null); }}
+        onClick={(e) => {
+          // Only deselect if clicking empty space (not a dot)
+          if (selectedBusinessId && onSelectBusiness && e.target === e.currentTarget) {
+            onSelectBusiness(null);
+          }
+        }}
       >
         <defs>
           <filter id="myBusinessGlow" x="-100%" y="-100%" width="300%" height="300%">
@@ -332,14 +387,21 @@ const QuadrantChart = ({
           {data.map((d) => {
             if (d.reviewVolume < filteredXDomain[0] || d.reviewVolume > filteredXDomain[1]) return null;
             const isSelected = selectedBusinessId === d.id;
+            const isHighlighted = highlightedBusinessId === d.id;
             const hasSelection = !!selectedBusinessId;
+
+            // Always check if this is Maggiano's (hardcoded primary business)
+            const isMaggianosHardcoded = d.id === MAGGIANOS_TAMPA_BUSINESS_ID;
 
             let radius = 3;
             let stroke = 'none';
             let strokeWidth = 0;
+            let fill = colorScale(d.category);
 
-            if (d.isMyBusiness) {
-              radius = 10;
+            // Maggiano's gets special highlight - larger yellow dot with glow
+            if (isMaggianosHardcoded || d.isMyBusiness) {
+              radius = 12; // Even larger for emphasis
+              fill = CHART_COLORS.myBusiness; // Force yellow
               stroke = CHART_COLORS.myBusiness;
               strokeWidth = 3;
             } else if (d.isComparison) {
@@ -348,13 +410,20 @@ const QuadrantChart = ({
               strokeWidth = 2.5;
             }
 
-            if (isSelected) {
+            // Highlighted from map interaction
+            if (isHighlighted && !isMaggianosHardcoded) {
+              radius = d.isMyBusiness ? 12 : 10;
+              stroke = '#3b82f6'; // Blue highlight
+              strokeWidth = 3;
+            }
+
+            if (isSelected && !isMaggianosHardcoded) {
               radius = d.isMyBusiness ? 12 : 9;
               if (!d.isMyBusiness && !d.isComparison) {
                 stroke = '#fff';
                 strokeWidth = 2;
               }
-            } else if (hasSelection && !d.isMyBusiness && !d.isComparison) {
+            } else if (hasSelection && !d.isMyBusiness && !d.isComparison && !isMaggianosHardcoded) {
               radius = 2;
             }
 
@@ -364,17 +433,28 @@ const QuadrantChart = ({
                 cx={xScale(d.reviewVolume)}
                 cy={yScale(d.rating)}
                 r={radius}
-                fill={colorScale(d.category)}
+                fill={fill}
                 stroke={stroke}
                 strokeWidth={strokeWidth}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: isMaggianosHardcoded ? 'default' : 'pointer' }}
                 className="transition-all duration-300"
-                filter={d.isMyBusiness ? 'url(#myBusinessGlow)' : undefined}
+                filter={(isMaggianosHardcoded || d.isMyBusiness) ? 'url(#myBusinessGlow)' : undefined}
                 onMouseOver={(e) => handleMouseOver(e as React.MouseEvent<SVGCircleElement>, d)}
                 onMouseOut={hideTooltip}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (onSelectBusiness) onSelectBusiness(isSelected ? null : d.id);
+
+                  if (isClickMode) {
+                    // In click mode: only zoom map, don't change selection
+                    if (onBusinessClick) {
+                      onBusinessClick(d);
+                    }
+                  } else {
+                    // Not in click mode: handle selection normally
+                    if (!isMaggianosHardcoded && onSelectBusiness) {
+                      onSelectBusiness(isSelected ? null : d.id);
+                    }
+                  }
                 }}
               />
             );
@@ -441,7 +521,25 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
   const primaryBusinessId = useAppStore((state) => state.primaryBusinessId);
   const comparisonIds = useAppStore((state) => state.comparisonIds);
   const setPrimaryBusiness = useAppStore((state) => state.setPrimaryBusiness);
+  const setHighlightedBusiness = useAppStore((state) => state.setHighlightedBusiness);
+  const setMapViewState = useAppStore((state) => state.setMapViewState);
+  const mapViewState = useAppStore((state) => state.mapViewState);
+  const highlightedBusinessId = useAppStore((state) => state.highlightedBusinessId);
+  const filters = useAppStore((state) => state.filters);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Extract city and state from cityId
+  const cityName = filters.cityId?.split('_')[0] || 'Unknown';
+  const stateName = filters.cityId?.split('_')[1] || '';
+
+  // Fetch comparison businesses (may be from different cities)
+  const { data: comparisonBusinesses = [] } = useComparisonBusinesses(comparisonIds);
+
+  // Fetch primary business separately if not in snapshot (different city)
+  const primaryBusinessInSnapshot = snapshotData?.businesses.some(b => b.business_id === primaryBusinessId);
+  const { data: primaryBusinessData = [] } = useComparisonBusinesses(
+    primaryBusinessId && !primaryBusinessInSnapshot ? [primaryBusinessId] : []
+  );
 
   const {
     tooltipOpen: legendTooltipOpen,
@@ -469,7 +567,8 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
 
     const { avg_rating: avgRating, median_review_count: medianReviews, total_businesses: totalBusinesses } = snapshotData.statistics;
 
-    const businesses: ChartDataPoint[] = snapshotData.businesses
+    // Map snapshot businesses (from current city)
+    const cityBusinesses: ChartDataPoint[] = snapshotData.businesses
       .filter(b => b.stars !== undefined && b.review_count > 0)
       .map(b => ({
         id: b.business_id,
@@ -480,13 +579,89 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
         isComparison: comparisonIds.includes(b.business_id),
         comparisonIndex: comparisonIds.indexOf(b.business_id),
         category: getQuadrantCategory(b.stars, b.review_count, avgRating, medianReviews),
+        city: `${cityName}, ${stateName}`,
+        isFromDifferentCity: false,
       }));
 
+    // Get IDs already in the snapshot
+    const snapshotBusinessIds = new Set(snapshotData.businesses.map((b: any) => b.business_id));
+
+    // Add primary business if it's from a different city (not in snapshot)
+    const crossCityPrimaryBusiness: ChartDataPoint[] = primaryBusinessData
+      .filter(b => !snapshotBusinessIds.has(b.business_id) && b.stars !== undefined && b.review_count > 0)
+      .map(b => ({
+        id: b.business_id,
+        name: b.name,
+        rating: b.stars,
+        reviewVolume: b.review_count,
+        isMyBusiness: true,
+        isComparison: false,
+        comparisonIndex: -1,
+        category: getQuadrantCategory(b.stars, b.review_count, avgRating, medianReviews),
+        city: `${b.city}, ${b.state}`,
+        isFromDifferentCity: true,
+      }));
+
+    // Add comparison businesses from other cities (not already in snapshot)
+    const crossCityComparisons: ChartDataPoint[] = comparisonBusinesses
+      .filter(b => !snapshotBusinessIds.has(b.business_id) && b.stars !== undefined && b.review_count > 0)
+      .map(b => ({
+        id: b.business_id,
+        name: b.name,
+        rating: b.stars,
+        reviewVolume: b.review_count,
+        isMyBusiness: b.business_id === primaryBusinessId,
+        isComparison: true,
+        comparisonIndex: comparisonIds.indexOf(b.business_id),
+        category: getQuadrantCategory(b.stars, b.review_count, avgRating, medianReviews),
+        city: `${b.city}, ${b.state}`,
+        isFromDifferentCity: true,
+      }));
+
+    // Merge all arrays: city businesses + primary business (if cross-city) + cross-city comparisons
+    const allBusinesses = [...cityBusinesses, ...crossCityPrimaryBusiness, ...crossCityComparisons];
+
     return {
-      chartData: businesses,
+      chartData: allBusinesses,
       stats: { avgRating, medianReviews, totalBusinesses }
     };
-  }, [snapshotData, primaryBusinessId, comparisonIds]);
+  }, [snapshotData, primaryBusinessId, comparisonIds, comparisonBusinesses, primaryBusinessData, cityName, stateName]);
+
+  // Handler for clicking on a business dot - zoom map to that location
+  const handleBusinessClick = useCallback((chartPoint: ChartDataPoint) => {
+    // Find the full business data - check snapshot first, then cross-city primary, then comparison businesses
+    let business = snapshotData?.businesses.find((b: any) => b.business_id === chartPoint.id);
+
+    if (!business) {
+      // Check if it's the cross-city primary business
+      business = primaryBusinessData.find(b => b.business_id === chartPoint.id);
+    }
+
+    if (!business) {
+      // Check if it's a cross-city comparison business
+      business = comparisonBusinesses.find(b => b.business_id === chartPoint.id);
+    }
+
+    if (!business) return;
+
+    // Set highlighted business for visual feedback
+    setHighlightedBusiness(chartPoint.id);
+
+    // Zoom to business location on the map
+    setMapViewState({
+      longitude: business.longitude,
+      latitude: business.latitude,
+      zoom: 16,
+      pitch: 0,
+      bearing: 0,
+      transitionDuration: 800,
+    });
+
+    // Clear highlight after animation
+    setTimeout(() => {
+      setHighlightedBusiness(null);
+    }, 3000);
+  }, [snapshotData, primaryBusinessData, comparisonBusinesses, setHighlightedBusiness, setMapViewState]);
 
   if (!snapshotData || chartData.length === 0) {
     return (
@@ -505,7 +680,7 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
         <div>
           <h2 className="text-lg font-semibold text-white">Market Positioning</h2>
           <p className="text-xs text-slate-400 mt-1">
-            {chartData.length} businesses • Avg: {stats.avgRating.toFixed(1)}★, Median: {stats.medianReviews} reviews
+            <span className="font-semibold text-blue-400">{cityName}, {stateName}</span> • {chartData.length} businesses • Avg: {stats.avgRating.toFixed(1)}★, Median: {stats.medianReviews} reviews
           </p>
         </div>
 
@@ -533,7 +708,9 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
               data={chartData}
               stats={stats}
               selectedBusinessId={primaryBusinessId}
+              highlightedBusinessId={highlightedBusinessId}
               onSelectBusiness={setPrimaryBusiness}
+              onBusinessClick={handleBusinessClick}
             />
           )}
         </ParentSize>

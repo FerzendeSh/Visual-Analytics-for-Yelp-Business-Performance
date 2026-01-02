@@ -8,14 +8,23 @@ import { useAppStore } from '../stores/useAppStore';
 import { subYears, format } from 'date-fns';
 
 // Helper function to calculate date range
-const getDateRange = (timeRange: '1Y' | '5Y') => {
-  const endDate = new Date();
-  const yearsBack = timeRange === '1Y' ? 1 : 5;
-  const startDate = subYears(endDate, yearsBack);
+const getDateRange = (
+  timeRange: '1Y' | '5Y' | 'CUSTOM',
+  customDateRange: { start: string; end: string } | null
+) => {
+  // If custom range is provided, use it
+  if (timeRange === 'CUSTOM' && customDateRange) {
+    return {
+      start_date: customDateRange.start,
+      end_date: customDateRange.end,
+    };
+  }
 
+  // For preset ranges (1Y, 5Y), don't send date filters
+  // This allows the backend to return ALL available data for the business
   return {
-    start_date: format(startDate, 'yyyy-MM-dd'),
-    end_date: format(endDate, 'yyyy-MM-dd'),
+    start_date: undefined,
+    end_date: undefined,
   };
 };
 
@@ -24,14 +33,20 @@ const getDateRange = (timeRange: '1Y' | '5Y') => {
  */
 export function useBatchTimelines(primaryBusinessId: string | null, comparisonIds: string[]) {
   const filters = useAppStore((state) => state.filters);
-  const benchmarks = useAppStore((state) => state.benchmarks);
 
-  const { start_date, end_date } = getDateRange(filters.timeRange);
+  const { start_date, end_date } = getDateRange(filters.timeRange, filters.customDateRange);
 
   // Combine primary + comparison IDs
   const allBusinessIds = primaryBusinessId
     ? [primaryBusinessId, ...comparisonIds].filter((id, index, self) => self.indexOf(id) === index)
     : comparisonIds;
+
+  // Extract city and neighborhood from filters for benchmark fetching
+  // cityId format: "Tampa_FL" -> extract city and state
+  const cityParts = filters.cityId?.split('_') || [];
+  const city = cityParts.length >= 2 ? cityParts.slice(0, -1).join(' ') : null;
+  const state = cityParts.length >= 2 ? cityParts[cityParts.length - 1] : null;
+  const neighborhood = filters.neighborhoodId;
 
   return useQuery({
     queryKey: [
@@ -39,10 +54,9 @@ export function useBatchTimelines(primaryBusinessId: string | null, comparisonId
       allBusinessIds,
       filters.granularity,
       filters.timeRange,
+      filters.customDateRange, // Include custom date range in cache key
       filters.categories,
-      benchmarks.showCityAvg,
-      benchmarks.showNeighborhoodAvg,
-      benchmarks.showCategoryAvg,
+      filters.neighborhoodId, // Include neighborhood in cache key
     ],
     queryFn: async () => {
       if (allBusinessIds.length === 0) {
@@ -54,14 +68,19 @@ export function useBatchTimelines(primaryBusinessId: string | null, comparisonId
         period: filters.granularity === 'MONTHLY' ? 'month' : 'year',
         start_date,
         end_date,
-        include_city_benchmark: benchmarks.showCityAvg,
-        include_neighborhood_benchmark: benchmarks.showNeighborhoodAvg,
-        include_category_benchmark: benchmarks.showCategoryAvg,
+        include_city_benchmark: true, // Always fetch city benchmark
+        include_neighborhood_benchmark: !!neighborhood, // Only fetch if neighborhood is selected
+        include_category_benchmark: false, // Don't fetch category by default
         category: filters.categories[0],
+        // Include location info for benchmarks
+        city: city || undefined,
+        state: state || undefined,
+        neighborhood: neighborhood || undefined,
       });
     },
     enabled: allBusinessIds.length > 0,
     staleTime: 10 * 60 * 1000, // 10 minutes - historical data changes slowly
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching for smooth transitions
   });
 }
 

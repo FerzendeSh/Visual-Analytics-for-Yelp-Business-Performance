@@ -64,6 +64,23 @@ class BatchTimelineRequest(BaseModel):
         description="Category for category benchmark comparison"
     )
 
+    # Optional location overrides for benchmarks
+    # If provided, use these instead of extracting from first business
+    city: Optional[str] = Field(
+        None,
+        description="City for benchmark data (overrides business location)"
+    )
+
+    state: Optional[str] = Field(
+        None,
+        description="State for benchmark data (overrides business location)"
+    )
+
+    neighborhood: Optional[str] = Field(
+        None,
+        description="Neighborhood for benchmark data (overrides business location)"
+    )
+
 
 class TimelineData(BaseModel):
     """Timeline data for a single entity (business or benchmark)."""

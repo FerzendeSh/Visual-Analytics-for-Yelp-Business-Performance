@@ -10,15 +10,47 @@ export const GRID_COLOR = '#1e293b';
 export const FORECAST_COLOR = '#06ffa5';
 
 export const LINE_COLORS = [
-  '#3b82f6', // Blue (Primary)
-  '#a855f7', // Purple
+  '#FFD700', // Gold/Yellow (Primary Business - Maggiano's)
+  '#a855f7', // Purple (City Avg)
+  '#22c55e', // Green (Neighborhood Avg)
+  '#3b82f6', // Blue
   '#ef4444', // Red
-  '#22c55e', // Green
   '#f59e0b', // Amber
   '#ec4899', // Pink
   '#06b6d4', // Cyan
   '#8b5cf6', // Violet
 ];
+
+// Fixed colors for benchmarks
+export const BENCHMARK_COLORS = {
+  CITY: '#a855f7',        // Purple - ALWAYS for City
+  NEIGHBORHOOD: '#22c55e', // Green - ALWAYS for Neighborhood
+  CATEGORY: '#f59e0b',     // Amber for Category
+};
+
+/**
+ * Get color for a series name.
+ * Ensures benchmarks always get their designated colors regardless of order.
+ */
+export function getSeriesColor(seriesName: string, index: number): string {
+  // Check if it's a benchmark (case-insensitive)
+  const lowerName = seriesName.toLowerCase();
+
+  if (lowerName.includes('city avg') || lowerName.includes('city average')) {
+    return BENCHMARK_COLORS.CITY;
+  }
+
+  if (lowerName.includes('neighborhood avg') || lowerName.includes('neighborhood average')) {
+    return BENCHMARK_COLORS.NEIGHBORHOOD;
+  }
+
+  if (lowerName.includes('category avg') || lowerName.includes('category average')) {
+    return BENCHMARK_COLORS.CATEGORY;
+  }
+
+  // For primary business and comparisons, use LINE_COLORS by index
+  return LINE_COLORS[index % LINE_COLORS.length];
+}
 
 export function formatPercentChange(changePercent: number): string {
   const sign = changePercent >= 0 ? '+' : '';
@@ -29,9 +61,8 @@ export function formatDateForPeriod(dateString: string, period: 'month' | 'year'
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    return period === 'year'
-      ? `${date.getFullYear()}`
-      : date.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+    // Always show only the year, never show months
+    return `${date.getFullYear()}`;
   } catch {
     return dateString;
   }

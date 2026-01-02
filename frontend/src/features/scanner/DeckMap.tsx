@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { MapControls } from './MapControls';
 import { SearchPanel } from './SearchPanel';
 import { MapTooltip } from './components/MapTooltip';
+import { MapClickPopup } from './components/MapClickPopup';
 import { useMapClustering } from './hooks/useMapClustering';
 import { useNavigateToCity, useNavigateToNeighborhood } from './hooks/useMapNavigation';
 import { usePrefetchComparison } from './hooks/usePrefetchComparison';
@@ -22,6 +23,7 @@ import { useMapLayers } from './hooks/useMapLayers';
 export function DeckMap() {
   // Local state
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [clickedId, setClickedId] = useState<string | null>(null);
   const [mapRef, setMapRef] = useState<MapRef | null>(null);
   const [deckError, setDeckError] = useState<Error | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -36,6 +38,8 @@ export function DeckMap() {
   const comparisonIds = useAppStore((state) => state.comparisonIds);
   const toggleComparison = useAppStore((state) => state.toggleComparison);
   const setPrimaryBusiness = useAppStore((state) => state.setPrimaryBusiness);
+  const setHighlightedBusiness = useAppStore((state) => state.setHighlightedBusiness);
+  const highlightedBusinessId = useAppStore((state) => state.highlightedBusinessId);
   const filters = useAppStore((state) => state.filters);
 
   const selectedState = filters.cityId?.split('_')[1];
@@ -68,7 +72,7 @@ export function DeckMap() {
   });
 
   // Clustering logic (extracted)
-  const { clusterData, pointData, showClusters, supercluster } = useMapClustering(
+  const { clusterData, pointData, showClusters, showBoth, supercluster } = useMapClustering(
     businesses,
     viewport,
     mapViewState.zoom
@@ -83,16 +87,20 @@ export function DeckMap() {
     cityBoundary,
     neighborhoods,
     showClusters,
+    showBoth,
     clusterData,
     pointData,
     primaryBusinessId,
     comparisonIds,
+    highlightedBusinessId,
     supercluster,
     mapViewState,
     setMapViewState,
     setHoveredId,
+    setClickedId,
     toggleComparison,
     setPrimaryBusiness,
+    setHighlightedBusiness,
     prefetchComparisonData,
   });
 
@@ -167,32 +175,18 @@ export function DeckMap() {
     [setPrimaryBusiness, setMapViewState, mapViewState, prefetchComparisonData]
   );
 
-  const handleSetFilterToView = useCallback(() => {
-    if (businesses.length === 0) return;
-
-    // Count businesses by city
-    const cityCounts = new Map<string, number>();
-    businesses.forEach((business) => {
-      const cityKey = `${business.city}_${business.state}`;
-      cityCounts.set(cityKey, (cityCounts.get(cityKey) || 0) + 1);
+  // Navigate to Maggiano's business location
+  const handleGoToMyBusiness = useCallback(() => {
+    isProgrammaticMoveRef.current = true;
+    setMapViewState({
+      longitude: -82.526348, // Maggiano's Tampa location
+      latitude: 27.946453,
+      zoom: 15.1, // Configured zoom level for Maggiano's
+      pitch: 0,
+      bearing: 0,
+      transitionDuration: 1000,
     });
-
-    // Find most common city in view
-    let mostCommonCity = '';
-    let maxCount = 0;
-    cityCounts.forEach((count, cityKey) => {
-      if (count > maxCount) {
-        maxCount = count;
-        mostCommonCity = cityKey;
-      }
-    });
-
-    if (mostCommonCity) {
-      useAppStore.getState().updateFilters({
-        cityId: mostCommonCity,
-      });
-    }
-  }, [businesses]);
+  }, [setMapViewState]);
 
   // Handle deck.gl errors
   const handleDeckError = useCallback((error: Error) => {
@@ -307,11 +301,38 @@ export function DeckMap() {
     );
   }
 
-  // Find hovered business for tooltip
+  // Find hovered and clicked businesses
   const hoveredBusiness = hoveredId ? businesses.find((b) => b.business_id === hoveredId) : null;
+  const clickedBusiness = clickedId ? businesses.find((b) => b.business_id === clickedId) : null;
+
+  // Comparison handlers
+  const handleAddToComparison = useCallback(() => {
+    if (clickedId && comparisonIds.length < 3) {
+      toggleComparison(clickedId);
+    }
+  }, [clickedId, comparisonIds.length, toggleComparison]);
+
+  const handleRemoveFromComparison = useCallback(() => {
+    if (clickedId) {
+      toggleComparison(clickedId);
+    }
+  }, [clickedId, toggleComparison]);
+
+  const handleClosePopup = useCallback(() => {
+    setClickedId(null);
+  }, []);
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      className="relative w-full h-full"
+      onClick={(e) => {
+        // Close popup when clicking on the map background
+        // Only if the click is directly on the container (not on children)
+        if (e.target === e.currentTarget) {
+          handleClosePopup();
+        }
+      }}
+    >
       <DeckGL
         ref={deckGLRef}
         key="deck-map-instance"
@@ -324,7 +345,11 @@ export function DeckMap() {
         }}
         controller={true}
         layers={layers}
-        getCursor={() => 'default'}
+        getCursor={({ isDragging, isHovering }) => {
+          if (isDragging) return 'grabbing';
+          if (isHovering) return 'pointer';
+          return 'default';
+        }}
         onError={handleDeckError}
         onWebGLInitialized={(gl: WebGLRenderingContext) => {
           if (!gl) {
@@ -334,6 +359,12 @@ export function DeckMap() {
         _typedArrayManagerProps={{
           overAlloc: 1,
           poolSize: 0,
+        }}
+        onClick={() => {
+          // Close popup when clicking anywhere on the map
+          if (clickedId) {
+            handleClosePopup();
+          }
         }}
       >
         <Map
@@ -349,7 +380,7 @@ export function DeckMap() {
         onZoomOut={handleZoomOut}
         onResetNorth={handleResetNorth}
         onSearchToggle={() => setIsSearchOpen(!isSearchOpen)}
-        onSetFilterToView={handleSetFilterToView}
+        onGoToMyBusiness={handleGoToMyBusiness}
         isSearchOpen={isSearchOpen}
         currentZoom={mapViewState.zoom}
       />
@@ -361,8 +392,20 @@ export function DeckMap() {
         onSelectBusiness={handleSearchSelect}
       />
 
-      {/* Hover Tooltip */}
-      <MapTooltip business={hoveredBusiness} />
+      {/* Hover Tooltip - Only show if no clicked popup */}
+      {!clickedBusiness && <MapTooltip business={hoveredBusiness} />}
+
+      {/* Click Popup */}
+      {clickedBusiness && (
+        <MapClickPopup
+          business={clickedBusiness}
+          isInComparison={comparisonIds.includes(clickedId!)}
+          canAddMore={comparisonIds.length < 3}
+          onAddToComparison={handleAddToComparison}
+          onRemoveFromComparison={handleRemoveFromComparison}
+          onClose={handleClosePopup}
+        />
+      )}
 
       {/* Loading Indicator */}
       {isLoading && (

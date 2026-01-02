@@ -1,9 +1,10 @@
 import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Plus, Check } from 'lucide-react';
 import { Command } from '@/components/ui/command';
 import { useBusinessSearch } from '@/hooks/useBusinessSearch';
 import { Business } from '@/lib/api';
+import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID } from '@/stores/useAppStore';
 
 interface SearchPanelProps {
   isOpen: boolean;
@@ -14,11 +15,18 @@ interface SearchPanelProps {
 const SearchPanelComponent = ({ isOpen, onClose, onSelectBusiness }: SearchPanelProps) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const { data: searchResults, isLoading: isLoadingSearchResults } = useBusinessSearch(searchQuery);
+  const comparisonIds = useAppStore((state) => state.comparisonIds);
+  const toggleComparison = useAppStore((state) => state.toggleComparison);
 
   const handleSelectBusiness = (business: Business) => {
     onSelectBusiness(business);
     setSearchQuery('');
     onClose();
+  };
+
+  const handleToggleComparison = (e: React.MouseEvent, businessId: string) => {
+    e.stopPropagation();
+    toggleComparison(businessId);
   };
 
   return (
@@ -37,7 +45,7 @@ const SearchPanelComponent = ({ isOpen, onClose, onSelectBusiness }: SearchPanel
               <h3 className="text-sm font-semibold text-white">Search Businesses</h3>
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
                 title="Close search"
               >
                 <X className="h-4 w-4" />
@@ -72,28 +80,68 @@ const SearchPanelComponent = ({ isOpen, onClose, onSelectBusiness }: SearchPanel
                     className="max-h-96 overflow-y-auto divide-y divide-slate-700 overscroll-contain will-change-scroll"
                     style={{ contain: 'layout style paint' }} // CSS containment for better rendering performance
                   >
-                    {searchResults.map((business) => (
-                      <button
-                        key={business.business_id}
-                        className="w-full flex items-start justify-between p-3 hover:bg-slate-700/50 active:bg-slate-700 cursor-pointer text-left transition-colors will-change-transform"
-                        onClick={() => handleSelectBusiness(business)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
-                            {business.name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-xs text-slate-400">
-                              {business.city}, {business.state}
+                    {searchResults.map((business) => {
+                      const isMaggianosMyBusiness = business.business_id === MAGGIANOS_TAMPA_BUSINESS_ID;
+                      const isInComparison = comparisonIds.includes(business.business_id);
+                      const canAddMore = comparisonIds.length < 3;
+
+                      return (
+                        <div
+                          key={business.business_id}
+                          className="w-full flex items-center gap-2 p-3 hover:bg-slate-700/50 transition-colors will-change-transform"
+                        >
+                          {/* Add to Comparison Button */}
+                          {!isMaggianosMyBusiness && (
+                            <button
+                              onClick={(e) => handleToggleComparison(e, business.business_id)}
+                              disabled={!canAddMore && !isInComparison}
+                              className={`flex-shrink-0 p-1.5 rounded-md transition-colors cursor-pointer ${
+                                isInComparison
+                                  ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                                  : canAddMore
+                                  ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                  : 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
+                              }`}
+                              title={
+                                isInComparison
+                                  ? 'Remove from comparison'
+                                  : canAddMore
+                                  ? 'Add to comparison'
+                                  : 'Max 3 comparisons'
+                              }
+                            >
+                              {isInComparison ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <Plus className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+
+                          {/* Business Info - Clickable */}
+                          <button
+                            className="flex-1 min-w-0 text-left cursor-pointer"
+                            onClick={() => handleSelectBusiness(business)}
+                          >
+                            <p className="text-sm font-medium text-white truncate">
+                              {business.name}
+                              {isMaggianosMyBusiness && (
+                                <span className="ml-2 text-xs text-yellow-400">(My Business)</span>
+                              )}
                             </p>
-                            <span className="text-xs text-slate-500">•</span>
-                            <p className="text-xs text-amber-400">
-                              ⭐ {business.stars.toFixed(1)}
-                            </p>
-                          </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-slate-400">
+                                {business.city}, {business.state}
+                              </p>
+                              <span className="text-xs text-slate-500">•</span>
+                              <p className="text-xs text-amber-400">
+                                ⭐ {business.stars.toFixed(1)}
+                              </p>
+                            </div>
+                          </button>
                         </div>
-                      </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 {!isLoadingSearchResults && searchQuery.length > 2 && searchResults?.length === 0 && (

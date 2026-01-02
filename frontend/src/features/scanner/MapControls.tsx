@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Search, Plus, Minus, Compass, MapPin } from 'lucide-react';
+import { Search, Plus, Minus, Compass, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -8,7 +8,7 @@ interface MapControlsProps {
   onZoomOut: () => void;
   onResetNorth: () => void;
   onSearchToggle: () => void;
-  onSetFilterToView?: () => void;
+  onGoToMyBusiness?: () => void;
   isSearchOpen: boolean;
   currentZoom: number;
 }
@@ -18,7 +18,7 @@ const MapControlsComponent = ({
   onZoomOut,
   onResetNorth,
   onSearchToggle,
-  onSetFilterToView,
+  onGoToMyBusiness,
   isSearchOpen,
   currentZoom,
 }: MapControlsProps) => {
@@ -37,17 +37,17 @@ const MapControlsComponent = ({
         </Button>
       </motion.div>
 
-      {/* Set Filter to View Button */}
-      {onSetFilterToView && (
+      {/* Go to My Business Button */}
+      {onGoToMyBusiness && (
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
-            onClick={onSetFilterToView}
+            onClick={onGoToMyBusiness}
             variant="ghost"
             size="icon"
             className="glass"
-            title="Set filter to current view"
+            title="Go to Maggiano's (My Business)"
           >
-            <MapPin className="h-5 w-5" />
+            <Home className="h-5 w-5" />
           </Button>
         </motion.div>
       )}

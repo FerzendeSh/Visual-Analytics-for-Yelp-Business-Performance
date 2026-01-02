@@ -72,7 +72,7 @@ export function Combobox({
                     key={option.value}
                     onClick={() => handleSelect(option.value)}
                     className={cn(
-                      "w-full flex items-center justify-between px-2 py-2 text-sm rounded-md hover:bg-slate-700 transition-colors text-left",
+                      "w-full flex items-center justify-between px-2 py-2 text-sm rounded-md hover:bg-slate-700 transition-colors text-left cursor-pointer",
                       value === option.value && "bg-slate-700"
                     )}
                   >

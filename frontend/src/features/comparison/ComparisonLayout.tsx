@@ -1,11 +1,13 @@
-import { lazy, Suspense, useState, memo } from 'react';
+import { lazy, Suspense, useState, useMemo, useEffect, memo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../../stores/useAppStore';
 import { useBatchTimelinesLegacy } from '../../hooks/useBatchTimelines';
 import { useSmartKeywordInsights } from '../../hooks/useKeywordInsights';
-import { MetricsCards } from './MetricsCards';
 import { ChartErrorBoundary } from '../../components/common/ErrorBoundary';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Move } from 'lucide-react';
 import { TimelineDataPoint } from '../../lib/api';
+import { api } from '../../lib/api';
+import { format } from 'date-fns';
 
 // Lazy load heavy chart components for further code splitting
 // SuperTrends is 930 lines with complex visx visualizations
@@ -59,10 +61,60 @@ interface ComparisonContentProps {
 }
 
 function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: ComparisonContentProps) {
-  // Shared state for synchronized interactions (legends and tooltips)
-  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-  const [hideVolume, setHideVolume] = useState(false);
   const [sharedHoverDate, setSharedHoverDate] = useState<Date | null>(null);
+  const [isBrushMode, setIsBrushMode] = useState(false);
+  const [brushSelection, setBrushSelection] = useState<{start: Date, end: Date} | null>(null);
+  const updateFilters = useAppStore((state) => state.updateFilters);
+  const filters = useAppStore((state) => state.filters);
+
+  // Convert granularity to period format for charts
+  const period: 'month' | 'year' = filters.granularity === 'MONTHLY' ? 'month' : 'year';
+
+  // Handle brush selection - update filters with custom date range
+  // Use a ref to debounce filter updates and prevent re-renders during interaction
+  const handleBrushChange = useCallback((selection: {start: Date, end: Date} | null) => {
+    setBrushSelection(selection);
+
+    if (selection) {
+      // Update app store with custom date range
+      updateFilters({
+        timeRange: 'CUSTOM',
+        customDateRange: {
+          start: format(selection.start, 'yyyy-MM-dd'),
+          end: format(selection.end, 'yyyy-MM-dd'),
+        },
+      });
+    } else {
+      // Clear custom range - revert to default 5Y
+      updateFilters({
+        timeRange: '5Y',
+        customDateRange: null,
+        granularity: 'YEARLY',
+      });
+    }
+  }, [updateFilters]);
+
+  // Handle year click - drill down to show months for that year
+  const handleYearClick = useCallback((year: string) => {
+    const startDate = new Date(`${year}-01-01`);
+    const endDate = new Date(`${year}-12-31`);
+
+    // Set custom date range for the clicked year and switch to monthly granularity
+    updateFilters({
+      timeRange: 'CUSTOM',
+      customDateRange: {
+        start: format(startDate, 'yyyy-MM-dd'),
+        end: format(endDate, 'yyyy-MM-dd'),
+      },
+      granularity: 'MONTHLY',
+    });
+
+    // Update brush selection to reflect the year
+    setBrushSelection({
+      start: startDate,
+      end: endDate,
+    });
+  }, [updateFilters]);
 
   // Fetch data using batch endpoint - reduces 4-7 requests to 1 (67% faster)
   const {
@@ -74,6 +126,47 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     isLoading,
     isError,
   } = useBatchTimelinesLegacy(primaryBusinessId, comparisonIds);
+
+  // Shared state for synchronized interactions (legends and tooltips)
+  // Persist hidden series across tab switches using localStorage
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('comparison-hidden-series');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Save hidden series to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('comparison-hidden-series', JSON.stringify(Array.from(hiddenSeries)));
+  }, [hiddenSeries]);
+
+  // Hide benchmarks by default only if nothing is saved in localStorage
+  useEffect(() => {
+    // Check if user has any saved preferences
+    const hasSavedPreferences = localStorage.getItem('comparison-hidden-series');
+    if (hasSavedPreferences) return; // User has preferences, don't override
+
+    const hidden: string[] = [];
+
+    // Hide city benchmark by default if it exists
+    const cityName = cityTimeline.data?.city_ratings?.business_name;
+    if (cityName) {
+      hidden.push(cityName);
+    }
+
+    // Hide neighborhood benchmark by default if it exists
+    const neighborhoodName = neighborhoodTimeline.data?.neighborhood_ratings?.business_name;
+    if (neighborhoodName) {
+      hidden.push(neighborhoodName);
+    }
+
+    if (hidden.length > 0) {
+      setHiddenSeries(new Set(hidden));
+    }
+  }, [cityTimeline.data?.city_ratings?.business_name, neighborhoodTimeline.data?.neighborhood_ratings?.business_name]);
 
   // Use smart keyword insights that finds the relevant data year
   const keywordInsightsResult = useSmartKeywordInsights(
@@ -114,26 +207,6 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     );
   }
 
-  // Process timeline data for MetricsCards (Keep original logic for cards)
-  const timelineData = businessTimeline.data?.business_ratings?.data || [];
-  const metricsData = {
-    ratingTrend: timelineData.map((d: any) => ({
-      date: new Date(d.period_start),
-      value: d.avg_rating ?? 0,
-    })),
-    sentimentTrend: timelineData.map((d: any) => ({
-      date: new Date(d.period_start),
-      value: d.avg_sentiment_score ?? 0,
-    })),
-    volumeTrend: timelineData.map((d: any) => ({
-      date: new Date(d.period_start),
-      value: d.review_count ?? 0,
-    })),
-    currentRating: timelineData.length > 0 ? timelineData[timelineData.length - 1]?.avg_rating ?? 0 : 0,
-    currentSentiment: timelineData.length > 0 ? timelineData[timelineData.length - 1]?.avg_sentiment_score ?? 0 : 0,
-    currentVolume: timelineData.length > 0 ? timelineData[timelineData.length - 1]?.review_count ?? 0 : 0,
-  };
-
   // Prepare props for SuperTrends (Ratings)
   const primaryTimeline = businessTimeline.data?.business_ratings ?? null;
 
@@ -162,15 +235,8 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
 
   return (
     <div className="w-full h-full p-6 overflow-auto">
-      <div className="grid grid-rows-[auto_1fr_1fr] gap-4 h-full">
-        {/* Row 1: Metrics Cards - Full width */}
-        <ChartErrorBoundary chartName="Metrics Cards" resetKeys={[primaryBusinessId]}>
-          <div>
-            <MetricsCards {...metricsData} />
-          </div>
-        </ChartErrorBoundary>
-
-        {/* Row 2: Rating and Sentiment Trends - Split 50/50 */}
+      <div className="grid grid-rows-[1fr_1fr] gap-4 h-full">
+        {/* Row 1: Rating and Sentiment Trends - Split 50/50 */}
         <div className="grid grid-cols-2 gap-4 min-h-[400px]">
           <ChartErrorBoundary chartName="Rating Trends" resetKeys={[primaryBusinessId, ...comparisonIds]}>
             <div>
@@ -180,13 +246,17 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
                     primaryTimeline={primaryTimeline}
                     comparisonTimelines={comparisonTimelinesList}
                     benchmarkTimelines={benchmarkTimelines}
+                    period={period}
                     showBenchmarks={benchmarks}
                     hiddenSeries={hiddenSeries}
                     onHiddenSeriesChange={setHiddenSeries}
-                    hideVolume={hideVolume}
-                    onHideVolumeChange={setHideVolume}
                     sharedHoverDate={sharedHoverDate}
                     onHoverDateChange={setSharedHoverDate}
+                    isBrushMode={isBrushMode}
+                    brushSelection={brushSelection}
+                    onBrushChange={handleBrushChange}
+                    onBrushModeChange={setIsBrushMode}
+                    onYearClick={handleYearClick}
                   />
                 </Suspense>
               ) : (
@@ -205,13 +275,17 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
                     primaryTimeline={primarySentimentTimeline}
                     comparisonTimelines={comparisonSentimentTimelinesList}
                     benchmarkTimelines={benchmarkSentimentTimelines}
+                    period={period}
                     showBenchmarks={benchmarks}
                     hiddenSeries={hiddenSeries}
                     onHiddenSeriesChange={setHiddenSeries}
-                    hideVolume={hideVolume}
-                    onHideVolumeChange={setHideVolume}
                     sharedHoverDate={sharedHoverDate}
                     onHoverDateChange={setSharedHoverDate}
+                    isBrushMode={isBrushMode}
+                    brushSelection={brushSelection}
+                    onBrushChange={handleBrushChange}
+                    onBrushModeChange={setIsBrushMode}
+                    onYearClick={handleYearClick}
                   />
                 </Suspense>
               ) : (
