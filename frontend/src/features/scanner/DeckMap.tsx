@@ -49,26 +49,44 @@ export function DeckMap() {
   const { prefetchComparisonData } = usePrefetchComparison();
 
   // Calculate viewport bounds
+  // Note: This updates whenever mapViewState changes, which includes during/after navigation
   const viewport = useMemo(() => {
-    if (!mapRef) return null;
+    if (!mapRef) {
+      console.log('📐 Viewport: no mapRef yet');
+      return null;
+    }
     const bounds = mapRef.getBounds();
-    if (!bounds) return null;
+    if (!bounds) {
+      console.log('📐 Viewport: no bounds yet');
+      return null;
+    }
 
-    return {
+    const viewportBounds = {
       south: bounds.getSouth(),
       north: bounds.getNorth(),
       west: bounds.getWest(),
       east: bounds.getEast(),
     };
+
+    console.log('📐 Viewport calculated:', viewportBounds, 'zoom:', mapViewState.zoom);
+    return viewportBounds;
   }, [mapRef, mapViewState]);
 
   // Fetch data
   const { data: businesses = [], isLoading } = useMapBusinesses(viewport);
   const { data: neighborhoods } = useNeighborhoods(selectedCity, selectedState);
-  const { data: cityBoundary } = useQuery({
+  const { data: cityBoundary, isLoading: isCityBoundaryLoading } = useQuery({
     queryKey: ['cityBoundary', selectedCity, selectedState],
-    queryFn: () => api.locations.getCityBoundary({ city: selectedCity!, state: selectedState! }),
+    queryFn: () => {
+      console.log('🗺️ Fetching city boundary:', { city: selectedCity, state: selectedState });
+      return api.locations.getCityBoundary({ city: selectedCity!, state: selectedState! });
+    },
     enabled: !!selectedState && !!selectedCity,
+    retry: false, // Don't retry 404s for missing boundaries
+    staleTime: Infinity, // City boundaries don't change
+    meta: {
+      errorMessage: 'City boundaries not available'
+    }
   });
 
   // Clustering logic (extracted)
@@ -79,7 +97,7 @@ export function DeckMap() {
   );
 
   // Auto-navigation (extracted)
-  useNavigateToCity(cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef);
+  useNavigateToCity(cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef, filters.cityId, businesses);
   useNavigateToNeighborhood(filters.neighborhoodId, neighborhoods, mapRef, setMapViewState, isProgrammaticMoveRef);
 
   // Layers (extracted)

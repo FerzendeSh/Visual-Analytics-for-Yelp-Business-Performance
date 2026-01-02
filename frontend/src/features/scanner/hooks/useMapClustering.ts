@@ -78,12 +78,15 @@ export function useMapClustering(
     return { clusters, supercluster: index };
   }, [businesses, viewport, zoom]);
 
-  // Determine display mode based on zoom level
-  // < 10: Only clusters
-  // 10-11: Both clusters and businesses (hybrid mode)
-  // >= 12: Only businesses
-  const showClusters = zoom < 12;
-  const showBoth = zoom >= 10 && zoom < 12;
+  // Determine display mode based on zoom level and cluster data
+  // Always show clusters if they exist
+  // Show both clusters and individual points when we have both
+  const hasAnyClusters = useMemo(() => {
+    return clusters.some((cluster) => (cluster.properties as any).cluster);
+  }, [clusters]);
+
+  const showClusters = hasAnyClusters;
+  const showBoth = hasAnyClusters && clusters.some((cluster) => !(cluster.properties as any).cluster);
 
   // Separate cluster points from individual business points
   const { clusterData, pointData } = useMemo(() => {

@@ -3,7 +3,7 @@
  * Manages city boundary, neighborhood, cluster, and business point layers.
  */
 import { useMemo } from 'react';
-import { GeoJsonLayer, ScatterplotLayer, IconLayer } from '@deck.gl/layers';
+import { GeoJsonLayer, ScatterplotLayer, IconLayer, TextLayer } from '@deck.gl/layers';
 import { scaleLinear } from 'd3-scale';
 import Supercluster from 'supercluster';
 import { Business } from '@/lib/api';
@@ -159,6 +159,7 @@ export function useMapLayers({
     // In hybrid mode (zoom 10-11), clusters are shown alongside businesses
     // In cluster-only mode (zoom < 10), only clusters are shown
     if (showClusters && clusterData.length > 0) {
+      // Cluster circles
       result.push(
         new ScatterplotLayer({
           id: 'clusters',
@@ -166,16 +167,16 @@ export function useMapLayers({
           getPosition: (d: any) => d.position,
           getRadius: (d: any) => {
             const baseSize = 30;
-            const scaleFactor = 15;
+            const scaleFactor = 12;
             return baseSize + Math.sqrt(d.count) * scaleFactor;
           },
-          getFillColor: (d: any) => {
-            const intensity = Math.min(d.count / 50, 1);
-            // Brighter orange with more opacity for better visibility
-            return [255, Math.floor(140 - intensity * 40), 0, 255];
-          },
-          getLineColor: [255, 255, 255],
-          lineWidthMinPixels: 3,
+          radiusMinPixels: 15,
+          radiusMaxPixels: 70,
+          getFillColor: [128, 128, 128, 220], // Gray with higher opacity
+          getLineColor: [255, 255, 255, 255], // White border
+          lineWidthMinPixels: 2,
+          stroked: true,
+          filled: true,
           pickable: true,
           getCursor: () => 'pointer',
           onClick: ({ object }) => {
@@ -190,6 +191,23 @@ export function useMapLayers({
               transitionDuration: 400, // Smooth cluster expansion
             });
           },
+        })
+      );
+
+      // Cluster count labels
+      result.push(
+        new TextLayer({
+          id: 'cluster-labels',
+          data: clusterData,
+          getPosition: (d: any) => d.position,
+          getText: (d: any) => String(d.count),
+          getSize: 14,
+          getColor: [255, 255, 255, 255], // White text
+          fontFamily: 'Arial, sans-serif',
+          fontWeight: 'bold',
+          getTextAnchor: 'middle',
+          getAlignmentBaseline: 'center',
+          pickable: false,
         })
       );
     }
