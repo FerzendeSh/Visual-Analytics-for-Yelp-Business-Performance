@@ -77,16 +77,17 @@ export function DeckMap() {
   const { data: neighborhoods } = useNeighborhoods(selectedCity, selectedState);
   const { data: cityBoundary, isLoading: isCityBoundaryLoading } = useQuery({
     queryKey: ['cityBoundary', selectedCity, selectedState],
-    queryFn: () => {
+    queryFn: async () => {
       console.log('🗺️ Fetching city boundary:', { city: selectedCity, state: selectedState });
-      return api.locations.getCityBoundary({ city: selectedCity!, state: selectedState! });
+      const result = await api.locations.getCityBoundary({ city: selectedCity!, state: selectedState! });
+      if (!result) {
+        console.log('🗺️ City boundary not available for:', { city: selectedCity, state: selectedState });
+      }
+      return result;
     },
     enabled: !!selectedState && !!selectedCity,
     retry: false, // Don't retry 404s for missing boundaries
     staleTime: Infinity, // City boundaries don't change
-    meta: {
-      errorMessage: 'City boundaries not available'
-    }
   });
 
   // Clustering logic (extracted)
@@ -97,7 +98,7 @@ export function DeckMap() {
   );
 
   // Auto-navigation (extracted)
-  useNavigateToCity(cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef, filters.cityId, businesses);
+  useNavigateToCity(cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef, filters.cityId, businesses, isCityBoundaryLoading);
   useNavigateToNeighborhood(filters.neighborhoodId, neighborhoods, mapRef, setMapViewState, isProgrammaticMoveRef);
 
   // Layers (extracted)

@@ -67,11 +67,12 @@ export function useMapClustering(
       clusterZoom
     );
 
-    console.log('🔍 Clustering Debug:', {
+    console.log('🔍 [CLUSTERING] Generated clusters:', {
       totalBusinesses: businesses.length,
-      clusters: clusters.length,
+      clustersGenerated: clusters.length,
       zoom,
       clusterZoom,
+      viewport: viewport ? `${bounds.west.toFixed(2)},${bounds.south.toFixed(2)} to ${bounds.east.toFixed(2)},${bounds.north.toFixed(2)}` : 'global',
       mode: clusterZoom < 10 ? 'clusters-only' : clusterZoom < 12 ? 'hybrid' : 'businesses-only',
     });
 
@@ -106,11 +107,18 @@ export function useMapClustering(
       }
     });
 
+    console.log('🔍 [CLUSTERING] Separated data:', {
+      clusterPoints: clusterPoints.length,
+      individualPoints: individualPoints.length,
+      showClusters,
+      showBoth,
+    });
+
     return {
       clusterData: clusterPoints,
       pointData: individualPoints,
     };
-  }, [clusters]);
+  }, [clusters, showClusters, showBoth]);
 
   return {
     clusters,

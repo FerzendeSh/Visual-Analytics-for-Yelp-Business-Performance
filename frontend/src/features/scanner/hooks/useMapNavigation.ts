@@ -80,90 +80,132 @@ export function useNavigateToCity(
   setMapViewState: (state: MapViewState) => void,
   isProgrammaticMoveRef: React.MutableRefObject<boolean>,
   cityId?: string | null,
-  businesses?: Array<{ longitude: number; latitude: number }>
+  businesses?: Array<{ longitude: number; latitude: number }>,
+  isCityBoundaryLoading?: boolean
 ) {
   const previousCityRef = useRef<string | null>(null);
-  const boundaryLoadingRef = useRef<boolean>(false);
+  const hasNavigatedForCityRef = useRef<string | null>(null);
 
+  // Effect 1: Detect city changes and reset navigation state
   useEffect(() => {
     // Handle city being cleared
     if (!cityId) {
       previousCityRef.current = null;
+      hasNavigatedForCityRef.current = null;
       return;
     }
 
-    // Only navigate if cityId has actually changed
+    // Only process if cityId has actually changed
     if (cityId !== previousCityRef.current) {
       console.log('🗺️ City changed:', { from: previousCityRef.current, to: cityId });
       previousCityRef.current = cityId;
-
-      if (!mapRef) {
-        console.log('🗺️ Map ref not ready yet');
-        return;
-      }
-
-      // Strategy 1: Use city boundary if available
-      if (cityBoundary) {
-        try {
-          const features = cityBoundary.features || [cityBoundary as any];
-          let allCoords: any[] = [];
-
-          features.forEach((feature: any) => {
-            if (feature.geometry?.coordinates) {
-              allCoords.push(feature.geometry.coordinates);
-            }
-          });
-
-          if (allCoords.length > 0) {
-            const bounds = calculateBounds(allCoords);
-            if (bounds) {
-              const centerLng = (bounds.minLng + bounds.maxLng) / 2;
-              const centerLat = (bounds.minLat + bounds.maxLat) / 2;
-              const zoom = calculateZoomLevel(bounds);
-
-              console.log('🗺️ Navigating to city boundary:', cityId, { centerLng, centerLat, zoom });
-
-              isProgrammaticMoveRef.current = true;
-              setMapViewState({
-                longitude: centerLng,
-                latitude: centerLat,
-                zoom,
-                pitch: 0,
-                bearing: 0,
-                transitionDuration: 1000,
-              });
-              boundaryLoadingRef.current = false;
-              return;
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to fit city boundary:', error);
-        }
-      }
-
-      // Strategy 2: Fallback - zoom to default city level, let businesses load after
-      console.log('🗺️ No city boundary available, zooming to default city level (businesses will load)');
-      isProgrammaticMoveRef.current = true;
-      setMapViewState({
-        longitude: mapRef.getCenter().lng,
-        latitude: mapRef.getCenter().lat,
-        zoom: 11, // Default city-level zoom - shows typical city area
-        pitch: 0,
-        bearing: 0,
-        transitionDuration: 1000,
-      });
+      hasNavigatedForCityRef.current = null; // Reset navigation flag for new city
     }
-  }, [cityId, cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef]);
+  }, [cityId]);
 
-  // Separate effect: Once businesses load for new city without boundary, fit to them
+  // Effect 2: Navigate to city boundary when available
   useEffect(() => {
-    if (!cityId || !businesses || businesses.length === 0) return;
-    if (cityBoundary) return; // Only use this fallback if no boundary exists
-    if (previousCityRef.current !== cityId) return; // Only for current city
+    if (!cityId) return;
+    if (hasNavigatedForCityRef.current === cityId) return;
+    if (!mapRef) {
+      console.log('🗺️ Map ref not ready yet');
+      return;
+    }
 
-    // Check if we need to fit to businesses (haven't done so yet)
-    const lngs = businesses.map(b => b.longitude);
-    const lats = businesses.map(b => b.latitude);
+    // Use city boundary if available
+    if (cityBoundary) {
+      try {
+        const features = cityBoundary.features || [cityBoundary as any];
+        let allCoords: any[] = [];
+
+        features.forEach((feature: any) => {
+          if (feature.geometry?.coordinates) {
+            allCoords.push(feature.geometry.coordinates);
+          }
+        });
+
+        if (allCoords.length > 0) {
+          const bounds = calculateBounds(allCoords);
+          if (bounds) {
+            const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+            const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+            const zoom = calculateZoomLevel(bounds);
+
+            console.log('🗺️ Navigating to city boundary:', cityId, { centerLng, centerLat, zoom });
+
+            isProgrammaticMoveRef.current = true;
+            hasNavigatedForCityRef.current = cityId;
+            setMapViewState({
+              longitude: centerLng,
+              latitude: centerLat,
+              zoom,
+              pitch: 0,
+              bearing: 0,
+              transitionDuration: 1000,
+            });
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fit city boundary:', error);
+      }
+    }
+    // Don't navigate here if no boundary - let the businesses fallback effect handle it
+  }, [cityId, cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef, hasNavigatedForCityRef]);
+
+  // Effect 3: Fallback - navigate to business locations when no city boundary is available
+  // This effect fires whenever businesses change for the current city
+  useEffect(() => {
+    // Skip if no city selected or already navigated for this city
+    if (!cityId) {
+      console.log('🗺️ [Fallback] No cityId');
+      return;
+    }
+    if (hasNavigatedForCityRef.current === cityId) {
+      console.log('🗺️ [Fallback] Already navigated for city:', cityId);
+      return;
+    }
+
+    // Skip if city boundary exists (Effect 2 handles it)
+    if (cityBoundary) {
+      console.log('🗺️ [Fallback] City boundary exists, skipping business fallback');
+      return;
+    }
+
+    // Wait for city boundary query to complete before falling back to businesses
+    // This prevents premature navigation while boundary is still loading
+    if (isCityBoundaryLoading) {
+      console.log('🗺️ [Fallback] Waiting for city boundary query to complete...');
+      return;
+    }
+
+    console.log('🗺️ [Fallback] City boundary not available (404), using business locations');
+
+    // Skip if map not ready
+    if (!mapRef) {
+      console.log('🗺️ [Fallback] Map ref not ready');
+      return;
+    }
+
+    // If no businesses yet, wait for them to load
+    if (!businesses || businesses.length === 0) {
+      console.log('🗺️ [Fallback] Waiting for businesses to load for city:', cityId);
+      return;
+    }
+
+    // Filter out invalid coordinates
+    const validBusinesses = businesses.filter(
+      b => b.longitude && b.latitude && !isNaN(b.longitude) && !isNaN(b.latitude)
+    );
+
+    if (validBusinesses.length === 0) {
+      console.log('🗺️ No valid businesses found for city:', cityId);
+      return;
+    }
+
+    // Calculate bounds from business locations
+    const lngs = validBusinesses.map(b => b.longitude);
+    const lats = validBusinesses.map(b => b.latitude);
 
     const bounds = {
       minLng: Math.min(...lngs),
@@ -174,37 +216,27 @@ export function useNavigateToCity(
 
     const centerLng = (bounds.minLng + bounds.maxLng) / 2;
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const zoom = calculateZoomLevel(bounds);
 
-    // Only navigate if we're not already centered on these businesses
-    if (!mapRef) return;
-    const currentCenter = mapRef.getCenter();
-    const distance = Math.sqrt(
-      Math.pow(currentCenter.lng - centerLng, 2) +
-      Math.pow(currentCenter.lat - centerLat, 2)
-    );
+    console.log('🗺️ No city boundary available, fitting map to business locations:', {
+      cityId,
+      centerLng,
+      centerLat,
+      zoom,
+      businessCount: validBusinesses.length,
+    });
 
-    // If we're far from the business center (>0.1 degrees ~11km), navigate there
-    if (distance > 0.1) {
-      const zoom = calculateZoomLevel(bounds);
-      console.log('🗺️ Fitting map to business locations:', {
-        centerLng,
-        centerLat,
-        zoom,
-        businessCount: businesses.length,
-        distance
-      });
-
-      isProgrammaticMoveRef.current = true;
-      setMapViewState({
-        longitude: centerLng,
-        latitude: centerLat,
-        zoom,
-        pitch: 0,
-        bearing: 0,
-        transitionDuration: 1000,
-      });
-    }
-  }, [businesses, cityId, cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef]);
+    isProgrammaticMoveRef.current = true;
+    hasNavigatedForCityRef.current = cityId;
+    setMapViewState({
+      longitude: centerLng,
+      latitude: centerLat,
+      zoom,
+      pitch: 0,
+      bearing: 0,
+      transitionDuration: 1000,
+    });
+  }, [businesses, cityId, cityBoundary, isCityBoundaryLoading, mapRef, setMapViewState, isProgrammaticMoveRef]);
 }
 
 /**

@@ -16,10 +16,14 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
   const selectedCity = filters.cityId?.split('_')[0];
   const selectedState = filters.cityId?.split('_')[1];
 
-  // Use immediate viewport for city/state filter queries (no debounce)
-  // Only debounce for pure viewport-based queries
-  const shouldUseImmediateViewport = !!(selectedCity || selectedState);
-  const debouncedViewport = useDebounce(viewport, shouldUseImmediateViewport ? 0 : 300);
+  // Don't use viewport bounds when city/state filter is active
+  // The viewport might not include the filtered city yet (before navigation completes)
+  // Instead, always use global bounds with city/state filters
+  const shouldUseViewport = !selectedCity && !selectedState;
+
+  // Use immediate viewport for pure viewport queries (no debounce when no filters)
+  // Debounce viewport changes when panning/zooming
+  const debouncedViewport = useDebounce(viewport, 300);
 
   return useQuery({
     queryKey: [
@@ -31,10 +35,12 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
       filters.categories[0],
       filters.status,
       filters.ratingRange[0],
-      debouncedViewport
+      // Only include viewport in query key when NOT filtering by city/state
+      // This prevents unnecessary refetches when map zooms after city selection
+      shouldUseViewport ? debouncedViewport : null
     ],
     queryFn: async () => {
-      console.log('🔍 Fetching businesses:', {
+      console.log('🔍 [BUSINESSES QUERY] Starting fetch:', {
         hasViewport: !!debouncedViewport,
         city: selectedCity,
         state: selectedState,
@@ -56,28 +62,33 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
         is_open: filters.status === 'OPEN' ? 1 : filters.status === 'CLOSED' ? 0 : undefined,
       };
 
-      if (debouncedViewport) {
-        // Use actual viewport bounds
-        console.log('📍 Fetching with viewport:', { viewport: debouncedViewport, ...baseParams });
-        return api.businesses.viewport({
-          ...debouncedViewport,
-          ...baseParams,
-        });
-      }
-
-      // Fallback: Use global bounds when viewport not ready
-      // This ensures businesses load immediately when city is selected
+      // When city/state filter is active, ALWAYS use global bounds
+      // This prevents getting 0 results when viewport doesn't include the filtered city yet
       if (selectedCity || selectedState) {
-        console.log('📍 Using global bounds with city/state filter:', { city: selectedCity, state: selectedState });
-        return api.businesses.viewport({
+        console.log('📍 [BUSINESSES QUERY] Using global bounds with city/state filter:', { city: selectedCity, state: selectedState });
+        const result = await api.businesses.viewport({
           south: -90,
           north: 90,
           west: -180,
           east: 180,
           ...baseParams,
         });
+        console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses from global bounds`);
+        return result;
       }
 
+      // No filters - use viewport bounds for exploring the map
+      if (debouncedViewport && shouldUseViewport) {
+        console.log('📍 [BUSINESSES QUERY] Fetching with viewport (no filters):', { viewport: debouncedViewport });
+        const result = await api.businesses.viewport({
+          ...debouncedViewport,
+          ...baseParams,
+        });
+        console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses from viewport`);
+        return result;
+      }
+
+      console.log('📍 [BUSINESSES QUERY] No viewport or filters, returning empty array');
       return [];
     },
     enabled: !!debouncedViewport || !!(selectedCity || selectedState),
@@ -89,12 +100,15 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
 export function useNeighborhoods(city?: string, state?: string) {
   return useQuery({
     queryKey: ['neighborhood-boundaries', city, state],
-    queryFn: () => api.locations.getNeighborhoodBoundaries({ city, state }),
+    queryFn: async () => {
+      const result = await api.locations.getNeighborhoodBoundaries({ city, state });
+      if (!result) {
+        console.log('🗺️ Neighborhood boundaries not available for:', { city, state });
+      }
+      return result;
+    },
     enabled: !!(city && state),
     staleTime: Infinity, // Neighborhoods don't change
     retry: false, // Don't retry 404s for missing boundaries
-    meta: {
-      errorMessage: 'Neighborhood boundaries not available'
-    }
   });
 }
