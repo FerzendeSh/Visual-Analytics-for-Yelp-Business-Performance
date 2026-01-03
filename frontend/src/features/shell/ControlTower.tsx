@@ -172,7 +172,8 @@ export function ControlTower() {
             <Slider
               min={1.0}
               max={5.0}
-              step={0.1}
+              step={0.5}
+              minRange={0.5}
               value={filters.ratingRange}
               onValueChange={(value) => updateFilters({ ratingRange: value })}
             />

@@ -7,7 +7,7 @@ import { GridRows, GridColumns } from '@visx/grid';
 import { useTooltip, useTooltipInPortal, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { ParentSize } from '@visx/responsive';
-import { Star, MapPin, Info, Maximize2, Move, MousePointer2 } from 'lucide-react';
+import { Star, MapPin, Maximize2, Move, MousePointer2 } from 'lucide-react';
 import { Text } from '@visx/text';
 import { Brush } from '@visx/brush';
 import { Bounds } from '@visx/brush/lib/types';
@@ -308,7 +308,7 @@ const QuadrantChart = ({
                   setIsZoomMode(false);
                 }
               }}
-              title={isClickMode ? "Click mode active - click dots to zoom map" : "Enable click mode"}
+              title={isClickMode ? "Click-only mode - dots won't change selection" : "Enable click-only mode (prevents selection changes)"}
             >
               <MousePointer2 size={16} />
             </button>
@@ -444,16 +444,14 @@ const QuadrantChart = ({
                 onClick={(e) => {
                   e.stopPropagation();
 
-                  if (isClickMode) {
-                    // In click mode: only zoom map, don't change selection
-                    if (onBusinessClick) {
-                      onBusinessClick(d);
-                    }
-                  } else {
-                    // Not in click mode: handle selection normally
-                    if (!isMaggianosHardcoded && onSelectBusiness) {
-                      onSelectBusiness(isSelected ? null : d.id);
-                    }
+                  // Always zoom map and open popup when clicking a dot
+                  if (onBusinessClick) {
+                    onBusinessClick(d);
+                  }
+
+                  // Only change selection if NOT in click mode and NOT Maggiano's
+                  if (!isClickMode && !isMaggianosHardcoded && onSelectBusiness) {
+                    onSelectBusiness(isSelected ? null : d.id);
                   }
                 }}
               />
@@ -522,8 +520,8 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
   const comparisonIds = useAppStore((state) => state.comparisonIds);
   const setPrimaryBusiness = useAppStore((state) => state.setPrimaryBusiness);
   const setHighlightedBusiness = useAppStore((state) => state.setHighlightedBusiness);
+  const setClickedBusiness = useAppStore((state) => state.setClickedBusiness);
   const setMapViewState = useAppStore((state) => state.setMapViewState);
-  const mapViewState = useAppStore((state) => state.mapViewState);
   const highlightedBusinessId = useAppStore((state) => state.highlightedBusinessId);
   const filters = useAppStore((state) => state.filters);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -627,7 +625,7 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
     };
   }, [snapshotData, primaryBusinessId, comparisonIds, comparisonBusinesses, primaryBusinessData, cityName, stateName]);
 
-  // Handler for clicking on a business dot - zoom map to that location
+  // Handler for clicking on a business dot - zoom map to that location and open popup
   const handleBusinessClick = useCallback((chartPoint: ChartDataPoint) => {
     // Find the full business data - check snapshot first, then cross-city primary, then comparison businesses
     let business = snapshotData?.businesses.find((b: any) => b.business_id === chartPoint.id);
@@ -647,6 +645,9 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
     // Set highlighted business for visual feedback
     setHighlightedBusiness(chartPoint.id);
 
+    // Set clicked business to open the map popup
+    setClickedBusiness(chartPoint.id);
+
     // Zoom to business location on the map
     setMapViewState({
       longitude: business.longitude,
@@ -657,11 +658,11 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
       transitionDuration: 800,
     });
 
-    // Clear highlight after animation
+    // Clear highlight after animation (but keep popup open)
     setTimeout(() => {
       setHighlightedBusiness(null);
     }, 3000);
-  }, [snapshotData, primaryBusinessData, comparisonBusinesses, setHighlightedBusiness, setMapViewState]);
+  }, [snapshotData, primaryBusinessData, comparisonBusinesses, setHighlightedBusiness, setClickedBusiness, setMapViewState]);
 
   if (!snapshotData || chartData.length === 0) {
     return (

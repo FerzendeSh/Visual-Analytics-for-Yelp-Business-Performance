@@ -23,7 +23,6 @@ import { useMapLayers } from './hooks/useMapLayers';
 export function DeckMap() {
   // Local state
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [clickedId, setClickedId] = useState<string | null>(null);
   const [mapRef, setMapRef] = useState<MapRef | null>(null);
   const [deckError, setDeckError] = useState<Error | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -40,6 +39,8 @@ export function DeckMap() {
   const setPrimaryBusiness = useAppStore((state) => state.setPrimaryBusiness);
   const setHighlightedBusiness = useAppStore((state) => state.setHighlightedBusiness);
   const highlightedBusinessId = useAppStore((state) => state.highlightedBusinessId);
+  const clickedId = useAppStore((state) => state.clickedBusinessId);
+  const setClickedId = useAppStore((state) => state.setClickedBusiness);
   const filters = useAppStore((state) => state.filters);
 
   const selectedState = filters.cityId?.split('_')[1];
@@ -321,8 +322,8 @@ export function DeckMap() {
   }
 
   // Find hovered and clicked businesses
-  const hoveredBusiness = hoveredId ? businesses.find((b) => b.business_id === hoveredId) : null;
-  const clickedBusiness = clickedId ? businesses.find((b) => b.business_id === clickedId) : null;
+  const hoveredBusiness = hoveredId ? businesses.find((b) => b.business_id === hoveredId) ?? null : null;
+  const clickedBusiness = clickedId ? businesses.find((b) => b.business_id === clickedId) ?? null : null;
 
   // Comparison handlers
   const handleAddToComparison = useCallback(() => {
@@ -339,7 +340,7 @@ export function DeckMap() {
 
   const handleClosePopup = useCallback(() => {
     setClickedId(null);
-  }, []);
+  }, [setClickedId]);
 
   return (
     <div

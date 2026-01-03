@@ -8,6 +8,7 @@ interface SliderProps {
   value: [number, number];
   onValueChange: (value: [number, number]) => void;
   className?: string;
+  minRange?: number; // Minimum gap between min and max values
 }
 
 export function Slider({
@@ -17,6 +18,7 @@ export function Slider({
   value,
   onValueChange,
   className,
+  minRange = 0,
 }: SliderProps) {
   const [localValue, setLocalValue] = React.useState(value);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -29,14 +31,14 @@ export function Slider({
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMin = parseFloat(e.target.value);
-    const newValue: [number, number] = [newMin, Math.max(newMin, localValue[1])];
+    const newValue: [number, number] = [newMin, Math.max(newMin + minRange, localValue[1])];
     setLocalValue(newValue);
     onValueChange(newValue);
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMax = parseFloat(e.target.value);
-    const newValue: [number, number] = [Math.min(localValue[0], newMax), newMax];
+    const newValue: [number, number] = [Math.min(localValue[0], newMax - minRange), newMax];
     setLocalValue(newValue);
     onValueChange(newValue);
   };

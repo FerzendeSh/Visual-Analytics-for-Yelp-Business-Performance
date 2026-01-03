@@ -29,6 +29,7 @@ export interface AppState {
   comparisonIds: string[]; // Supports multiple competitors
   selectedKeyword: string | null; // For Keyword Chart interaction
   highlightedBusinessId: string | null; // For map-scatter plot bidirectional linking
+  clickedBusinessId: string | null; // For opening map popup from scatter plot
 
   // Benchmarking
   benchmarks: {
@@ -59,6 +60,7 @@ export interface AppState {
   updateFilters: (partial: Partial<AppState['filters']>) => void;
   setKeyword: (keyword: string | null) => void;
   setHighlightedBusiness: (id: string | null) => void;
+  setClickedBusiness: (id: string | null) => void;
   resetFilters: () => void;
 }
 
@@ -91,6 +93,7 @@ export const useAppStore = create<AppState>()(
       comparisonIds: [],
       selectedKeyword: null,
       highlightedBusinessId: null,
+      clickedBusinessId: null,
 
       benchmarks: {
         showCityAvg: false,
@@ -106,7 +109,7 @@ export const useAppStore = create<AppState>()(
       setMapViewState: (viewState) => set({ mapViewState: viewState }),
 
       // Primary business is hardcoded to Maggiano's - no changes allowed
-      setPrimaryBusiness: (id) => {
+      setPrimaryBusiness: (_id) => {
         // Do nothing - primary business is fixed
         console.warn('Primary business is hardcoded to Maggiano\'s Little Italy and cannot be changed');
       },
@@ -139,6 +142,8 @@ export const useAppStore = create<AppState>()(
       setKeyword: (keyword) => set({ selectedKeyword: keyword }),
 
       setHighlightedBusiness: (id) => set({ highlightedBusinessId: id }),
+
+      setClickedBusiness: (id) => set({ clickedBusinessId: id }),
 
       resetFilters: () => set({ filters: initialFilters }),
     }),
