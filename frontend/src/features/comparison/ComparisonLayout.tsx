@@ -186,8 +186,8 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     );
   }
 
-  // Loading state
-  if (isLoading || keywordInsightsResult.isLoading) {
+  // Loading state - only block on critical timeline data
+  if (isLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <LoadingState message="Loading comparison data..." />
@@ -195,17 +195,25 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     );
   }
 
-  // Error state
-  if (isError || keywordInsightsResult.error) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <EmptyState
-          message="Failed to load comparison data"
-          subtitle="Please try again or select a different business"
-        />
-      </div>
-    );
+  // Error state - only show error if we can't load the primary business timeline
+  if (isError) {
+    // Check if we still have primary timeline data despite error (could be benchmark fetch failure)
+    const hasPrimaryData = businessTimeline.data?.business_ratings;
+
+    if (!hasPrimaryData) {
+      return (
+        <div className="w-full h-full flex items-center justify-center">
+          <EmptyState
+            message="Failed to load comparison data"
+            subtitle="Please try again or select a different business"
+          />
+        </div>
+      );
+    }
+    // If we have primary data, continue rendering (benchmark failures are okay)
   }
+
+  // Note: keyword insights errors are handled gracefully in the KeywordInsights section below
 
   // Prepare props for SuperTrends (Ratings)
   const primaryTimeline = businessTimeline.data?.business_ratings ?? null;

@@ -42,10 +42,12 @@ export function useBatchTimelines(primaryBusinessId: string | null, comparisonId
     : comparisonIds;
 
   // Extract city and neighborhood from filters for benchmark fetching
-  // cityId format: "Tampa_FL" -> extract city and state
+  // cityId format: "Tampa_FL" or "New York_NY" -> extract city and state
   const cityParts = filters.cityId?.split('_') || [];
-  const city = cityParts.length >= 2 ? cityParts.slice(0, -1).join(' ') : null;
+  // State is always the last part (2-letter code)
   const state = cityParts.length >= 2 ? cityParts[cityParts.length - 1] : null;
+  // City is everything before the state, joined with spaces (handles "New York")
+  const city = cityParts.length >= 2 ? cityParts.slice(0, -1).join(' ') : null;
   const neighborhood = filters.neighborhoodId;
 
   return useQuery({
@@ -56,6 +58,7 @@ export function useBatchTimelines(primaryBusinessId: string | null, comparisonId
       filters.timeRange,
       filters.customDateRange, // Include custom date range in cache key
       filters.categories,
+      filters.cityId, // Include city in cache key to refetch when city changes
       filters.neighborhoodId, // Include neighborhood in cache key
     ],
     queryFn: async () => {
@@ -63,20 +66,24 @@ export function useBatchTimelines(primaryBusinessId: string | null, comparisonId
         throw new Error('No business IDs provided');
       }
 
-      return api.analytics.getBatchTimelines({
+      // Build request payload, excluding undefined values
+      const payload: any = {
         business_ids: allBusinessIds,
         period: filters.granularity === 'MONTHLY' ? 'month' : 'year',
-        start_date,
-        end_date,
-        include_city_benchmark: true, // Always fetch city benchmark
-        include_neighborhood_benchmark: !!neighborhood, // Only fetch if neighborhood is selected
-        include_category_benchmark: false, // Don't fetch category by default
-        category: filters.categories[0],
-        // Include location info for benchmarks
-        city: city || undefined,
-        state: state || undefined,
-        neighborhood: neighborhood || undefined,
-      });
+        include_city_benchmark: true,
+        include_neighborhood_benchmark: !!neighborhood,
+        include_category_benchmark: false,
+      };
+
+      // Only include optional fields if they have values
+      if (start_date) payload.start_date = start_date;
+      if (end_date) payload.end_date = end_date;
+      if (filters.categories[0]) payload.category = filters.categories[0];
+      if (city) payload.city = city;
+      if (state) payload.state = state;
+      if (neighborhood) payload.neighborhood = neighborhood;
+
+      return api.analytics.getBatchTimelines(payload);
     },
     enabled: allBusinessIds.length > 0,
     staleTime: 10 * 60 * 1000, // 10 minutes - historical data changes slowly
