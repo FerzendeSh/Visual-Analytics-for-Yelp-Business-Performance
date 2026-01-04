@@ -53,8 +53,13 @@ class KeywordService:
             "company", "corporate", "management", "today", "yesterday",
             "customer", "patron", "guest", "person", "people", "everyone", "anybody",
             "order", "menu", "top", "ent", "min", "birthday", "occasion",
-            "experience", "overall", "visit", "went", "got", "made", "came","husband", 
-            "wife", "friend", "family", "group", "party", "daughter", "son", "job", "home"
+            "experience", "overall", "visit", "went", "got", "made", "came","husband",
+            "wife", "friend", "family", "group", "party", "daughter", "son", "job", "home",
+            # Measurement & Quantity Terms (Improvement #3)
+            "size", "oz", "ounce", "lb", "pound", "gram", "kg", "ml", "liter",
+            "large", "small", "medium", "big", "huge", "tiny", "little",
+            "price", "cost", "dollar", "buck", "money", "value", "charge", "fee",
+            "amount", "quantity", "number", "count"
         })
 
         self._generic_roots = frozenset({
@@ -79,25 +84,30 @@ class KeywordService:
         return self._embedding_store.get_embeddings(review_ids)
 
     def _build_dynamic_blocklist(
-        self, 
-        business_name: Optional[str] = None, 
+        self,
+        business_name: Optional[str] = None,
         city: Optional[str] = None
     ) -> Set[str]:
         """Build dynamic blocklist with business name and city."""
         # Convert to set for efficient union operations
         blocklist = set(self._hard_blocklist)
-        
+
         if business_name:
             clean_name = business_name.lower().replace("'", "").replace("'", "")
             # Add full name
             blocklist.add(clean_name)
             blocklist.add(business_name.lower())
-            
+
             # Add individual words (min 3 chars)
             for part in clean_name.split():
                 if len(part) > 2:
                     blocklist.add(part)
-            
+                    # Add lemmatized version using spaCy
+                    doc = self.nlp(part)
+                    for token in doc:
+                        if len(token.lemma_) > 2:
+                            blocklist.add(token.lemma_.lower())
+
             # Add common variations without apostrophes
             # e.g., "Maggiano's" -> also block "maggianos"
             no_apostrophe = business_name.lower().replace("'", "").replace("'", "")
@@ -106,7 +116,12 @@ class KeywordService:
                 for part in no_apostrophe.split():
                     if len(part) > 2:
                         blocklist.add(part)
-        
+                        # Add lemmatized version
+                        doc = self.nlp(part)
+                        for token in doc:
+                            if len(token.lemma_) > 2:
+                                blocklist.add(token.lemma_.lower())
+
         if city:
             clean_city = city.lower().replace("'", "")
             blocklist.add(clean_city)
@@ -118,17 +133,17 @@ class KeywordService:
         """
         Classify review as positive or negative using both sentiment score and star rating.
         Star rating validation helps catch sarcastic reviews and misclassifications.
-        
+
         Args:
             review: Dictionary containing sentiment_score_prob_diff, sentiment_label, and stars
-            
+
         Returns:
             'negative' or 'positive'
         """
         score = review.get('sentiment_score_prob_diff', 0)
         label = review.get('sentiment_label', '').lower() if review.get('sentiment_label') else ''
         stars = review.get('stars', None)
-        
+
         # If we have a pre-computed label, use it as initial classification
         if label in ['negative', 'positive']:
             initial_sentiment = label
@@ -139,25 +154,35 @@ class KeywordService:
         else:
             # Borderline case, lean based on score
             initial_sentiment = 'negative' if score < 0 else 'positive'
-        
-        # Validate with star rating if available
+
+        # Validate with star rating if available (stronger validation than before)
         if stars is not None:
-            # Strong mismatch detection: trust the star rating over sentiment analysis
-            # This catches sarcastic reviews like "Great food!" with 1 star
-            if stars <= 2.0 and initial_sentiment == 'positive':
-                # Low stars but positive sentiment detected -> likely sarcasm
+            # Trust star ratings more for clear cases
+            # Low star ratings (1-2.5 stars) are almost always complaints
+            if stars <= 2.5:
                 return 'negative'
-            elif stars >= 4.0 and initial_sentiment == 'negative':
-                # High stars but negative sentiment detected -> likely misclassification
+
+            # High star ratings (4.5-5 stars) are almost always praises
+            if stars >= 4.5:
                 return 'positive'
-            
-            # For borderline cases (score between -0.05 and 0.05), let star rating decide
-            if abs(score) <= 0.05:
-                if stars <= 2.5:
+
+            # Mid-range stars (2.5-4.5): use sentiment score but with adjusted thresholds
+            # 3-3.5 stars with negative sentiment should stay negative (mixed reviews)
+            if 2.5 < stars <= 3.5:
+                # For mid-low ratings, trust negative sentiment more
+                if score < 0.1:  # Wider threshold for negativity
                     return 'negative'
-                elif stars >= 3.5:
+                else:
                     return 'positive'
-        
+
+            # 3.5-4.5 stars: balanced judgment
+            if 3.5 < stars < 4.5:
+                # For mid-high ratings, require stronger negative sentiment to override
+                if score < -0.1:
+                    return 'negative'
+                else:
+                    return 'positive'
+
         return initial_sentiment
 
     def _calculate_top_k(self, num_reviews: int) -> int:
@@ -253,6 +278,11 @@ class KeywordService:
                     display_text = display_text[len(prefix):]
                     break
 
+            # Additional check: ensure display text words aren't in blocklist
+            display_words = display_text.split()
+            if any(word in blocklist for word in display_words if len(word) > 2):
+                continue
+
             candidates.append({
                 'key': grouping_key,
                 'text': display_text,
@@ -338,10 +368,20 @@ class KeywordService:
             avg_sent = float(np.mean(review_sentiments[indices]))
             avg_star = float(np.mean(review_stars[indices]))
 
-            # Get top phrase efficiently
+            # Get top phrase variations (up to 10 most common for better highlighting)
             phrase_counts = Counter(data['texts'])
-            top_phrase = phrase_counts.most_common(1)[0][0]
-            display_name = top_phrase.title()
+            top_variations = phrase_counts.most_common(10)  # Top 10 variations
+
+            # Use the shortest variation as display name (most generic/root term)
+            # This ensures "Pasta" is shown instead of "Favorite Pasta" when all have count=1
+            display_name = min([var for var, _ in top_variations], key=len).title()
+
+            # Create keyword list with all variations (for frontend highlighting)
+            # Sort by count descending, then by length ascending (prefer shorter terms)
+            keyword_list = sorted(
+                [(var.title(), float(count)) for var, count in top_variations],
+                key=lambda x: (-x[1], len(x[0]))
+            )
 
             severity = abs(avg_sent) if avg_sent < -0.1 else 0
             impact_score = mention_count * (1 + (severity * 2))
@@ -353,6 +393,7 @@ class KeywordService:
 
             final_results.append({
                 'keyword': display_name,
+                'keyword_variations': keyword_list,  # Store all variations
                 'count': mention_count,
                 'impact_score': impact_score,
                 'avg_sentiment': round(avg_sent, 3),
@@ -369,7 +410,7 @@ class KeywordService:
             {
                 'cluster_id': i + 1,
                 'size': item['count'],
-                'keywords': [(item['keyword'], float(item['count']))],
+                'keywords': item['keyword_variations'],  # Now contains all variations
                 'avg_sentiment': item['avg_sentiment'],
                 'avg_stars': item['avg_stars'],
                 'sample_review': item['sample_review'],

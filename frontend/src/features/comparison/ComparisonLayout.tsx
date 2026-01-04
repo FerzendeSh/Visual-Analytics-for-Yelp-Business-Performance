@@ -2,7 +2,6 @@ import { lazy, Suspense, useState, useMemo, useEffect, memo, useCallback } from 
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../../stores/useAppStore';
 import { useBatchTimelinesLegacy } from '../../hooks/useBatchTimelines';
-import { useSmartKeywordInsights } from '../../hooks/useKeywordInsights';
 import { ChartErrorBoundary } from '../../components/common/ErrorBoundary';
 import { Loader2, Move } from 'lucide-react';
 import { TimelineDataPoint } from '../../lib/api';
@@ -13,7 +12,6 @@ import { format } from 'date-fns';
 // SuperTrends is 930 lines with complex visx visualizations
 const SuperTrends = lazy(() => import('./SuperTrends').then(m => ({ default: m.SuperTrends })));
 const SentimentTrends = lazy(() => import('./SentimentTrends').then(m => ({ default: m.SentimentTrends })));
-const KeywordInsightsChart = lazy(() => import('./KeywordInsightsChart').then(m => ({ default: m.KeywordInsightsChart })));
 const BusinessAttributesComparison = lazy(() => import('./BusinessAttributesComparison').then(m => ({ default: m.BusinessAttributesComparison })));
 
 // Import types for timeline data
@@ -168,12 +166,6 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     }
   }, [cityTimeline.data?.city_ratings?.business_name, neighborhoodTimeline.data?.neighborhood_ratings?.business_name]);
 
-  // Use smart keyword insights that finds the relevant data year
-  const keywordInsightsResult = useSmartKeywordInsights(
-    primaryBusinessId,
-    businessTimeline.data?.business_ratings
-  );
-
   // Show empty state if no primary selected
   if (!primaryBusinessId) {
     return (
@@ -305,26 +297,8 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
           </ChartErrorBoundary>
         </div>
 
-        {/* Row 3: Keywords & Attributes - Split 50/50 */}
-        <div className="grid grid-cols-2 gap-4 min-h-[400px]">
-          <ChartErrorBoundary chartName="Keyword Insights" resetKeys={[primaryBusinessId]}>
-            <div>
-              {keywordInsightsResult.isLoading ? (
-                <div className="glass rounded-lg h-full flex items-center justify-center">
-                  <LoadingState message="Loading keyword insights..." />
-                </div>
-              ) : keywordInsightsResult.data?.data ? (
-                <Suspense fallback={<ChartLoadingFallback />}>
-                  <KeywordInsightsChart insights={keywordInsightsResult.data.data} />
-                </Suspense>
-              ) : (
-                <div className="glass rounded-lg h-full flex items-center justify-center">
-                  <EmptyState message="No keyword data available" />
-                </div>
-              )}
-            </div>
-          </ChartErrorBoundary>
-
+        {/* Row 3: Business Attributes */}
+        <div className="min-h-[400px]">
           <ChartErrorBoundary chartName="Business Attributes" resetKeys={[primaryBusinessId, ...comparisonIds]}>
             <div>
               <Suspense fallback={<ChartLoadingFallback />}>

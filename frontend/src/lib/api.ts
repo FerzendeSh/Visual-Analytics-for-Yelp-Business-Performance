@@ -133,11 +133,40 @@ export interface CompetitiveSnapshot {
   };
 }
 
+// Backend response structure (matches keyword_service.py)
+export interface KeywordCluster {
+  cluster_id: number;
+  size: number;
+  keywords: Array<[string, number]>;
+  avg_sentiment: number;
+  avg_stars: number;
+  sample_review: string;
+  all_reviews?: string[];
+}
+
+export interface KeywordInsightsResponse {
+  complaints: KeywordCluster[];
+  praises: KeywordCluster[];
+  total_reviews: number;
+  negative_count: number;
+  positive_count: number;
+  period?: {
+    start_date: string;
+    end_date: string;
+    year: number;
+  };
+  message?: string;
+}
+
+// Chart-friendly format (what the KeywordInsightsChart expects)
 export interface KeywordInsights {
-  data: Array<{
+  complaints: Array<{
     keyword: string;
     count: number;
-    sentiment: number;
+  }>;
+  praises: Array<{
+    keyword: string;
+    count: number;
   }>;
 }
 
@@ -400,7 +429,7 @@ export const api = {
      * Get keyword insights automatically (finds most recent year with data)
      */
     getKeywordInsightsAuto: (businessId: string, params?: { max_years?: number }) =>
-      fetchJson<any>(
+      fetchJson<KeywordInsightsResponse>(
         buildUrl(`/api/analytics/business/${businessId}/keyword-insights-auto`, params)
       ),
 
