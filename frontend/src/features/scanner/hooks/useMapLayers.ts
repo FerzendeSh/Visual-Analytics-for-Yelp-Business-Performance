@@ -54,6 +54,7 @@ interface UseMapLayersProps {
   primaryBusinessId: string | null;
   comparisonIds: string[];
   highlightedBusinessId: string | null;
+  clickedBusinessId: string | null;
   supercluster: Supercluster<Business> | null;
   mapViewState: MapViewState;
   setMapViewState: (state: MapViewState) => void;
@@ -75,6 +76,7 @@ export function useMapLayers({
   primaryBusinessId,
   comparisonIds,
   highlightedBusinessId,
+  clickedBusinessId,
   supercluster,
   mapViewState,
   setMapViewState,
@@ -187,6 +189,8 @@ export function useMapLayers({
             );
             setMapViewState({
               ...mapViewState,
+              longitude: object.position[0],
+              latitude: object.position[1],
               zoom: expansionZoom,
               transitionDuration: 400, // Smooth cluster expansion
             });
@@ -201,7 +205,7 @@ export function useMapLayers({
           data: clusterData,
           getPosition: (d: any) => d.position,
           getText: (d: any) => String(d.count),
-          getSize: 14,
+          getSize: 16,
           getColor: [255, 255, 255, 255], // White text
           fontFamily: 'Arial, sans-serif',
           fontWeight: 'bold',
@@ -212,10 +216,7 @@ export function useMapLayers({
       );
     }
 
-    // 4. Individual business points layer
-    // Show in two scenarios:
-    // - Hybrid mode (zoom 10-11): Show both clusters and businesses
-    // - Business-only mode (zoom >= 12): Show only businesses
+
     if ((showBoth || !showClusters) && pointData.length > 0) {
       // Separate Maggiano's from other businesses
       const maggianosData = pointData.filter(d => d.business_id === MAGGIANOS_TAMPA_BUSINESS_ID);
@@ -255,15 +256,22 @@ export function useMapLayers({
             id: 'businesses',
             data: otherBusinesses,
             getPosition: (d: Business) => [d.longitude, d.latitude],
-            getRadius: (d: Business) => {
-              // Highlighted from scatter plot interaction
-              if (highlightedBusinessId === d.business_id) return 16;
-              if (comparisonIds.includes(d.business_id)) return 14;
+            getRadius: () => {
+              // Same size for all businesses
               return 8;
             },
             radiusMinPixels: 8,
-            radiusMaxPixels: 50,
+            radiusMaxPixels: 80,
+            transitions: {
+              getFillColor: 300,
+              getRadius: 200,
+            },
             getFillColor: (d: Business): [number, number, number, number] => {
+              // Clicked business - bright pink
+              if (clickedBusinessId === d.business_id) {
+                return [255, 105, 180, 255]; // Bright pink full opacity
+              }
+
               // Highlighted from scatter plot - bright blue
               if (highlightedBusinessId === d.business_id) {
                 return [59, 130, 246, 255]; // Blue-500 full opacity
@@ -285,31 +293,26 @@ export function useMapLayers({
               }
               return [255, 255, 255]; // White for others
             },
-            lineWidthMinPixels: (d: Business) => {
+            getLineWidth: (d: Business) => {
               // Thicker border for highlighted
               if (highlightedBusinessId === d.business_id) return 4;
               return 2;
             },
+            lineWidthMinPixels: 2,
             stroked: true,
             pickable: true,
             getCursor: () => 'pointer',
             onHover: ({ object }) => setHoveredId(object?.business_id || null),
             onClick: ({ object }) => {
               if (!object) return;
-              // Open click popup to show business details and comparison options
+              // Open click popup - don't set highlighted (that's for scatter plot only)
+              console.log('🗺️ MAP CLICK - Setting clickedId to:', object.business_id);
               setClickedId(object.business_id);
-              // Set highlighted for scatter plot sync
-              setHighlightedBusiness(object.business_id);
-              // Clear highlight after 3 seconds
-              setTimeout(() => {
-                setHighlightedBusiness(null);
-              }, 3000);
             },
             updateTriggers: {
-              getRadius: [comparisonIds, highlightedBusinessId],
-              getFillColor: [comparisonIds, highlightedBusinessId],
-              getLineColor: [highlightedBusinessId],
-              lineWidthMinPixels: [highlightedBusinessId],
+              getFillColor: [comparisonIds, highlightedBusinessId, clickedBusinessId],
+              getLineColor: [highlightedBusinessId, clickedBusinessId],
+              getLineWidth: [highlightedBusinessId, clickedBusinessId],
             },
           })
         );
@@ -327,6 +330,7 @@ export function useMapLayers({
     primaryBusinessId,
     comparisonIds,
     highlightedBusinessId,
+    clickedBusinessId,
     mapViewState,
     setMapViewState,
     supercluster,

@@ -6,6 +6,7 @@ import { Business } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { X, Plus, Check } from 'lucide-react';
 import { MAGGIANOS_TAMPA_BUSINESS_ID } from '@/stores/useAppStore';
+import { getTodayHours, getPriceRange } from '@/lib/utils';
 
 interface MapClickPopupProps {
   business: Business | null;
@@ -28,6 +29,8 @@ export function MapClickPopup({
 
   const isOpen = business.is_open === 1;
   const isMaggianosMyBusiness = business.business_id === MAGGIANOS_TAMPA_BUSINESS_ID;
+  const todayHours = getTodayHours(business.hours);
+  const priceRange = getPriceRange(business.attributes);
 
   return (
     <div
@@ -52,7 +55,7 @@ export function MapClickPopup({
           <h4 className="font-semibold text-sm pr-6">{business.name}</h4>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-muted-foreground">
-              ⭐ {business.stars.toFixed(1)} • {business.review_count} reviews
+              ⭐ {business.stars.toFixed(1)} • {business.review_count} reviews{priceRange && ` • ${priceRange}`}
             </span>
             <span
               className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
@@ -64,6 +67,28 @@ export function MapClickPopup({
               {isOpen ? 'Open' : 'Closed'}
             </span>
           </div>
+          {/* Opening hours info */}
+          {todayHours && (
+            <div className="mt-1">
+              {todayHours.isClosedAllDay ? (
+                <span className="text-xs text-muted-foreground">
+                  {todayHours.nextOpenDay && todayHours.nextOpenTime
+                    ? `Opens ${todayHours.nextOpenDay} at ${todayHours.nextOpenTime}`
+                    : 'Closed today'}
+                </span>
+              ) : todayHours.isOpen ? (
+                <span className="text-xs text-muted-foreground">
+                  Closes at {todayHours.closesAt}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {todayHours.nextOpenDay && todayHours.nextOpenTime
+                    ? `Opens ${todayHours.nextOpenDay} at ${todayHours.nextOpenTime}`
+                    : `Opens at ${todayHours.opensAt}`}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Location info */}
@@ -73,21 +98,51 @@ export function MapClickPopup({
         </div>
 
         {/* Categories */}
-        {business.categories && Array.isArray(business.categories) && business.categories.length > 0 && (
+        {business.categories && (
           <div className="flex flex-wrap gap-1">
-            {business.categories.slice(0, 3).map((category, idx) => (
-              <span
-                key={idx}
-                className="px-2 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400"
-              >
-                {category}
-              </span>
-            ))}
-            {business.categories.length > 3 && (
-              <span className="px-2 py-0.5 rounded text-[10px] text-muted-foreground">
-                +{business.categories.length - 3} more
-              </span>
-            )}
+            {(() => {
+              // Handle both string and array formats
+              const categoryList = Array.isArray(business.categories)
+                ? business.categories
+                : business.categories.split(',').map(c => c.trim());
+
+              const remainingCategories = categoryList.slice(3);
+
+              return (
+                <>
+                  {categoryList.slice(0, 3).map((category, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400"
+                    >
+                      {category}
+                    </span>
+                  ))}
+                  {categoryList.length > 3 && (
+                    <div className="relative group">
+                      <span className="px-2 py-0.5 rounded text-[10px] text-muted-foreground cursor-help">
+                        +{categoryList.length - 3} more
+                      </span>
+                      {/* Tooltip with remaining categories */}
+                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 pointer-events-none">
+                        <div className="bg-slate-900 border border-slate-700 rounded px-3 py-2 shadow-lg min-w-[150px] max-w-[200px]">
+                          <div className="flex flex-col gap-1">
+                            {remainingCategories.map((category, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 text-left"
+                              >
+                                {category}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
 

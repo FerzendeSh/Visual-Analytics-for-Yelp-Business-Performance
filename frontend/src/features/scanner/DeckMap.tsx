@@ -113,6 +113,7 @@ export function DeckMap() {
     primaryBusinessId,
     comparisonIds,
     highlightedBusinessId,
+    clickedBusinessId: clickedId,
     supercluster,
     mapViewState,
     setMapViewState,
@@ -340,7 +341,9 @@ export function DeckMap() {
 
   const handleClosePopup = useCallback(() => {
     setClickedId(null);
-  }, [setClickedId]);
+    // Also clear highlighted business when closing popup
+    setHighlightedBusiness(null);
+  }, [setClickedId, setHighlightedBusiness]);
 
   return (
     <div
