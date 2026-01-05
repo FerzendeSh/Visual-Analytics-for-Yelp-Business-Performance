@@ -2,7 +2,7 @@
 Pre-computed metrics models for fast analytics queries.
 These tables store aggregated data to avoid real-time calculations.
 """
-from sqlalchemy import String, Float, Integer, Date, Index, UniqueConstraint
+from sqlalchemy import String, Float, Integer, Date, Index, UniqueConstraint, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import date
 
@@ -137,4 +137,24 @@ class NeighborhoodTimelineMetrics(Base):
                         name='uq_neighborhood_period'),
         Index('idx_neighborhood_metrics_lookup', 'state', 'city', 'neighborhood',
               'period_type', 'period_start'),
+    )
+
+
+class ClusterTimelineMetrics(Base):
+    """Pre-computed timeline metrics for clusters"""
+    __tablename__ = "cluster_timeline_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    cluster_id: Mapped[int] = mapped_column(Integer, ForeignKey("clusters.cluster_id"), index=True)
+    period_start: Mapped[date] = mapped_column(Date)
+    period_type: Mapped[str] = mapped_column(String(10))  # 'month' or 'year'
+    avg_rating: Mapped[float] = mapped_column(Float)
+    avg_sentiment_score: Mapped[float] = mapped_column(Float)
+    avg_sentiment_expected: Mapped[float] = mapped_column(Float)
+    review_count: Mapped[int] = mapped_column(Integer)
+    business_count: Mapped[int] = mapped_column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint('cluster_id', 'period_start', 'period_type', name='uq_cluster_period'),
+        Index('idx_cluster_metrics_lookup', 'cluster_id', 'period_type', 'period_start'),
     )
