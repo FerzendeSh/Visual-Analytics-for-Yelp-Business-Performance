@@ -26,6 +26,7 @@ export function DeckMap() {
   const [mapRef, setMapRef] = useState<MapRef | null>(null);
   const [deckError, setDeckError] = useState<Error | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedSearchBusiness, setSelectedSearchBusiness] = useState<Business | null>(null);
   const isProgrammaticMoveRef = useRef(false);
   const deckGLRef = useRef<any>(null);
   const previousLayersRef = useRef<any[]>([]);
@@ -98,6 +99,18 @@ export function DeckMap() {
     mapViewState.zoom
   );
 
+  // Ensure selected search business is included in pointData even if not yet in viewport
+  const enhancedPointData = useMemo(() => {
+    if (!selectedSearchBusiness) return pointData;
+
+    // Check if the selected business is already in pointData
+    const alreadyIncluded = pointData.some(b => b.business_id === selectedSearchBusiness.business_id);
+    if (alreadyIncluded) return pointData;
+
+    // Add it if not present
+    return [...pointData, selectedSearchBusiness];
+  }, [pointData, selectedSearchBusiness]);
+
   // Auto-navigation (extracted)
   useNavigateToCity(cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef, filters.cityId, businesses, isCityBoundaryLoading);
   useNavigateToNeighborhood(filters.neighborhoodId, neighborhoods, mapRef, setMapViewState, isProgrammaticMoveRef);
@@ -109,7 +122,7 @@ export function DeckMap() {
     showClusters,
     showBoth,
     clusterData,
-    pointData,
+    pointData: enhancedPointData,
     primaryBusinessId,
     comparisonIds,
     highlightedBusinessId,
@@ -156,8 +169,17 @@ export function DeckMap() {
 
   const handleSearchSelect = useCallback(
     (business: Business) => {
-      setPrimaryBusiness(business.business_id);
+      // Store the selected business for the popup
+      setSelectedSearchBusiness(business);
+      // Set the business as clicked (will show popup and change color)
+      setClickedId(business.business_id);
       prefetchComparisonData(business.business_id, business);
+
+      // Update the city filter to match the selected business location
+      // This ensures map businesses are fetched from the correct city
+      const newCityId = `${business.city}_${business.state}`;
+      const updateFilters = useAppStore.getState().updateFilters;
+      updateFilters({ cityId: newCityId, neighborhoodId: null });
 
       const currentZoom = mapViewState.zoom;
 
@@ -175,25 +197,33 @@ export function DeckMap() {
           setMapViewState({
             longitude: business.longitude,
             latitude: business.latitude,
-            zoom: 16,
+            zoom: 17.5,
             pitch: 0,
             bearing: 0,
             transitionDuration: 800,
           });
+          // Close search panel after navigation completes
+          setTimeout(() => {
+            setIsSearchOpen(false);
+          }, 900);
         }, 350);
       } else {
         isProgrammaticMoveRef.current = true;
         setMapViewState({
           longitude: business.longitude,
           latitude: business.latitude,
-          zoom: 16,
+          zoom: 17.5,
           pitch: 0,
           bearing: 0,
           transitionDuration: 800,
         });
+        // Close search panel after navigation completes
+        setTimeout(() => {
+          setIsSearchOpen(false);
+        }, 900);
       }
     },
-    [setPrimaryBusiness, setMapViewState, mapViewState, prefetchComparisonData]
+    [setClickedId, setMapViewState, mapViewState, prefetchComparisonData]
   );
 
   // Navigate to Maggiano's business location
@@ -324,7 +354,12 @@ export function DeckMap() {
 
   // Find hovered and clicked businesses
   const hoveredBusiness = hoveredId ? businesses.find((b) => b.business_id === hoveredId) ?? null : null;
-  const clickedBusiness = clickedId ? businesses.find((b) => b.business_id === clickedId) ?? null : null;
+  // Use the selected search business if available, otherwise find in the businesses array
+  const clickedBusiness = clickedId
+    ? (selectedSearchBusiness?.business_id === clickedId
+        ? selectedSearchBusiness
+        : businesses.find((b) => b.business_id === clickedId) ?? null)
+    : null;
 
   // Comparison handlers
   const handleAddToComparison = useCallback(() => {
@@ -341,6 +376,8 @@ export function DeckMap() {
 
   const handleClosePopup = useCallback(() => {
     setClickedId(null);
+    // Don't clear selectedSearchBusiness - keep it so the dot stays visible
+    // It will be cleared when a new search selection is made
     // Also clear highlighted business when closing popup
     setHighlightedBusiness(null);
   }, [setClickedId, setHighlightedBusiness]);

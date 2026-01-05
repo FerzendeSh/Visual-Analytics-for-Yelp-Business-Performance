@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Scan, GitCompare, Sliders } from 'lucide-react';
 import { useAppStore, ViewMode } from '@/stores/useAppStore';
 import { Button } from '@/components/ui/button';
@@ -39,61 +38,57 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-950">
-      {/* Control Tower (Settings) - Top Left */}
-      <div className="absolute top-6 left-6 z-30">
-        <Popover
-          open={controlTowerOpen}
-          onOpenChange={setControlTowerOpen}
-          content={<ControlTower />}
-        >
-          <Button variant="ghost" size="icon" className="glass relative">
-            <Sliders className="h-5 w-5" />
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold bg-blue-500 text-white rounded-full border-2 border-slate-950">
-                {activeFilterCount}
-              </span>
-            )}
-          </Button>
-        </Popover>
-      </div>
-
-      {/* Main Content Canvas */}
-      <div className="w-full h-full">
-        {children}
-      </div>
-
-      {/* Navigation Dock - Bottom Center */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-full glass shadow-2xl">
+      {/* Navigation Tabs - Top */}
+      <div className="absolute top-0 left-0 right-0 z-30 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center justify-center h-14 relative">
           {modes.map((mode) => {
             const Icon = mode.icon;
             const isActive = viewMode === mode.id;
 
             return (
-              <motion.button
+              <button
                 key={mode.id}
                 onClick={() => setMode(mode.id)}
                 className={`
-                  relative flex items-center gap-2 px-4 py-2 rounded-full
-                  text-sm font-medium transition-colors cursor-pointer
-                  ${isActive ? 'text-white' : 'text-slate-400 hover:text-slate-200'}
+                  relative flex items-center gap-2 px-8 h-full
+                  text-sm font-semibold transition-all cursor-pointer
+                  ${isActive
+                    ? 'text-white bg-primary/30'
+                    : 'text-muted-foreground/60 hover:text-foreground hover:bg-muted/20'}
                 `}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
               >
+                <Icon className="h-4 w-4" />
+                <span>{mode.label}</span>
                 {isActive && (
-                  <motion.div
-                    layoutId="activeMode"
-                    className="absolute inset-0 bg-primary rounded-full"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 z-10" />
                 )}
-                <Icon className="relative h-4 w-4" />
-                <span className="relative">{mode.label}</span>
-              </motion.button>
+              </button>
             );
           })}
+
+          {/* Control Tower (Settings) - Top Right */}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <Popover
+              open={controlTowerOpen}
+              onOpenChange={setControlTowerOpen}
+              content={<ControlTower />}
+            >
+              <Button variant="ghost" size="icon" className="glass relative">
+                <Sliders className="h-5 w-5" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold bg-blue-500 text-white rounded-full border-2 border-slate-950">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </Popover>
+          </div>
         </div>
+      </div>
+
+      {/* Main Content Canvas */}
+      <div className="w-full h-full">
+        {children}
       </div>
     </div>
   );

@@ -27,7 +27,7 @@ export function Popover({ children, content, open, onOpenChange }: PopoverProps)
             className="fixed inset-0 z-40"
             onClick={handleToggle}
           />
-          <div className="absolute left-0 top-full mt-2 z-50 rounded-lg glass p-3 shadow-xl border border-slate-700">
+          <div className="absolute right-0 top-full mt-2 z-50 rounded-lg bg-slate-900/95 backdrop-blur-md p-3 shadow-xl border border-slate-700">
             {content}
           </div>
         </>

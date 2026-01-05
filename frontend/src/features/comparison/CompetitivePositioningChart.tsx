@@ -161,7 +161,7 @@ const QuadrantChart = ({
   onSelectBusiness?: (id: string | null) => void;
   onBusinessClick?: (business: ChartDataPoint) => void;
 }) => {
-  const margin = { top: 20, right: 60, bottom: 50, left: 60 };
+  const margin = { top: 15, right: 50, bottom: 40, left: 50 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const brushRef = useRef<any>(null);
@@ -282,9 +282,9 @@ const QuadrantChart = ({
   return (
     <div className="relative">
       {/* Zoom Controls - Vertical Stack */}
-      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+      <div className="absolute top-1 right-1 z-10 flex flex-col gap-0.5">
         <button
-          className={`p-1.5 rounded transition-colors ${isZoomMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+          className={`p-1 rounded transition-colors ${isZoomMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
           onClick={() => {
             setIsZoomMode(!isZoomMode);
             // Disable click mode when enabling zoom mode
@@ -294,13 +294,13 @@ const QuadrantChart = ({
           }}
           title={isZoomMode ? "Exit zoom mode (drag to select area)" : "Enable zoom mode"}
         >
-          <Move size={16} />
+          <Move size={14} />
         </button>
 
         {isZoomed && (
           <>
             <button
-              className={`p-1.5 rounded transition-colors ${isClickMode ? 'bg-green-500/30 text-green-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+              className={`p-1 rounded transition-colors ${isClickMode ? 'bg-green-500/30 text-green-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
               onClick={() => {
                 setIsClickMode(!isClickMode);
                 // Disable zoom mode when enabling click mode
@@ -310,15 +310,15 @@ const QuadrantChart = ({
               }}
               title={isClickMode ? "Click-only mode - dots won't change selection" : "Enable click-only mode (prevents selection changes)"}
             >
-              <MousePointer2 size={16} />
+              <MousePointer2 size={14} />
             </button>
 
             <button
-              className="p-1.5 rounded bg-white/5 text-slate-400 hover:bg-white/10 transition-colors"
+              className="p-1 rounded bg-white/5 text-slate-400 hover:bg-white/10 transition-colors"
               onClick={resetZoom}
               title="Reset zoom"
             >
-              <Maximize2 size={16} />
+              <Maximize2 size={14} />
             </button>
           </>
         )}
@@ -372,14 +372,14 @@ const QuadrantChart = ({
           {stats.medianReviews >= filteredXDomain[0] && stats.medianReviews <= filteredXDomain[1] && (
             <>
               <Line from={{ x: xScale(stats.medianReviews), y: 0 }} to={{ x: xScale(stats.medianReviews), y: innerHeight }} stroke={AXIS_COLOR} strokeWidth={1} strokeDasharray="4,4" opacity={0.3} />
-              <Text x={xScale(stats.medianReviews)} y={-5} fill={AXIS_COLOR} fontSize={10} textAnchor="middle" fontWeight={600}>{`Median: ${stats.medianReviews}`}</Text>
+              <Text x={xScale(stats.medianReviews)} y={-3} fill={AXIS_COLOR} fontSize={9} textAnchor="middle" fontWeight={600}>{`Median: ${stats.medianReviews}`}</Text>
             </>
           )}
 
           {stats.avgRating >= filteredYDomain[0] && stats.avgRating <= filteredYDomain[1] && (
             <>
               <Line from={{ x: 0, y: yScale(stats.avgRating) }} to={{ x: innerWidth, y: yScale(stats.avgRating) }} stroke={AXIS_COLOR} strokeWidth={1} strokeDasharray="4,4" opacity={0.3} />
-              <Text x={innerWidth + 4} y={yScale(stats.avgRating)} fill={AXIS_COLOR} fontSize={10} textAnchor="start" verticalAnchor="middle" fontWeight={600}>{`Avg: ${stats.avgRating.toFixed(1)}`}</Text>
+              <Text x={innerWidth + 2} y={yScale(stats.avgRating)} fill={AXIS_COLOR} fontSize={9} textAnchor="start" verticalAnchor="middle" fontWeight={600}>{`Avg: ${stats.avgRating.toFixed(1)}`}</Text>
             </>
           )}
 
@@ -481,9 +481,9 @@ const QuadrantChart = ({
             stroke={AXIS_COLOR}
             tickStroke={AXIS_COLOR}
             label="Review Volume"
-            labelOffset={20}
-            labelProps={{ fill: AXIS_COLOR, fontSize: 11, textAnchor: 'middle', fontWeight: 600 }}
-            tickLabelProps={() => ({ fill: AXIS_COLOR, fontSize: 10, textAnchor: 'middle', dy: 0 })}
+            labelOffset={16}
+            labelProps={{ fill: AXIS_COLOR, fontSize: 10, textAnchor: 'middle', fontWeight: 600 }}
+            tickLabelProps={() => ({ fill: AXIS_COLOR, fontSize: 9, textAnchor: 'middle', dy: 0 })}
           />
 
           <AxisLeft
@@ -491,9 +491,9 @@ const QuadrantChart = ({
             stroke={AXIS_COLOR}
             tickStroke={AXIS_COLOR}
             label="Rating"
-            labelOffset={40}
-            labelProps={{ fill: AXIS_COLOR, fontSize: 11, textAnchor: 'middle', fontWeight: 600 }}
-            tickLabelProps={() => ({ fill: AXIS_COLOR, fontSize: 10, textAnchor: 'end', dy: 4, dx: -4 })}
+            labelOffset={35}
+            labelProps={{ fill: AXIS_COLOR, fontSize: 10, textAnchor: 'middle', fontWeight: 600 }}
+            tickLabelProps={() => ({ fill: AXIS_COLOR, fontSize: 9, textAnchor: 'end', dy: 4, dx: -4 })}
           />
         </Group>
       </svg>
@@ -676,25 +676,25 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
   }
 
   return (
-    <div className="glass rounded-lg p-4 h-full flex flex-col" ref={containerRef}>
-      <div className="flex justify-between items-start mb-4">
+    <div className="glass rounded-lg p-2.5 h-full flex flex-col" ref={containerRef}>
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <h2 className="text-lg font-semibold text-white">Market Positioning</h2>
-          <p className="text-xs text-slate-400 mt-1">
+          <h2 className="text-base font-semibold text-white">Market Positioning</h2>
+          <p className="text-[10px] text-slate-400 mt-0.5">
             <span className="font-semibold text-blue-400">{cityName}, {stateName}</span> • {chartData.length} businesses • Avg: {stats.avgRating.toFixed(1)}★, Median: {stats.medianReviews} reviews
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           {Object.entries(QUADRANT_COLORS).map(([category, color]) => (
             <div
               key={category}
-              className="flex items-center gap-1.5 cursor-help"
+              className="flex items-center gap-1 cursor-help"
               onMouseEnter={(e) => handleLegendHover(e, category)}
               onMouseLeave={() => hideLegendTooltip()}
             >
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-[10px] text-slate-300 hidden sm:inline">{category}</span>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+              <span className="text-[9px] text-slate-300 hidden sm:inline">{category}</span>
             </div>
           ))}
         </div>

@@ -23,15 +23,15 @@ const ScannerModeComponent = () => {
   const keywordInsightsResult = useSmartKeywordInsights(primaryBusinessId, null);
 
   return (
-    <div className="w-full h-full flex flex-col gap-4 p-4">
+    <div className="w-full h-full flex flex-col gap-3 px-3 pt-16 pb-3">
       {/* Business Metrics Cards */}
       <ScannerMetricsCards />
 
-      {/* Main Content Area - Map (60%) + Charts Sidebar (40%) */}
-      <div className="flex-1 flex gap-4 min-h-0">
-        {/* Map - Takes 60% width */}
+      {/* Main Content Area - Map (50%) + Charts Sidebar (50%) */}
+      <div className="flex-1 flex gap-3 min-h-0">
+        {/* Map - Takes 50% width */}
         <MapErrorBoundary resetKeys={[filters.cityId, filters.neighborhoodId]}>
-          <div className="flex-[6] h-full">
+          <div className="flex-1 h-full">
             <Suspense
               fallback={
                 <div className="w-full h-full flex items-center justify-center bg-background rounded-lg">
@@ -47,8 +47,8 @@ const ScannerModeComponent = () => {
           </div>
         </MapErrorBoundary>
 
-        {/* Right Sidebar - Stacked Charts (40%) */}
-        <div className="flex-[4] h-full flex flex-col gap-4">
+        {/* Right Sidebar - Stacked Charts (50%) */}
+        <div className="flex-1 h-full flex flex-col gap-2">
           {/* Competitive Positioning Chart - Top */}
           <ChartErrorBoundary chartName="Competitive Positioning" resetKeys={[filters.cityId, filters.categories]}>
             <div className={primaryBusinessId ? "flex-1 min-h-0" : "h-full"}>

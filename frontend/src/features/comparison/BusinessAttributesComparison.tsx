@@ -140,32 +140,48 @@ const PriceDisplay = ({ level }: { level: number }) => (
   </div>
 );
 
-const RatingDisplay = ({ rating, count }: { rating: number; count: number }) => (
-  <div className="flex flex-col items-start gap-1">
-    <div className="flex items-center gap-1.5">
-      <div className={cn(
-        "px-1.5 py-0.5 rounded text-[10px] font-bold leading-none",
-        rating >= 4.5 && "bg-orange-500/20 text-orange-300 border border-orange-500/30",
-        rating >= 3.5 && rating < 4.5 && "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
-        rating < 3.5 && "bg-red-500/20 text-red-300 border border-red-500/30"
-      )}>
-        {rating.toFixed(1)}
+const RatingDisplay = ({ rating, count }: { rating: number; count: number }) => {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map(i => {
+          if (i <= fullStars) {
+            // Full star
+            return (
+              <svg key={i} className="w-3 h-3 fill-yellow-400" viewBox="0 0 20 20">
+                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+              </svg>
+            );
+          } else if (i === fullStars + 1 && hasHalfStar) {
+            // Half star
+            return (
+              <svg key={i} className="w-3 h-3" viewBox="0 0 20 20">
+                <defs>
+                  <linearGradient id={`half-${i}`}>
+                    <stop offset="50%" stopColor="rgb(250 204 21)" />
+                    <stop offset="50%" stopColor="rgb(113 113 122 / 0.2)" />
+                  </linearGradient>
+                </defs>
+                <path fill={`url(#half-${i})`} d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+              </svg>
+            );
+          } else {
+            // Empty star
+            return (
+              <svg key={i} className="w-3 h-3 fill-muted-foreground/20" viewBox="0 0 20 20">
+                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+              </svg>
+            );
+          }
+        })}
       </div>
-      <div className="flex">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div
-            key={i}
-            className={cn(
-              "w-1.5 h-1.5 rounded-full mx-[0.5px]",
-              i <= Math.round(rating) ? "bg-orange-400" : "bg-muted-foreground/20"
-            )}
-          />
-        ))}
-      </div>
+      <span className="text-[9px] text-muted-foreground leading-none">{count.toLocaleString()} reviews</span>
     </div>
-    <span className="text-[9px] text-muted-foreground leading-none">{count.toLocaleString()} reviews</span>
-  </div>
-);
+  );
+};
 
 const BooleanIcon = ({ value }: { value: boolean }) => {
   if (value) {
@@ -218,7 +234,11 @@ function AttributeCell({ value }: AttributeCellProps) {
   return <CompactBadge text={formatted.display} />;
 }
 
-const BusinessAttributesComparisonComponent = () => {
+interface BusinessAttributesComparisonProps {
+  onBusinessHover?: (businessId: string | null) => void;
+}
+
+const BusinessAttributesComparisonComponent = ({ onBusinessHover }: BusinessAttributesComparisonProps = {}) => {
   // ✅ Atomic selectors - only re-render when these specific values change
   const primaryBusinessId = useAppStore((state) => state.primaryBusinessId);
   const comparisonIds = useAppStore((state) => state.comparisonIds);
@@ -260,7 +280,6 @@ const BusinessAttributesComparisonComponent = () => {
     'GoodForKids',
     'GoodForGroups',
     'WheelchairAccessible',
-    'RestaurantsPriceRange2',
     'HasTV',
     'Caters',
     'GoodForDancing',
@@ -331,80 +350,84 @@ const BusinessAttributesComparisonComponent = () => {
     );
   }
 
-  // Helper to get grid column classes
-  const getGridCols = (count: number) => {
-    if (count === 1) return 'grid-cols-[140px_1fr]';
-    if (count === 2) return 'grid-cols-[140px_repeat(2,1fr)]';
-    if (count === 3) return 'grid-cols-[140px_repeat(3,1fr)]';
-    return 'grid-cols-[140px_repeat(4,1fr)]';
-  };
-
-  const gridCols = getGridCols(businesses.length);
-
   return (
-    <div className="glass rounded-lg p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Business Attributes</h2>
-        <span className="text-[10px] text-muted-foreground">Feature Comparison</span>
+    <div className="glass rounded-lg p-0.5 pb-1 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-0.5 px-1">
+        <h2 className="text-sm font-semibold">Business Attributes</h2>
+        <span className="text-[11px] text-muted-foreground">Feature Comparison</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto -mx-4 px-4">
-        <div className="min-w-[600px]">
-          {/* Header Row */}
-          <div className={cn("grid divide-x divide-border/40 bg-card/50 sticky top-0 z-10 backdrop-blur-sm", gridCols)}>
-            <div className="p-2 flex items-end pb-1.5">
-              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Feature</span>
+      <div className="flex-1 -mx-0.5 px-.5 overflow-hidden">
+        <div className="w-full h-full flex flex-col">
+          {/* Header Row - Features as columns */}
+          <div
+            className="grid divide-x divide-border/40 bg-card/50 border-b border-border/40"
+            style={{ gridTemplateColumns: `160px repeat(${attributeKeys.length}, 1fr)` }}
+          >
+            <div className="p-1 flex items-end pb-0.5">
+              <span className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Business</span>
             </div>
-            {businesses.map((biz) => (
-              <div key={biz.business_id} className="p-2 flex flex-col gap-0.5">
-                <h3 className="font-bold text-foreground text-sm leading-tight truncate" title={biz.name}>
-                  {biz.name}
-                </h3>
-                <span className="text-[10px] text-muted-foreground truncate">{biz.categories.split(',')[0]}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Core Metrics Row */}
-          <div className={cn("grid divide-x divide-border/40 border-y border-border/40 bg-card/30", gridCols)}>
-            <div className="p-2 py-2 flex items-center text-[10px] font-medium text-muted-foreground">
-              Metrics
-            </div>
-            {businesses.map((biz) => (
-              <div key={biz.business_id} className="p-2 py-1.5 flex flex-col justify-center">
-                <div className="flex justify-between items-center">
-                  <RatingDisplay rating={biz.stars} count={biz.review_count} />
-                  <PriceDisplay level={getPriceLevel(biz.attributes?.RestaurantsPriceRange2)} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Attribute Rows */}
-          <div className="divide-y divide-border/30 border-b border-border/40">
             {attributeKeys.map((attrKey) => {
               const Icon = getIconForAttribute(attrKey);
               const label = formatAttributeLabel(attrKey);
-
               return (
-                <div
-                  key={attrKey}
-                  className={cn("grid divide-x divide-border/40 hover:bg-muted/20 transition-colors", gridCols)}
-                >
-                  <div className="p-2 pl-3 flex items-center gap-2 text-xs text-foreground/80">
-                    <Icon size={12} className="text-muted-foreground" /> {label}
-                  </div>
-                  {businesses.map((biz) => {
-                    const value = biz.attributes?.[attrKey];
-                    return (
-                      <div key={`${biz.business_id}-${attrKey}`} className="p-1.5 flex justify-center items-center">
-                        <AttributeCell value={value} />
-                      </div>
-                    );
-                  })}
+                <div key={attrKey} className="p-1 flex flex-col items-center gap-0.5 min-w-0">
+                  <Icon size={10} className="text-muted-foreground flex-shrink-0" />
+                  <span className="text-[11px] font-medium text-foreground/80 text-center leading-tight truncate w-full" title={label}>
+                    {label}
+                  </span>
                 </div>
               );
             })}
+          </div>
+
+          {/* Business Rows */}
+          <div className="divide-y divide-border/30 border-b border-border/40 flex-1 flex flex-col">
+            {businesses.map((biz, bizIndex) => (
+              <div
+                key={biz.business_id}
+                className={cn(
+                  "grid divide-x divide-border/40 hover:bg-muted/20 transition-colors flex-1",
+                  bizIndex === 0 && "bg-card/30"
+                )}
+                style={{ gridTemplateColumns: `160px repeat(${attributeKeys.length}, 1fr)` }}
+                onMouseEnter={() => onBusinessHover?.(biz.name)}
+                onMouseLeave={() => onBusinessHover?.(null)}
+              >
+                {/* Business name column with metrics */}
+                <div className={cn(
+                  "flex flex-col min-w-0 justify-center",
+                  businesses.length <= 2 ? "p-1.5 gap-1" : "p-1 gap-0.5"
+                )}>
+                  <div className="flex flex-col gap-0.5">
+                    <h3 className={cn(
+                      "font-bold text-foreground leading-tight truncate",
+                      businesses.length <= 2 ? "text-sm" : "text-xs"
+                    )} title={biz.name}>
+                      {biz.name}
+                    </h3>
+                    <span className="text-[11px] text-muted-foreground truncate">{biz.categories.split(',')[0]}</span>
+                  </div>
+                  <div className="flex items-center gap-2 justify-between">
+                    <RatingDisplay rating={biz.stars} count={biz.review_count} />
+                    <PriceDisplay level={getPriceLevel(biz.attributes?.RestaurantsPriceRange2)} />
+                  </div>
+                </div>
+
+                {/* Attribute value columns */}
+                {attributeKeys.map((attrKey) => {
+                  const value = biz.attributes?.[attrKey];
+                  return (
+                    <div key={`${biz.business_id}-${attrKey}`} className={cn(
+                      "flex justify-center items-center min-w-0",
+                      businesses.length <= 2 ? "p-1" : "p-0.5"
+                    )}>
+                      <AttributeCell value={value} />
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </div>

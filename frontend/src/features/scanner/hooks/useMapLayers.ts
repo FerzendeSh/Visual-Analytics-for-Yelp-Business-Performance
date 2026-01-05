@@ -263,21 +263,24 @@ export function useMapLayers({
             radiusMinPixels: 8,
             radiusMaxPixels: 80,
             transitions: {
-              getFillColor: 300,
               getRadius: 200,
             },
             getFillColor: (d: Business): [number, number, number, number] => {
-              // Clicked business - bright pink
-              if (clickedBusinessId === d.business_id) {
+              // CRITICAL: Use strict equality and check business_id exists
+              const businessId = d.business_id;
+
+              // Clicked business - bright pink (highest priority)
+              if (clickedBusinessId && businessId === clickedBusinessId) {
                 return [255, 105, 180, 255]; // Bright pink full opacity
               }
 
               // Highlighted from scatter plot - bright blue
-              if (highlightedBusinessId === d.business_id) {
+              if (highlightedBusinessId && businessId === highlightedBusinessId) {
                 return [59, 130, 246, 255]; // Blue-500 full opacity
               }
 
-              if (comparisonIds.includes(d.business_id)) {
+              // Comparison businesses - purple
+              if (comparisonIds.includes(businessId)) {
                 return [168, 85, 247, 255]; // Purple for comparisons
               }
 

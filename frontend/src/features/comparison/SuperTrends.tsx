@@ -84,6 +84,7 @@ export interface SuperTrendsProps {
   // Shared state for synchronization with SentimentTrends
   sharedHoverDate?: Date | null;
   onHoverDateChange?: (date: Date | null) => void;
+  hoveredBusinessId?: string | null;
   hiddenSeries?: Set<string>;
   onHiddenSeriesChange?: (hidden: Set<string>) => void;
   // Brush selection props
@@ -180,6 +181,7 @@ interface ChartProps {
   forecastData?: ForecastDataPoint[] | null;
   sharedHoverDate?: Date | null;
   onHoverDateChange?: (date: Date | null) => void;
+  hoveredBusinessId?: string | null;
   isBrushMode?: boolean;
   brushSelection?: {start: Date, end: Date} | null;
   onBrushChange?: (selection: {start: Date, end: Date} | null) => void;
@@ -199,6 +201,7 @@ const Chart: React.FC<ChartProps> = ({
   forecastData,
   sharedHoverDate,
   onHoverDateChange,
+  hoveredBusinessId,
   isBrushMode = false,
   brushSelection,
   onBrushChange,
@@ -687,11 +690,19 @@ const Chart: React.FC<ChartProps> = ({
           {/* Rating Lines */}
           {seriesNames.map((name, index) => {
             if (hiddenSeries.has(name)) return null;
-            
+
             const isPrimary = index === 0;
             const strokeWidth = isPrimary ? 3 : 2;
             const glowFilter = isPrimary ? 'url(#primaryGlow)' : undefined;
-            
+
+            // Determine if this line should be highlighted based on hovered business
+            const isHighlighted = hoveredBusinessId ? name === hoveredBusinessId : true;
+            const lineOpacity = isHighlighted ? 1 : 0.15;
+
+            if (index === 0 && hoveredBusinessId) {
+              console.log('SuperTrends - hoveredBusinessId:', hoveredBusinessId, 'name:', name, 'isHighlighted:', isHighlighted);
+            }
+
             return (
               <React.Fragment key={`line-group-${name}`}>
                 <LinePath
@@ -703,6 +714,7 @@ const Chart: React.FC<ChartProps> = ({
                   curve={curveMonotoneX}
                   strokeLinecap="round"
                   style={{ filter: glowFilter }}
+                  opacity={lineOpacity}
                 />
                 {tooltipOpen && tooltipData && !tooltipData.isForecast && (
                   <Circle
@@ -712,6 +724,7 @@ const Chart: React.FC<ChartProps> = ({
                     fill={colorScale(name)}
                     stroke="#1e293b"
                     strokeWidth={2}
+                    opacity={lineOpacity}
                   />
                 )}
               </React.Fragment>
@@ -937,6 +950,7 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
   showBenchmarks,
   sharedHoverDate,
   onHoverDateChange,
+  hoveredBusinessId,
   hiddenSeries,
   onHiddenSeriesChange,
   isBrushMode = false,
@@ -981,9 +995,9 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
   if (!primaryTimeline) return null;
 
   return (
-    <div className="glass rounded-lg p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4 mt-2">
-        <h2 className="text-base font-semibold text-white">Performance Trends</h2>
+    <div className="glass rounded-lg p-1.5 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-1 mt-0.5">
+        <h2 className="text-sm font-semibold text-white">Performance Trends</h2>
 
         {/* Mode Controls */}
         <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-md p-1">
@@ -1041,13 +1055,13 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 relative">
+      <div className="flex-1 min-h-0 relative overflow-hidden">
 
         <ParentSize>
           {({ width, height }) => (
             <Chart
               width={width}
-              height={height}
+              height={Math.max(height, 100)}
               data={chartData}
               seriesNames={seriesNames}
               period={period}
@@ -1057,6 +1071,7 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
               forecastData={forecastData}
               sharedHoverDate={sharedHoverDate}
               onHoverDateChange={onHoverDateChange}
+              hoveredBusinessId={hoveredBusinessId}
               isBrushMode={isBrushMode}
               brushSelection={brushSelection}
               onBrushChange={onBrushChange}
@@ -1068,7 +1083,7 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
       </div>
 
       {/* Interactive Legend */}
-      <div className="mt-4 flex flex-wrap gap-3 justify-center border-t border-white/10 pt-3">
+      <div className="mt-2 flex flex-wrap gap-1.5 justify-center border-t border-white/10 pt-2 shrink-0">
         <div className="flex items-center gap-2 text-xs opacity-100">
           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: VOLUME_COLOR }} />
           <span className="text-slate-300">Volume</span>

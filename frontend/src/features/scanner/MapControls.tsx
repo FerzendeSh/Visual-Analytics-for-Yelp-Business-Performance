@@ -102,7 +102,7 @@ const MapControlsComponent = ({
       <div className="h-px bg-slate-700 mx-2" />
 
       {/* Zoom Level Display */}
-      <div className="glass px-2 py-1 text-xs font-mono text-center text-slate-300 min-w-[40px]">
+      <div className="glass h-9.5 w-9 flex items-center justify-center text-[11px] font-mono text-slate-300 rounded-md">
         {currentZoom.toFixed(1)}
       </div>
     </div>

@@ -1,18 +1,15 @@
-import { lazy, Suspense, useState, useMemo, useEffect, memo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { lazy, Suspense, useState, useEffect, memo, useCallback } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useBatchTimelinesLegacy } from '../../hooks/useBatchTimelines';
 import { ChartErrorBoundary } from '../../components/common/ErrorBoundary';
-import { Loader2, Move } from 'lucide-react';
-import { TimelineDataPoint } from '../../lib/api';
-import { api } from '../../lib/api';
+import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Lazy load heavy chart components for further code splitting
 // SuperTrends is 930 lines with complex visx visualizations
 const SuperTrends = lazy(() => import('./SuperTrends').then(m => ({ default: m.SuperTrends })));
 const SentimentTrends = lazy(() => import('./SentimentTrends').then(m => ({ default: m.SentimentTrends })));
-const BusinessAttributesComparison = lazy(() => import('./BusinessAttributesComparison').then(m => ({ default: m.BusinessAttributesComparison })));
+const BusinessAttributesComparison = lazy(() => import('./BusinessAttributesComparison').then(m => ({ default: m.BusinessAttributesComparison }))) as React.LazyExoticComponent<React.ComponentType<{ onBusinessHover?: (businessId: string | null) => void }>>;
 
 // Import types for timeline data
 import type { RatingsTimeline } from './SuperTrends';
@@ -60,10 +57,16 @@ interface ComparisonContentProps {
 
 function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: ComparisonContentProps) {
   const [sharedHoverDate, setSharedHoverDate] = useState<Date | null>(null);
+  const [hoveredBusinessId, setHoveredBusinessId] = useState<string | null>(null);
   const [isBrushMode, setIsBrushMode] = useState(false);
   const [brushSelection, setBrushSelection] = useState<{start: Date, end: Date} | null>(null);
   const updateFilters = useAppStore((state) => state.updateFilters);
   const filters = useAppStore((state) => state.filters);
+
+  const handleBusinessHover = useCallback((businessId: string | null) => {
+    console.log('Business hover changed:', businessId);
+    setHoveredBusinessId(businessId);
+  }, []);
 
   // Convert granularity to period format for charts
   const period: 'month' | 'year' = filters.granularity === 'MONTHLY' ? 'month' : 'year';
@@ -234,10 +237,10 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
   };
 
   return (
-    <div className="w-full h-full p-6 overflow-auto">
-      <div className="grid grid-rows-[1fr_1fr] gap-4 h-full">
-        {/* Row 1: Rating and Sentiment Trends - Split 50/50 */}
-        <div className="grid grid-cols-2 gap-4 min-h-[400px]">
+    <div className="w-full h-full px-1.5 pt-16 pb-2 overflow-hidden">
+      <div className="grid grid-rows-[48%_52%] gap-1.5 h-full">
+        {/* Row 1: Rating and Sentiment Trends */}
+        <div className="grid grid-cols-2 gap-1.5 h-full overflow-hidden">
           <ChartErrorBoundary chartName="Rating Trends" resetKeys={[primaryBusinessId, ...comparisonIds]}>
             <div>
               {primaryTimeline ? (
@@ -252,6 +255,7 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
                     onHiddenSeriesChange={setHiddenSeries}
                     sharedHoverDate={sharedHoverDate}
                     onHoverDateChange={setSharedHoverDate}
+                    hoveredBusinessId={hoveredBusinessId}
                     isBrushMode={isBrushMode}
                     brushSelection={brushSelection}
                     onBrushChange={handleBrushChange}
@@ -281,6 +285,7 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
                     onHiddenSeriesChange={setHiddenSeries}
                     sharedHoverDate={sharedHoverDate}
                     onHoverDateChange={setSharedHoverDate}
+                    hoveredBusinessId={hoveredBusinessId}
                     isBrushMode={isBrushMode}
                     brushSelection={brushSelection}
                     onBrushChange={handleBrushChange}
@@ -297,12 +302,12 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
           </ChartErrorBoundary>
         </div>
 
-        {/* Row 3: Business Attributes */}
-        <div className="min-h-[400px]">
+        {/* Row 2: Business Attributes - Takes more space */}
+        <div className="h-full">
           <ChartErrorBoundary chartName="Business Attributes" resetKeys={[primaryBusinessId, ...comparisonIds]}>
-            <div>
+            <div className="h-full">
               <Suspense fallback={<ChartLoadingFallback />}>
-                <BusinessAttributesComparison />
+                <BusinessAttributesComparison onBusinessHover={handleBusinessHover} />
               </Suspense>
             </div>
           </ChartErrorBoundary>

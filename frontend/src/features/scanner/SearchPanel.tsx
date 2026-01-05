@@ -20,8 +20,8 @@ const SearchPanelComponent = ({ isOpen, onClose, onSelectBusiness }: SearchPanel
 
   const handleSelectBusiness = (business: Business) => {
     onSelectBusiness(business);
-    setSearchQuery('');
-    onClose();
+    // Keep the search query and results visible
+    // The panel will auto-close after navigation completes
   };
 
   const handleToggleComparison = (e: React.MouseEvent, businessId: string) => {
