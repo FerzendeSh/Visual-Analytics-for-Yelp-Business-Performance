@@ -20,17 +20,40 @@ backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from database.database import async_session_maker
 from models.cluster import ClusterRun, Cluster, BusinessCluster, ClusterLevel, ClusterMethod
 from repositories.cluster_repository import ClusterRepository
 
 
-def parse_clusters_labeled_txt(filepath: Path) -> Dict[int, Dict[str, Any]]:
+async def clear_existing_clusters(db: AsyncSession):
+    """Clear all existing clustering data before importing new data."""
+    print("\n" + "=" * 80)
+    print("CLEARING EXISTING CLUSTER DATA")
+    print("=" * 80)
+    
+    # Delete in correct order due to foreign key constraints
+    result = await db.execute(text("DELETE FROM business_clusters"))
+    bc_count = result.rowcount
+    print(f"  [OK] Deleted {bc_count} rows from business_clusters")
+    
+    result = await db.execute(text("DELETE FROM clusters"))
+    c_count = result.rowcount
+    print(f"  [OK] Deleted {c_count} rows from clusters")
+    
+    result = await db.execute(text("DELETE FROM cluster_runs"))
+    cr_count = result.rowcount
+    print(f"  [OK] Deleted {cr_count} rows from cluster_runs")
+    
+    print(f"\n  Total cleared: {bc_count + c_count + cr_count} rows")
+
+
+def parse_clusters_labeled_txt(filepath: Path) -> Dict[str, Dict[str, Any]]:
     """
     Parse clusters_labeled.txt to extract AI labels and descriptions.
 
     Returns:
-        Dict mapping cluster_id to {label, description, characteristics}
+        Dict mapping cluster_id (e.g., "R0_C0") to {label, description, characteristics}
     """
     labels_dict = {}
 
@@ -44,12 +67,12 @@ def parse_clusters_labeled_txt(filepath: Path) -> Dict[int, Dict[str, Any]]:
         if not section.strip() or 'CLUSTER' not in section:
             continue
 
-        # Extract cluster ID
-        cluster_match = re.search(r'CLUSTER (\d+)', section)
+        # Extract cluster ID (format: R0_C0, R1_C5, etc.)
+        cluster_match = re.search(r'CLUSTER (R\d+_C\d+)', section)
         if not cluster_match:
             continue
 
-        cluster_id = int(cluster_match.group(1))
+        cluster_id = cluster_match.group(1)
 
         # Extract label
         label_match = re.search(r'Label:\s*(.+?)$', section, re.MULTILINE)
@@ -91,7 +114,7 @@ async def import_clusters():
     # File paths
     script_dir = Path(__file__).parent
     clusters_json_path = script_dir / 'clustering_output' / 'clusters_data.json'
-    clusters_txt_path = script_dir / 'clusters_labeled.txt'
+    clusters_txt_path = script_dir / 'clustering_output' / 'clusters_labeled.txt'
 
     # Verify files exist
     if not clusters_json_path.exists():
@@ -118,6 +141,9 @@ async def import_clusters():
     # Get database session
     async with async_session_maker() as db:
         try:
+            # Clear existing data first (full replacement)
+            await clear_existing_clusters(db)
+            
             repo = ClusterRepository(db)
 
             # Create ClusterRun
@@ -159,18 +185,20 @@ async def import_clusters():
             business_clusters_to_insert = []
 
             for idx, cluster_data in enumerate(clusters_data):
-                cluster_id_from_json = cluster_data['cluster_id']
+                cluster_id_from_json = cluster_data['cluster_id']  # e.g., "R0_C5"
                 labels = labels_dict.get(cluster_id_from_json, {})
 
                 # Determine primary city from top_cities
                 top_cities = cluster_data.get('top_cities', {})
                 primary_city = list(top_cities.keys())[0] if top_cities else 'GLOBAL'
 
+                # Use sequential index as cluster_label (integer required by schema)
+                # The hierarchical ID (R0_C5) is preserved in ai_label prefix
                 cluster_record = {
                     'run_id': cluster_run.run_id,
                     'city': primary_city,
                     'neighborhood': None,
-                    'cluster_label': cluster_id_from_json,
+                    'cluster_label': idx,  # Sequential integer index
                     'method': ClusterMethod.HDBSCAN,
                     'method_params': {
                         'min_cluster_size': 15,
@@ -207,9 +235,10 @@ async def import_clusters():
             created_clusters = await repo.create_clusters_bulk(clusters_to_insert)
             print(f"[OK] Inserted {len(created_clusters)} clusters")
 
-            # Create mapping from cluster_label to cluster_id
-            cluster_label_to_id = {
-                c.cluster_label: c.cluster_id for c in created_clusters
+            # Create mapping from sequential index to database cluster_id
+            # clusters_data and created_clusters are in the same order
+            idx_to_cluster_id = {
+                idx: c.cluster_id for idx, c in enumerate(created_clusters)
             }
 
             # Create BusinessCluster records
@@ -218,8 +247,7 @@ async def import_clusters():
             print("=" * 80)
 
             for idx, cluster_data in enumerate(clusters_data):
-                cluster_label = cluster_data['cluster_id']
-                cluster_id = cluster_label_to_id[cluster_label]
+                cluster_id = idx_to_cluster_id[idx]  # Use sequential index
                 business_ids = cluster_data['business_ids']
 
                 for business_id in business_ids:

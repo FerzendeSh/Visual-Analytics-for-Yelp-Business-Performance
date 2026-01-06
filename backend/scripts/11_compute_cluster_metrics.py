@@ -57,15 +57,13 @@ async def compute_cluster_metrics(session: AsyncSession):
     clusters = result.scalars().all()
     print(f"  [OK] Found {len(clusters)} clusters to process")
 
-    # Clear existing metrics for this run
-    print("\nClearing existing cluster metrics...")
+    # Clear ALL existing cluster metrics (full replacement)
+    print("\nClearing ALL existing cluster metrics...")
     await session.execute(
-        ClusterTimelineMetrics.__table__.delete().where(
-            ClusterTimelineMetrics.cluster_id.in_([c.cluster_id for c in clusters])
-        )
+        ClusterTimelineMetrics.__table__.delete()
     )
     await session.commit()
-    print("  [OK] Cleared existing data")
+    print("  [OK] Cleared all cluster metrics data")
 
     # Process each cluster
     print("\n" + "=" * 80)
