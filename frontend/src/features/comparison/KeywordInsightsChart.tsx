@@ -1,7 +1,6 @@
 import { memo, useMemo, useCallback } from 'react';
 import { ParentSize } from '@visx/responsive';
 import { scaleBand, scaleLinear } from '@visx/scale';
-import { Bar } from '@visx/shape';
 import { Group } from '@visx/group';
 import { Text } from '@visx/text';
 import { useAppStore } from '../../stores/useAppStore';
@@ -19,8 +18,8 @@ interface KeywordPair {
 
 const MARGINS = { top: 20, right: 20, bottom: 40, left: 20 };
 const COLORS = {
-  complaint: '#ef4444',
-  praise: '#22c55e',
+  complaint: '#9f0808ea',
+  praise: '#06ad43ee',
 };
 
 // ✅ Memoized component - only re-renders when insights change
@@ -33,14 +32,14 @@ const KeywordInsightsChartComponent = ({ insights }: KeywordInsightsProps) => {
     <div className="glass rounded-lg p-4 h-full">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Keyword Insights</h2>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.complaint }} />
-            <span className="text-muted-foreground">Complaints</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: COLORS.complaint }} />
+            <span className="text-xs text-muted-foreground">Complaints</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.praise }} />
-            <span className="text-muted-foreground">Praises</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: COLORS.praise }} />
+            <span className="text-xs text-muted-foreground">Praises</span>
           </div>
         </div>
       </div>
@@ -139,7 +138,7 @@ function KeywordChart({
       scaleBand({
         domain: keywords.map(k => k.keyword),
         range: [0, innerHeight],
-        padding: 0.2,
+        padding: 0.1,
       }),
     [keywords, innerHeight]
   );
@@ -147,24 +146,27 @@ function KeywordChart({
   // Center point for the chart
   const centerX = innerWidth / 2;
 
-  // Left scale (complaints - negative direction)
+  // Define text area width in the center
+  const textAreaWidth = 100;
+
+  // Left scale (complaints - bars extend from left edge to before center text)
   const leftScale = useMemo(
     () =>
       scaleLinear({
         domain: [0, maxCount],
-        range: [0, centerX - 40], // Leave space for labels
+        range: [0, (innerWidth - textAreaWidth) / 2], // Max width is half minus text area
       }),
-    [maxCount, centerX]
+    [maxCount, innerWidth, textAreaWidth]
   );
 
-  // Right scale (praises - positive direction)
+  // Right scale (praises - bars extend from right edge to before center text)
   const rightScale = useMemo(
     () =>
       scaleLinear({
         domain: [0, maxCount],
-        range: [0, centerX - 40], // Leave space for labels
+        range: [0, (innerWidth - textAreaWidth) / 2], // Max width is half minus text area
       }),
-    [maxCount, centerX]
+    [maxCount, innerWidth, textAreaWidth]
   );
 
   const handleKeywordClick = useCallback(
@@ -186,7 +188,8 @@ function KeywordChart({
           {keywords.map(({ keyword, complaintCount }) => {
             const barWidth = leftScale(complaintCount) || 0;
             const barHeight = yScale.bandwidth() || 0;
-            const barX = (centerX - barWidth) || 0;
+            const maxBarWidth = (innerWidth - textAreaWidth) / 2;
+            const barX = maxBarWidth - barWidth; // End at same position, start varies
             const barY = yScale(keyword) ?? 0;
             const isSelected = selectedKeyword === keyword;
 
@@ -195,29 +198,40 @@ function KeywordChart({
               return null;
             }
 
+            const reducedBarHeight = barHeight * 0.7; // Bar thickness
+            const barYOffset = barY + (barHeight - reducedBarHeight) / 2; // Center vertically
+
             return (
               <g key={`complaint-${keyword}`}>
-                <Bar
-                  x={barX}
-                  y={barY}
-                  width={barWidth}
-                  height={barHeight}
-                  fill={COLORS.complaint}
-                  opacity={isSelected ? 1 : 0.7}
-                  rx={4}
-                  onClick={() => handleKeywordClick(keyword)}
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = isSelected ? '1' : '0.7';
-                  }}
-                />
+                {/* Custom path for rounded left corners only */}
+                {complaintCount > 0 && (
+                  <path
+                    d={`
+                      M ${barX + 4} ${barYOffset}
+                      L ${barX + barWidth} ${barYOffset}
+                      L ${barX + barWidth} ${barYOffset + reducedBarHeight}
+                      L ${barX + 4} ${barYOffset + reducedBarHeight}
+                      Q ${barX} ${barYOffset + reducedBarHeight} ${barX} ${barYOffset + reducedBarHeight - 4}
+                      L ${barX} ${barYOffset + 4}
+                      Q ${barX} ${barYOffset} ${barX + 4} ${barYOffset}
+                      Z
+                    `}
+                    fill={COLORS.complaint}
+                    opacity={isSelected ? 1 : 0.7}
+                    onClick={() => handleKeywordClick(keyword)}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = isSelected ? '1' : '0.7';
+                    }}
+                  />
+                )}
                 {complaintCount > 0 && (
                   <Text
                     x={barX - 4}
-                    y={barY + barHeight / 2}
+                    y={barYOffset + reducedBarHeight / 2}
                     verticalAnchor="middle"
                     textAnchor="end"
                     fill="rgba(255,255,255,0.6)"
@@ -236,33 +250,43 @@ function KeywordChart({
           {keywords.map(({ keyword, praiseCount }) => {
             const barWidth = rightScale(praiseCount);
             const barHeight = yScale.bandwidth();
-            const barX = centerX;
+            const barX = (innerWidth + textAreaWidth) / 2; // Start at same position, end varies
             const barY = yScale(keyword) ?? 0;
             const isSelected = selectedKeyword === keyword;
 
+            const reducedBarHeight = barHeight * 0.7; // Bar thickness
+            const barYOffset = barY + (barHeight - reducedBarHeight) / 2; // Center vertically
+
             return (
               <g key={`praise-${keyword}`}>
-                <Bar
-                  x={barX}
-                  y={barY}
-                  width={barWidth}
-                  height={barHeight}
-                  fill={COLORS.praise}
-                  opacity={isSelected ? 1 : 0.7}
-                  rx={4}
-                  onClick={() => handleKeywordClick(keyword)}
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = isSelected ? '1' : '0.7';
-                  }}
-                />
+                {/* Custom path for rounded right corners only */}
+                {praiseCount > 0 && (
+                  <path
+                    d={`
+                      M ${barX} ${barYOffset}
+                      L ${barX + barWidth - 4} ${barYOffset}
+                      Q ${barX + barWidth} ${barYOffset} ${barX + barWidth} ${barYOffset + 4}
+                      L ${barX + barWidth} ${barYOffset + reducedBarHeight - 4}
+                      Q ${barX + barWidth} ${barYOffset + reducedBarHeight} ${barX + barWidth - 4} ${barYOffset + reducedBarHeight}
+                      L ${barX} ${barYOffset + reducedBarHeight}
+                      Z
+                    `}
+                    fill={COLORS.praise}
+                    opacity={isSelected ? 1 : 0.7}
+                    onClick={() => handleKeywordClick(keyword)}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = isSelected ? '1' : '0.7';
+                    }}
+                  />
+                )}
                 {praiseCount > 0 && (
                   <Text
                     x={barX + barWidth + 4}
-                    y={barY + barHeight / 2}
+                    y={barYOffset + reducedBarHeight / 2}
                     verticalAnchor="middle"
                     textAnchor="start"
                     fill="rgba(255,255,255,0.6)"
@@ -302,37 +326,6 @@ function KeywordChart({
           })}
         </Group>
 
-        {/* Center divider line */}
-        <line
-          x1={centerX}
-          y1={0}
-          x2={centerX}
-          y2={innerHeight}
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth={1}
-        />
-
-        {/* Bottom axes labels */}
-        <Text
-          x={centerX / 2}
-          y={innerHeight + 25}
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.6)"
-          fontSize={11}
-          fontWeight={500}
-        >
-          ← Complaints
-        </Text>
-        <Text
-          x={centerX + centerX / 2}
-          y={innerHeight + 25}
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.6)"
-          fontSize={11}
-          fontWeight={500}
-        >
-          Praises →
-        </Text>
       </Group>
     </svg>
   );

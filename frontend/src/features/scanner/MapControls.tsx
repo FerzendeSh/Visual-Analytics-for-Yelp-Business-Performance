@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Search, Plus, Minus, Compass, Home } from 'lucide-react';
+import { Plus, Minus, Compass, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -7,9 +7,7 @@ interface MapControlsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetNorth: () => void;
-  onSearchToggle: () => void;
   onGoToMyBusiness?: () => void;
-  isSearchOpen: boolean;
   currentZoom: number;
 }
 
@@ -17,26 +15,11 @@ const MapControlsComponent = ({
   onZoomIn,
   onZoomOut,
   onResetNorth,
-  onSearchToggle,
   onGoToMyBusiness,
-  isSearchOpen,
   currentZoom,
 }: MapControlsProps) => {
   return (
-    <div className="absolute top-6 right-6 z-30 flex flex-col gap-2">
-      {/* Search Toggle Button */}
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          onClick={onSearchToggle}
-          variant={isSearchOpen ? 'default' : 'ghost'}
-          size="icon"
-          className="glass"
-          title="Search businesses"
-        >
-          <Search className="h-5 w-5" />
-        </Button>
-      </motion.div>
-
+    <div className="absolute top-13 left-1 z-30 flex flex-col gap-2">
       {/* Go to My Business Button */}
       {onGoToMyBusiness && (
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -53,7 +36,7 @@ const MapControlsComponent = ({
       )}
 
       {/* Divider */}
-      <div className="h-px bg-slate-700 mx-2" />
+      {onGoToMyBusiness && <div className="h-px bg-slate-700 mx-2" />}
 
       {/* Zoom Controls */}
       <div className="flex flex-col gap-1">

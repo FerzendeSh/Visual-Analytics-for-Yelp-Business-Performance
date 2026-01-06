@@ -24,33 +24,36 @@ const ScannerModeComponent = () => {
 
   return (
     <div className="w-full h-full flex flex-col gap-3 px-3 pt-16 pb-3">
-      {/* Business Metrics Cards */}
-      <ScannerMetricsCards />
-
-      {/* Main Content Area - Map (50%) + Charts Sidebar (50%) */}
+      {/* Main Content Area - Map (45%) + Charts Sidebar (55%) */}
       <div className="flex-1 flex gap-3 min-h-0">
-        {/* Map - Takes 50% width */}
-        <MapErrorBoundary resetKeys={[filters.cityId, filters.neighborhoodId]}>
-          <div className="flex-1 h-full">
-            <Suspense
-              fallback={
-                <div className="w-full h-full flex items-center justify-center bg-background rounded-lg">
-                  <div className="flex flex-col items-center space-y-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <p className="text-muted-foreground text-sm">Loading map...</p>
-                  </div>
-                </div>
-              }
-            >
-              <DeckMap />
-            </Suspense>
-          </div>
-        </MapErrorBoundary>
+        {/* Left Side - Map with metrics on top (45%) */}
+        <div className="w-[45%] h-full flex flex-col gap-2">
+          {/* Compact Metrics Strip - Above the map */}
+          <ScannerMetricsCards />
 
-        {/* Right Sidebar - Stacked Charts (50%) */}
+          {/* Map */}
+          <MapErrorBoundary resetKeys={[filters.cityId ?? '', filters.neighborhoodId ?? '']}>
+            <div className="flex-1 min-h-0 rounded-lg overflow-hidden">
+              <Suspense
+                fallback={
+                  <div className="w-full h-full flex items-center justify-center bg-background rounded-lg">
+                    <div className="flex flex-col items-center space-y-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-muted-foreground text-sm">Loading map...</p>
+                    </div>
+                  </div>
+                }
+              >
+                <DeckMap />
+              </Suspense>
+            </div>
+          </MapErrorBoundary>
+        </div>
+
+        {/* Right Sidebar - Stacked Charts (55%) - More space for charts */}
         <div className="flex-1 h-full flex flex-col gap-2">
           {/* Competitive Positioning Chart - Top */}
-          <ChartErrorBoundary chartName="Competitive Positioning" resetKeys={[filters.cityId, filters.categories]}>
+          <ChartErrorBoundary chartName="Competitive Positioning" resetKeys={[filters.cityId ?? '', ...(Array.isArray(filters.categories) ? filters.categories : [filters.categories ?? ''])]}>
             <div className={primaryBusinessId ? "flex-1 min-h-0" : "h-full"}>
               {competitiveSnapshot.isLoading ? (
                 <div className="glass rounded-lg h-full flex items-center justify-center">

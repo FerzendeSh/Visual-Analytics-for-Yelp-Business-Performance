@@ -17,7 +17,7 @@ export function MapTooltip({ business }: MapTooltipProps) {
   const priceRange = getPriceRange(business.attributes);
 
   return (
-    <div className="absolute bottom-20 left-4 glass p-3 rounded-lg max-w-xs">
+    <div className="absolute bottom-1 left-1 glass p-3 rounded-lg max-w-xs">
       <div className="space-y-1">
         <h4 className="font-semibold text-sm">{business.name}</h4>
         <div className="flex items-center gap-2 text-xs">

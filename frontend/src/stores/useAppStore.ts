@@ -76,7 +76,7 @@ export interface AppState {
 }
 
 const initialFilters: AppState['filters'] = {
-  cityId: MAGGIANOS_TAMPA_CITY_ID,
+  cityId: MAGGIANOS_TAMPA_CITY_ID, // Default to our business city (Tampa, FL)
   neighborhoodId: null,
   categories: [],
   status: 'ALL',
@@ -89,7 +89,7 @@ const initialFilters: AppState['filters'] = {
 const initialMapViewState: MapViewState = {
   longitude: -82.526348, // Tampa, FL (Maggiano's exact location)
   latitude: 27.946453,
-  zoom: 15.1, // Focused zoom on Maggiano's business showing nearby area
+  zoom: 16, // Zoomed in close to Maggiano's business
   pitch: 0,
   bearing: 0,
 };
@@ -172,7 +172,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'yelp-analytics-storage',
-      version: 4, // Incremented to force reset to Maggiano's default location
+      version: 7, // Incremented to force reset with zoomed-in business view
       partialize: (state) => ({
         primaryBusinessId: state.primaryBusinessId,
         comparisonIds: state.comparisonIds,

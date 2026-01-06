@@ -16,9 +16,9 @@ import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID } from '../../stores/useAppSto
 import { useComparisonBusinesses } from '../../hooks/useComparisonData';
 
 // --- Constants ---
-const BACKGROUND_COLOR = '#0F111A';
+const BACKGROUND_COLOR = '#040919ff';
 const AXIS_COLOR = '#f8fafc';
-const GRID_COLOR = '#1e293b';
+const GRID_COLOR = '#22314ab3';
 
 const CHART_COLORS = {
   textPrimary: '#f8fafc',
@@ -28,10 +28,10 @@ const CHART_COLORS = {
 };
 
 const QUADRANT_COLORS: Record<string, string> = {
-  'Market Leaders': '#22c55e',
-  'Hidden Gems': '#3b82f6',
-  'Struggling': '#ef4444',
-  'Volume Drivers': '#d4a817', // Dark yellow
+  'Market Leaders': '#06a2fdff',
+  'Hidden Gems': '#0008ffff',
+  'Struggling': '#7700ffff',
+  'Volume Drivers': '#00ffeeff', // Dark yellow
 };
 
 const QUADRANT_DESCRIPTIONS: Record<string, string> = {
@@ -161,7 +161,7 @@ const QuadrantChart = ({
   onSelectBusiness?: (id: string | null) => void;
   onBusinessClick?: (business: ChartDataPoint) => void;
 }) => {
-  const margin = { top: 15, right: 50, bottom: 40, left: 50 };
+  const margin = { top: 20, right: 50, bottom: 70, left: 60 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const brushRef = useRef<any>(null);
@@ -282,7 +282,7 @@ const QuadrantChart = ({
   return (
     <div className="relative">
       {/* Zoom Controls - Vertical Stack */}
-      <div className="absolute top-1 right-1 z-10 flex flex-col gap-0.5">
+      <div className="absolute top-0 right-1 z-10 flex flex-col gap-0.5">
         <button
           className={`p-1 rounded transition-colors ${isZoomMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
           onClick={() => {
@@ -393,68 +393,94 @@ const QuadrantChart = ({
             // Always check if this is Maggiano's (hardcoded primary business)
             const isMaggianosHardcoded = d.id === MAGGIANOS_TAMPA_BUSINESS_ID;
 
-            let radius = 3;
-            let stroke = 'none';
-            let strokeWidth = 0;
+            // Improved base sizes - larger and more visible
+            let radius = 6; // Increased from 3 to 6 (doubled)
+            let stroke = '#0d0d0dff'; // Dark stroke for separation (matches background)
+            let strokeWidth = 0.3; // Base stroke for all dots
             let fill = colorScale(d.category);
+            let opacity = 0.5; // Subtle transparency for depth
 
             // Maggiano's gets special highlight - larger yellow dot with glow
             if (isMaggianosHardcoded || d.isMyBusiness) {
-              radius = 12; // Even larger for emphasis
+              radius = 12; // Slightly larger for emphasis
               fill = CHART_COLORS.myBusiness; // Force yellow
               stroke = CHART_COLORS.myBusiness;
               strokeWidth = 3;
+              opacity = 1; // Full opacity for primary business
             } else if (d.isComparison) {
-              radius = 8;
+              radius = 10; // Increased from 8 to 10
               stroke = LINE_COLORS[(d.comparisonIndex + 1) % LINE_COLORS.length];
               strokeWidth = 2.5;
+              opacity = 1; // High opacity for comparison businesses
             }
 
             // Highlighted from map interaction
             if (isHighlighted && !isMaggianosHardcoded) {
-              radius = d.isMyBusiness ? 12 : 10;
-              stroke = '#3b82f6'; // Blue highlight
-              strokeWidth = 3;
+              radius = d.isMyBusiness ? 24 : 12; // Increased from 12/10
+              stroke = '#ffea00ff'; // Blue highlight
+              strokeWidth = 2;
+              opacity = 1; // Full opacity when highlighted
             }
 
             if (isSelected && !isMaggianosHardcoded) {
-              radius = d.isMyBusiness ? 12 : 9;
+              radius = d.isMyBusiness ? 14 : 11; // Increased from 12/9
               if (!d.isMyBusiness && !d.isComparison) {
                 stroke = '#fff';
                 strokeWidth = 2;
               }
+              opacity = 1; // Full opacity when selected
             } else if (hasSelection && !d.isMyBusiness && !d.isComparison && !isMaggianosHardcoded) {
-              radius = 2;
+              radius = 4; // Increased from 2 to 4 - still visible when dimmed
+              opacity = 0.9; // Reduce opacity when dimmed
             }
 
+            // Larger click target radius for better UX
+            const clickTargetRadius = Math.max(radius, 12);
+
             return (
-              <Circle
-                key={d.id}
-                cx={xScale(d.reviewVolume)}
-                cy={yScale(d.rating)}
-                r={radius}
-                fill={fill}
-                stroke={stroke}
-                strokeWidth={strokeWidth}
-                style={{ cursor: isMaggianosHardcoded ? 'default' : 'pointer' }}
-                className="transition-all duration-300"
-                filter={(isMaggianosHardcoded || d.isMyBusiness) ? 'url(#myBusinessGlow)' : undefined}
-                onMouseOver={(e) => handleMouseOver(e as React.MouseEvent<SVGCircleElement>, d)}
-                onMouseOut={hideTooltip}
-                onClick={(e) => {
-                  e.stopPropagation();
+              <g key={d.id}>
+                {/* Invisible larger click target for easier clicking */}
+                <Circle
+                  cx={xScale(d.reviewVolume)}
+                  cy={yScale(d.rating)}
+                  r={clickTargetRadius}
+                  fill="transparent"
+                  style={{ cursor: isMaggianosHardcoded ? 'default' : 'pointer' }}
+                  onMouseOver={(e) => handleMouseOver(e as React.MouseEvent<SVGCircleElement>, d)}
+                  onMouseOut={hideTooltip}
+                  onClick={(e) => {
+                    e.stopPropagation();
 
-                  // Always zoom map and open popup when clicking a dot
-                  if (onBusinessClick) {
-                    onBusinessClick(d);
-                  }
+                    // Always zoom map and open popup when clicking a dot
+                    if (onBusinessClick) {
+                      onBusinessClick(d);
+                    }
 
-                  // Only change selection if NOT in click mode and NOT Maggiano's
-                  if (!isClickMode && !isMaggianosHardcoded && onSelectBusiness) {
-                    onSelectBusiness(isSelected ? null : d.id);
-                  }
-                }}
-              />
+                    // Only change selection if NOT in click mode and NOT Maggiano's
+                    if (!isClickMode && !isMaggianosHardcoded && onSelectBusiness) {
+                      onSelectBusiness(isSelected ? null : d.id);
+                    }
+                  }}
+                />
+
+                {/* Visible dot */}
+                <Circle
+                  cx={xScale(d.reviewVolume)}
+                  cy={yScale(d.rating)}
+                  r={radius}
+                  fill={fill}
+                  fillOpacity={opacity}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  strokeOpacity={opacity}
+                  style={{
+                    cursor: isMaggianosHardcoded ? 'default' : 'pointer',
+                    pointerEvents: 'none' // Clicks handled by larger circle
+                  }}
+                  className="transition-all duration-300"
+                  filter={(isMaggianosHardcoded || d.isMyBusiness) ? 'url(#myBusinessGlow)' : undefined}
+                />
+              </g>
             );
           })}
 
@@ -481,7 +507,7 @@ const QuadrantChart = ({
             stroke={AXIS_COLOR}
             tickStroke={AXIS_COLOR}
             label="Review Volume"
-            labelOffset={16}
+            labelOffset={28}
             labelProps={{ fill: AXIS_COLOR, fontSize: 10, textAnchor: 'middle', fontWeight: 600 }}
             tickLabelProps={() => ({ fill: AXIS_COLOR, fontSize: 9, textAnchor: 'middle', dy: 0 })}
           />

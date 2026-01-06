@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { api, CombinedTimelineResponse } from '../lib/api';
+import { api } from '../lib/api';
 import { useAppStore } from '../stores/useAppStore';
 import { subYears, format } from 'date-fns';
 
 // Helper function to calculate date range
-const getDateRange = (timeRange: '1Y' | '5Y') => {
+const getDateRange = (timeRange: '1Y' | '5Y' | 'CUSTOM') => {
   const endDate = new Date();
-  const yearsBack = timeRange === '1Y' ? 1 : 5;
+  const yearsBack = timeRange === '1Y' ? 1 : timeRange === '5Y' ? 5 : 5; // Default to 5 for CUSTOM
   const startDate = subYears(endDate, yearsBack);
 
   return {
@@ -110,6 +110,21 @@ export function useCompetitiveSnapshot() {
       // Extract city and state from cityId (format: "city_STATE")
       const city = filters.cityId?.split('_')[0];
       const state = filters.cityId?.split('_')[1];
+
+      // Only fetch competitive data if a specific city is selected
+      // This prevents loading all businesses when "All cities" is selected
+      if (!city || !state) {
+        // Return just the primary business data
+        const primaryBusiness = await api.businesses.getById(primaryBusinessId);
+        return {
+          businesses: [primaryBusiness],
+          statistics: {
+            avg_rating: primaryBusiness.stars,
+            median_review_count: primaryBusiness.review_count,
+            total_businesses: 1,
+          },
+        };
+      }
 
       return api.analytics.getCompetitiveSnapshot({
         city,

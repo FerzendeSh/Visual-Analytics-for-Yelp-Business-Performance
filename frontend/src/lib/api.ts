@@ -24,6 +24,7 @@ export interface BusinessDTO {
   review_count: number;
   is_open: number;
   categories: string;
+  neighborhood?: string;
   attributes?: Record<string, any>;
   hours?: Record<string, string>;
 }

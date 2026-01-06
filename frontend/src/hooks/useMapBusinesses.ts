@@ -15,15 +15,11 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
 
   const selectedCity = filters.cityId?.split('_')[0];
   const selectedState = filters.cityId?.split('_')[1];
+  const isAllCities = filters.cityId === null;
 
-  // Don't use viewport bounds when city/state filter is active
-  // The viewport might not include the filtered city yet (before navigation completes)
-  // Instead, always use global bounds with city/state filters
-  const shouldUseViewport = !selectedCity && !selectedState;
-
-  // Use immediate viewport for pure viewport queries (no debounce when no filters)
-  // Debounce viewport changes when panning/zooming
-  const debouncedViewport = useDebounce(viewport, 300);
+  // Debounce viewport changes when panning/zooming to reduce API calls
+  // Use minimal debounce (50ms) for fast business loading after navigation
+  const debouncedViewport = useDebounce(viewport, 50);
 
   return useQuery({
     queryKey: [
@@ -35,9 +31,9 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
       filters.categories[0],
       filters.status,
       filters.ratingRange[0],
-      // Only include viewport in query key when NOT filtering by city/state
-      // This prevents unnecessary refetches when map zooms after city selection
-      shouldUseViewport ? debouncedViewport : null
+      // Only include viewport in query key when NOT in "All cities" mode
+      // This prevents refetching when panning/zooming with "All cities" selected
+      isAllCities ? 'all-cities' : debouncedViewport
     ],
     queryFn: async () => {
       console.log('🔍 [BUSINESSES QUERY] Starting fetch:', {
@@ -46,26 +42,19 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
         state: selectedState,
         neighborhood: filters.neighborhoodId,
         status: filters.status,
-        viewport: debouncedViewport
+        viewport: debouncedViewport,
+        isAllCities
       });
 
-      // Strategy: Always filter by city/state when selected, using either:
-      // 1. Current viewport bounds (if available and stable)
-      // 2. Global bounds (if viewport not available or during navigation)
-
       const baseParams = {
-        state: selectedState || undefined,
-        city: selectedCity || undefined,
-        neighborhood: filters.neighborhoodId || undefined,
         category: filters.categories[0] || undefined,
         min_rating: filters.ratingRange[0],
         is_open: filters.status === 'OPEN' ? 1 : filters.status === 'CLOSED' ? 0 : undefined,
       };
 
-      // When city/state filter is active, ALWAYS use global bounds
-      // This prevents getting 0 results when viewport doesn't include the filtered city yet
-      if (selectedCity || selectedState) {
-        console.log('📍 [BUSINESSES QUERY] Using global bounds with city/state filter:', { city: selectedCity, state: selectedState });
+      // Strategy 1: "All cities" mode - fetch all businesses globally, ignore viewport changes
+      if (isAllCities) {
+        console.log('📍 [BUSINESSES QUERY] "All cities" mode - fetching all businesses globally');
         const result = await api.businesses.viewport({
           south: -90,
           north: 90,
@@ -73,13 +62,16 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
           east: 180,
           ...baseParams,
         });
-        console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses from global bounds`);
+        console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses globally`);
         return result;
       }
 
-      // No filters - use viewport bounds for exploring the map
-      if (debouncedViewport && shouldUseViewport) {
-        console.log('📍 [BUSINESSES QUERY] Fetching with viewport (no filters):', { viewport: debouncedViewport });
+      // Strategy 2: Specific city/state selected - use viewport for dynamic loading
+      if (debouncedViewport) {
+        console.log('📍 [BUSINESSES QUERY] Using viewport bounds:', {
+          viewport: debouncedViewport,
+          hasFilters: !!(selectedCity || selectedState)
+        });
         const result = await api.businesses.viewport({
           ...debouncedViewport,
           ...baseParams,
@@ -88,11 +80,28 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
         return result;
       }
 
-      console.log('📍 [BUSINESSES QUERY] No viewport or filters, returning empty array');
+      // Strategy 3: Fallback when city/state filter active but viewport not available yet
+      if (selectedCity || selectedState) {
+        console.log('📍 [BUSINESSES QUERY] Using global bounds with city/state filter (no viewport):', { city: selectedCity, state: selectedState });
+        const result = await api.businesses.viewport({
+          south: -90,
+          north: 90,
+          west: -180,
+          east: 180,
+          state: selectedState || undefined,
+          city: selectedCity || undefined,
+          neighborhood: filters.neighborhoodId || undefined,
+          ...baseParams,
+        });
+        console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses from global bounds`);
+        return result;
+      }
+
+      console.log('📍 [BUSINESSES QUERY] No viewport available, returning empty array');
       return [];
     },
-    enabled: !!debouncedViewport || !!(selectedCity || selectedState),
-    staleTime: 5000, // Reduce stale time to 5s so viewport changes trigger refetch faster
+    enabled: isAllCities || !!debouncedViewport || !!(selectedCity || selectedState),
+    staleTime: isAllCities ? Infinity : 0, // "All cities" data never becomes stale; otherwise refetch on viewport change
     gcTime: 30000, // Keep data cached for 30s
   });
 }

@@ -5,7 +5,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAppStore } from '../stores/useAppStore';
-import { subYears, format } from 'date-fns';
 
 // Helper function to calculate date range
 const getDateRange = (

@@ -69,10 +69,13 @@ export function ControlTower() {
   // Transform for Combobox: {value: "City_STATE", label: "City, ST"}
   const cities = React.useMemo(() => {
     if (!allCitiesData) return [];
-    return allCitiesData.map(item => ({
-      value: item.id,
-      label: `${item.city}, ${item.state}`
-    }));
+    return [
+      { value: '', label: 'All cities' }, // Add "All cities" option
+      ...allCitiesData.map(item => ({
+        value: item.id,
+        label: `${item.city}, ${item.state}`
+      }))
+    ];
   }, [allCitiesData]);
 
   // Fetch neighborhoods based on selected city

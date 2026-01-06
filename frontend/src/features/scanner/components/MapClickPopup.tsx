@@ -34,7 +34,7 @@ export function MapClickPopup({
 
   return (
     <div
-      className="absolute bottom-20 left-4 glass p-4 rounded-lg max-w-sm shadow-xl border border-slate-700/50 z-40"
+      className="absolute bottom-1 left-1 glass p-4 rounded-lg max-w-sm shadow-xl border border-slate-700/50 z-40"
       onClick={(e) => {
         // Prevent click from propagating to map (which would close the popup)
         e.stopPropagation();
@@ -101,16 +101,13 @@ export function MapClickPopup({
         {business.categories && (
           <div className="flex flex-wrap gap-1">
             {(() => {
-              // Handle both string and array formats
-              const categoryList = Array.isArray(business.categories)
-                ? business.categories
-                : business.categories.split(',').map(c => c.trim());
-
+              // Categories is always a string, split by comma
+              const categoryList = business.categories.split(',').map(c => c.trim());
               const remainingCategories = categoryList.slice(3);
 
               return (
                 <>
-                  {categoryList.slice(0, 3).map((category, idx) => (
+                  {categoryList.slice(0, 3).map((category: string, idx: number) => (
                     <span
                       key={idx}
                       className="px-2 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400"
@@ -127,7 +124,7 @@ export function MapClickPopup({
                       <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 pointer-events-none">
                         <div className="bg-slate-900 border border-slate-700 rounded px-3 py-2 shadow-lg min-w-[150px] max-w-[200px]">
                           <div className="flex flex-col gap-1">
-                            {remainingCategories.map((category, idx) => (
+                            {remainingCategories.map((category: string, idx: number) => (
                               <span
                                 key={idx}
                                 className="px-2 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 text-left"

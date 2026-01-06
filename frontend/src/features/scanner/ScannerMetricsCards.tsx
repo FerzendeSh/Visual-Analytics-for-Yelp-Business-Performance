@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Star, TrendingUp, TrendingDown, MessageSquare, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useComparisonTimeline } from '../../hooks/useComparisonData';
 import { useAppStore } from '../../stores/useAppStore';
 import { useQuery } from '@tanstack/react-query';
@@ -8,55 +8,29 @@ import { api } from '../../lib/api';
 interface MetricCardProps {
   title: string;
   value: string | number;
-  icon: React.ReactNode;
   trend?: number;
   loading?: boolean;
   valueTooltip: string;
   trendTooltip: string;
-  color: string;
 }
 
-const MetricCard = ({ title, value, icon, trend, loading, valueTooltip, trendTooltip, color }: MetricCardProps) => {
-  const trendIcon = trend && trend > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />;
+const MetricCard = ({ title, value, trend, loading, valueTooltip, trendTooltip }: MetricCardProps) => {
+  const trendIcon = trend && trend > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />;
   const trendColor = trend && trend > 0 ? 'text-green-500' : 'text-red-500';
 
   return (
-    <div className="glass rounded-lg p-3 space-y-2 relative hover:bg-white/[0.03] transition-all duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <div className={`p-1.5 rounded-lg ${color}`}>
-            {icon}
-          </div>
-          <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
-        </div>
-        {trend !== undefined && trend !== null && !loading && (
-          <div className="relative group/trend">
-            <div className={`flex items-center gap-0.5 text-[10px] font-medium ${trendColor} cursor-help`}>
-              {trendIcon}
-              <span>{Math.abs(trend).toFixed(1)}%</span>
-            </div>
-            {/* Trend Tooltip */}
-            <div className="absolute -top-10 right-0 opacity-0 group-hover/trend:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
-              <div className="bg-gray-900 text-white text-xs rounded py-1.5 px-2.5 shadow-xl border border-white/10 whitespace-nowrap">
-                {trendTooltip}
-                <div className="absolute -bottom-1 right-4 w-2 h-2 bg-gray-900 border-r border-b border-white/10 transform rotate-45"></div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Value */}
-      <div className="flex items-baseline gap-2">
+    <div className="flex items-center gap-2 px-3 py-1.5 relative group/card">
+      {/* Value and Title */}
+      <div className="flex flex-col">
+        <h3 className="text-[10px] text-muted-foreground leading-none mb-1">{title}</h3>
         {loading ? (
-          <div className="h-6 w-20 bg-white/5 rounded animate-pulse" />
+          <div className="h-5 w-16 bg-white/5 rounded animate-pulse" />
         ) : (
           <div className="relative group/value">
-            <span className="text-2xl font-bold text-white cursor-help">{value}</span>
+            <span className="text-lg text-white cursor-help leading-none">{value}</span>
             {/* Value Tooltip */}
-            <div className="absolute -top-10 left-0 opacity-0 group-hover/value:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
-              <div className="bg-gray-900 text-white text-xs rounded py-1.5 px-2.5 shadow-xl border border-white/10 whitespace-nowrap">
+            <div className="absolute -top-8 left-0 opacity-0 group-hover/value:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+              <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 shadow-xl border border-white/10 whitespace-nowrap">
                 {valueTooltip}
                 <div className="absolute -bottom-1 left-4 w-2 h-2 bg-gray-900 border-r border-b border-white/10 transform rotate-45"></div>
               </div>
@@ -64,6 +38,23 @@ const MetricCard = ({ title, value, icon, trend, loading, valueTooltip, trendToo
           </div>
         )}
       </div>
+
+      {/* Trend Badge */}
+      {trend !== undefined && trend !== null && !loading && (
+        <div className="relative group/trend ml-auto">
+          <div className={`flex items-center gap-0.5 text-[9px] font-medium ${trendColor} cursor-help`}>
+            {trendIcon}
+            <span>{Math.abs(trend).toFixed(1)}%</span>
+          </div>
+          {/* Trend Tooltip */}
+          <div className="absolute -top-8 right-0 opacity-0 group-hover/trend:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+            <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 shadow-xl border border-white/10 whitespace-nowrap">
+              {trendTooltip}
+              <div className="absolute -bottom-1 right-4 w-2 h-2 bg-gray-900 border-r border-b border-white/10 transform rotate-45"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -109,33 +100,38 @@ const ScannerMetricsCardsComponent = () => {
   const isLoading = isLoadingBusiness || businessTimeline.isLoading;
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="glass rounded-lg p-0.7 flex items-center divide-x divide-white/5">
+      {/* Business Name */}
+      <div className="px-4 pr-6">
+        {isLoading ? (
+          <div className="h-6 w-32 bg-white/5 rounded animate-pulse" />
+        ) : (
+          <h2 className="text-base text-white whitespace-nowrap">
+            {businessData?.name || 'Select a business'}
+          </h2>
+        )}
+      </div>
+
       <MetricCard
-        title="Average Rating"
+        title="  Average Rating"
         value={metrics?.rating.value || '0.0'}
-        icon={<Star size={16} className="text-yellow-500" fill="currentColor" />}
         loading={isLoading}
         valueTooltip="Avg rating (all time)"
         trendTooltip=""
-        color="bg-yellow-500/10"
       />
       <MetricCard
-        title="Sentiment Score"
+        title="  Sentiment Score"
         value={metrics?.sentiment.value || '0.00'}
-        icon={<MessageSquare size={16} className="text-green-500" />}
         loading={isLoading}
         valueTooltip="Avg sentiment score"
         trendTooltip=""
-        color="bg-green-500/10"
       />
       <MetricCard
-        title="Review Volume"
+        title="  Review Volume"
         value={metrics?.volume.value || '0'}
-        icon={<BarChart3 size={16} className="text-blue-500" />}
         loading={isLoading}
         valueTooltip="Total reviews (all time)"
         trendTooltip=""
-        color="bg-blue-500/10"
       />
     </div>
   );

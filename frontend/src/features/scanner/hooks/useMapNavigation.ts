@@ -85,13 +85,39 @@ export function useNavigateToCity(
 ) {
   const previousCityRef = useRef<string | null>(null);
   const hasNavigatedForCityRef = useRef<string | null>(null);
+  const isInitialMount = useRef(true);
 
   // Effect 1: Detect city changes and reset navigation state
   useEffect(() => {
-    // Handle city being cleared
+    // On initial mount, if cityId is Tampa_FL (our default business city),
+    // mark it as already navigated to preserve the initial business-focused view
+    if (isInitialMount.current && cityId === 'Tampa_FL') {
+      console.log('🗺️ Initial mount with default city (Tampa_FL) - preserving business-focused view');
+      previousCityRef.current = cityId;
+      hasNavigatedForCityRef.current = cityId;
+      isInitialMount.current = false;
+      return;
+    }
+    isInitialMount.current = false;
+
+    // Handle "All cities" being selected (cityId is null or undefined)
     if (!cityId) {
+      console.log('🗺️ "All cities" selected - zooming out to show super cluster');
       previousCityRef.current = null;
       hasNavigatedForCityRef.current = null;
+
+      // Zoom out to show entire USA for "All cities" view
+      if (mapRef) {
+        isProgrammaticMoveRef.current = true;
+        setMapViewState({
+          longitude: -95.7129, // Center of USA
+          latitude: 37.0902,
+          zoom: 4, // Zoomed out to show super cluster of all cities
+          pitch: 0,
+          bearing: 0,
+          transitionDuration: 1000, // 1 second smooth transition
+        });
+      }
       return;
     }
 
@@ -101,7 +127,7 @@ export function useNavigateToCity(
       previousCityRef.current = cityId;
       hasNavigatedForCityRef.current = null; // Reset navigation flag for new city
     }
-  }, [cityId]);
+  }, [cityId, mapRef, isProgrammaticMoveRef, setMapViewState]);
 
   // Effect 2: Navigate to city boundary when available
   useEffect(() => {

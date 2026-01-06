@@ -2,20 +2,9 @@ import { useMemo, memo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { useAppStore } from '../../stores/useAppStore';
 import {
-  Wine,
-  Utensils,
-  Wifi,
-  Car,
-  Users,
-  Baby,
-  Volume2,
-  Clock,
-  UtensilsCrossed,
   Check,
   X,
   Loader2,
-  Settings,
-  CreditCard,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -43,24 +32,6 @@ function useBusinessDetails(businessId: string | null) {
     queryFn: () => fetchBusinessDetails(businessId!),
     enabled: !!businessId,
   });
-}
-
-// Helper function to get icon for attribute based on name
-function getIconForAttribute(attrKey: string) {
-  const lower = attrKey.toLowerCase();
-
-  if (lower.includes('alcohol') || lower.includes('bar') || lower.includes('wine') || lower.includes('beer')) return Wine;
-  if (lower.includes('outdoor') || lower.includes('seating') || lower.includes('patio')) return Utensils;
-  if (lower.includes('wifi') || lower.includes('internet')) return Wifi;
-  if (lower.includes('parking') || lower.includes('valet')) return Car;
-  if (lower.includes('group') || lower.includes('wheelchair') || lower.includes('accessible')) return Users;
-  if (lower.includes('kid') || lower.includes('child') || lower.includes('family')) return Baby;
-  if (lower.includes('noise') || lower.includes('music') || lower.includes('loud')) return Volume2;
-  if (lower.includes('reservation') || lower.includes('waitlist') || lower.includes('hour')) return Clock;
-  if (lower.includes('delivery') || lower.includes('takeout') || lower.includes('take')) return UtensilsCrossed;
-  if (lower.includes('credit') || lower.includes('card')) return CreditCard;
-
-  return Settings;
 }
 
 // Helper function to format attribute key into readable label
@@ -132,8 +103,8 @@ function formatAttributeValue(val: any): { display: string; type: 'boolean' | 't
 
 const PriceDisplay = ({ level }: { level: number }) => (
   <div className="flex gap-0.5">
-    {[1, 2, 3, 4].map((i) => (
-      <span key={i} className={cn("text-xs font-bold", i <= level ? "text-emerald-400" : "text-muted-foreground/30")}>
+    {Array.from({ length: level }).map((_, i) => (
+      <span key={i} className="text-xs font-bold text-white">
         $
       </span>
     ))}
@@ -151,14 +122,14 @@ const RatingDisplay = ({ rating, count }: { rating: number; count: number }) => 
           if (i <= fullStars) {
             // Full star
             return (
-              <svg key={i} className="w-3 h-3 fill-yellow-400" viewBox="0 0 20 20">
+              <svg key={i} className="w-2 h-2 fill-yellow-400" viewBox="0 0 20 20">
                 <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
               </svg>
             );
           } else if (i === fullStars + 1 && hasHalfStar) {
             // Half star
             return (
-              <svg key={i} className="w-3 h-3" viewBox="0 0 20 20">
+              <svg key={i} className="w-2 h-2" viewBox="0 0 20 20">
                 <defs>
                   <linearGradient id={`half-${i}`}>
                     <stop offset="50%" stopColor="rgb(250 204 21)" />
@@ -168,14 +139,7 @@ const RatingDisplay = ({ rating, count }: { rating: number; count: number }) => 
                 <path fill={`url(#half-${i})`} d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
               </svg>
             );
-          } else {
-            // Empty star
-            return (
-              <svg key={i} className="w-3 h-3 fill-muted-foreground/20" viewBox="0 0 20 20">
-                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-              </svg>
-            );
-          }
+          } 
         })}
       </div>
       <span className="text-[9px] text-muted-foreground leading-none">{count.toLocaleString()} reviews</span>
@@ -186,8 +150,8 @@ const RatingDisplay = ({ rating, count }: { rating: number; count: number }) => 
 const BooleanIcon = ({ value }: { value: boolean }) => {
   if (value) {
     return (
-      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-        <Check size={12} strokeWidth={3} className="text-emerald-400" />
+      <div className="flex items-center justify-center">
+        <Check size={12} strokeWidth={3} className="text-foreground" />
       </div>
     );
   }
@@ -282,23 +246,15 @@ const BusinessAttributesComparisonComponent = ({ onBusinessHover }: BusinessAttr
     'WheelchairAccessible',
     'HasTV',
     'Caters',
-    'GoodForDancing',
-    'CoatCheck',
     'Smoking',
-    'BYOB',
-    'Corkage',
-    'BYOBCorkage',
     'HappyHour',
     'DogsAllowed',
     'DriveThru',
     'RestaurantsTableService',
     'RestaurantsCounterService',
-    'RestaurantsGoodForGroups',
     'Ambience',
-    'GoodForMeal',
     'BusinessAcceptsCreditCards',
     'Music',
-    'BestNights',
   ], []);
 
   // Memoize expensive attribute processing
@@ -351,29 +307,22 @@ const BusinessAttributesComparisonComponent = ({ onBusinessHover }: BusinessAttr
   }
 
   return (
-    <div className="glass rounded-lg p-0.5 pb-1 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-0.5 px-1">
-        <h2 className="text-sm font-semibold">Business Attributes</h2>
-        <span className="text-[11px] text-muted-foreground">Feature Comparison</span>
-      </div>
-
-      <div className="flex-1 -mx-0.5 px-.5 overflow-hidden">
+    <div className="glass rounded-lg p-3 h-full flex flex-col">
+      <div className="flex-1 overflow-hidden">
         <div className="w-full h-full flex flex-col">
           {/* Header Row - Features as columns */}
           <div
-            className="grid divide-x divide-border/40 bg-card/50 border-b border-border/40"
+            className="grid bg-card/50 border-b border-border/40"
             style={{ gridTemplateColumns: `160px repeat(${attributeKeys.length}, 1fr)` }}
           >
-            <div className="p-1 flex items-end pb-0.5">
-              <span className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider">Business</span>
+            <div className="p-2 flex items-center">
+              <span className="text-xs font-semibold text-muted-foreground">Business</span>
             </div>
             {attributeKeys.map((attrKey) => {
-              const Icon = getIconForAttribute(attrKey);
               const label = formatAttributeLabel(attrKey);
               return (
-                <div key={attrKey} className="p-1 flex flex-col items-center gap-0.5 min-w-0">
-                  <Icon size={10} className="text-muted-foreground flex-shrink-0" />
-                  <span className="text-[11px] font-medium text-foreground/80 text-center leading-tight truncate w-full" title={label}>
+                <div key={attrKey} className="p-2 flex items-center justify-center min-w-0">
+                  <span className="text-xs font-semibold text-muted-foreground text-center leading-tight truncate w-full" title={label}>
                     {label}
                   </span>
                 </div>
@@ -387,7 +336,7 @@ const BusinessAttributesComparisonComponent = ({ onBusinessHover }: BusinessAttr
               <div
                 key={biz.business_id}
                 className={cn(
-                  "grid divide-x divide-border/40 hover:bg-muted/20 transition-colors flex-1",
+                  "grid hover:bg-muted/20 transition-colors flex-1",
                   bizIndex === 0 && "bg-card/30"
                 )}
                 style={{ gridTemplateColumns: `160px repeat(${attributeKeys.length}, 1fr)` }}

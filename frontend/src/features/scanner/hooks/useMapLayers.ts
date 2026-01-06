@@ -12,10 +12,10 @@ import { getClusterColor } from '@/utils/clusterColors';
 
 // Quadrant colors matching scatter plot
 const QUADRANT_COLORS = {
-  'Market Leaders': [34, 197, 94],      // Green #22c55e
-  'Hidden Gems': [59, 130, 246],         // Blue #3b82f6
-  'Struggling': [239, 68, 68],           // Red #ef4444
-  'Volume Drivers': [212, 168, 23],      // Dark yellow #d4a817
+  'Market Leaders': [6, 162, 253],       // #06a2fdff
+  'Hidden Gems': [0, 8, 255],            // #0008ffff
+  'Struggling': [119, 0, 255],           // #7700ffff
+  'Volume Drivers': [0, 255, 238],       // #00ffeeff
 };
 
 // Helper to determine quadrant
@@ -261,7 +261,7 @@ export function useMapLayers({
             getPosition: (d: Business) => [d.longitude, d.latitude],
             getRadius: () => {
               // Same size for all businesses
-              return 8;
+              return 9;
             },
             radiusMinPixels: 8,
             radiusMaxPixels: 80,
@@ -274,7 +274,7 @@ export function useMapLayers({
 
               // Clicked business - bright pink (highest priority)
               if (clickedBusinessId && businessId === clickedBusinessId) {
-                return [255, 105, 180, 255]; // Bright pink full opacity
+                return [255, 105, 150, 255]; // Bright pink full opacity
               }
 
               // Highlighted from scatter plot - bright blue
@@ -284,7 +284,7 @@ export function useMapLayers({
 
               // Comparison businesses - purple
               if (comparisonIds.includes(businessId)) {
-                return [168, 85, 247, 255]; // Purple for comparisons
+                return [255, 265, 0, 255]; // Purple for comparisons
               }
 
               // Competitive Landscape mode - color by cluster

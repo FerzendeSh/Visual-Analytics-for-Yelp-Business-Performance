@@ -15,7 +15,6 @@ import { MapControls } from './MapControls';
 import { SearchPanel } from './SearchPanel';
 import { MapTooltip } from './components/MapTooltip';
 import { MapClickPopup } from './components/MapClickPopup';
-import { MapLayerSwitcher } from './components/MapLayerSwitcher';
 import { useMapClustering } from './hooks/useMapClustering';
 import { useNavigateToCity, useNavigateToNeighborhood } from './hooks/useMapNavigation';
 import { usePrefetchComparison } from './hooks/usePrefetchComparison';
@@ -27,7 +26,6 @@ export function DeckMap() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [mapRef, setMapRef] = useState<MapRef | null>(null);
   const [deckError, setDeckError] = useState<Error | null>(null);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedSearchBusiness, setSelectedSearchBusiness] = useState<Business | null>(null);
   const isProgrammaticMoveRef = useRef(false);
   const deckGLRef = useRef<any>(null);
@@ -193,55 +191,19 @@ export function DeckMap() {
       setClickedId(business.business_id);
       prefetchComparisonData(business.business_id, business);
 
-      // Update the city filter to match the selected business location
-      // This ensures map businesses are fetched from the correct city
-      const newCityId = `${business.city}_${business.state}`;
-      const updateFilters = useAppStore.getState().updateFilters;
-      updateFilters({ cityId: newCityId, neighborhoodId: null });
-
-      const currentZoom = mapViewState.zoom;
-
-      // Sophisticated animation: if zoomed far out, do two-step zoom
-      if (currentZoom <= 11) {
-        isProgrammaticMoveRef.current = true;
-        setMapViewState({
-          ...mapViewState,
-          zoom: 7,
-          transitionDuration: 300,
-        });
-
-        setTimeout(() => {
-          isProgrammaticMoveRef.current = true;
-          setMapViewState({
-            longitude: business.longitude,
-            latitude: business.latitude,
-            zoom: 17.5,
-            pitch: 0,
-            bearing: 0,
-            transitionDuration: 800,
-          });
-          // Close search panel after navigation completes
-          setTimeout(() => {
-            setIsSearchOpen(false);
-          }, 900);
-        }, 350);
-      } else {
-        isProgrammaticMoveRef.current = true;
-        setMapViewState({
-          longitude: business.longitude,
-          latitude: business.latitude,
-          zoom: 17.5,
-          pitch: 0,
-          bearing: 0,
-          transitionDuration: 800,
-        });
-        // Close search panel after navigation completes
-        setTimeout(() => {
-          setIsSearchOpen(false);
-        }, 900);
-      }
+      // Navigate directly to the business location with zoom level 16
+      // Don't update city filter - just navigate the map view
+      isProgrammaticMoveRef.current = true;
+      setMapViewState({
+        longitude: business.longitude,
+        latitude: business.latitude,
+        zoom: 16,
+        pitch: 0,
+        bearing: 0,
+        transitionDuration: 1000,
+      });
     },
-    [setClickedId, setMapViewState, mapViewState, prefetchComparisonData]
+    [setClickedId, setMapViewState, prefetchComparisonData]
   );
 
   // Navigate to Maggiano's business location
@@ -402,7 +364,7 @@ export function DeckMap() {
 
   return (
     <div
-      className="relative w-full h-full"
+      className="relative w-full h-full rounded-lg overflow-hidden"
       onClick={(e) => {
         // Close popup when clicking on the map background
         // Only if the click is directly on the container (not on children)
@@ -457,21 +419,12 @@ export function DeckMap() {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onResetNorth={handleResetNorth}
-        onSearchToggle={() => setIsSearchOpen(!isSearchOpen)}
         onGoToMyBusiness={handleGoToMyBusiness}
-        isSearchOpen={isSearchOpen}
         currentZoom={mapViewState.zoom}
       />
 
-      {/* Layer Switcher (bottom-left) */}
-      <MapLayerSwitcher />
-
-      {/* Search Panel */}
-      <SearchPanel
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectBusiness={handleSearchSelect}
-      />
+      {/* Search Panel - Always visible */}
+      <SearchPanel onSelectBusiness={handleSearchSelect} />
 
       {/* Hover Tooltip - Only show if no clicked popup */}
       {!clickedBusiness && <MapTooltip business={hoveredBusiness} />}
@@ -488,9 +441,9 @@ export function DeckMap() {
         />
       )}
 
-      {/* Loading Indicator */}
+      {/* Loading Indicator - Bottom left */}
       {isLoading && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-full text-sm">
+        <div className="absolute bottom-3 left-3 z-40 glass px-4 py-2 rounded-full text-sm">
           Loading businesses...
         </div>
       )}

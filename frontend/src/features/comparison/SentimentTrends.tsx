@@ -679,9 +679,9 @@ const Chart: React.FC<ChartProps> = ({
                 fill={isHovered ? VOLUME_HIGHLIGHT : VOLUME_COLOR}
                 rx={4}
                 opacity={0.8}
-                style={{ cursor: !isBrushMode ? 'pointer' : 'default' }}
+                style={{ cursor: !isBrushMode && period === 'year' ? 'pointer' : 'default' }}
                 onClick={() => {
-                  if (onYearClick && !isBrushMode) {
+                  if (onYearClick && !isBrushMode && period === 'year') {
                     // Extract year from period (e.g., "2010-01-01" -> "2010")
                     const match = d.period.match(/\d{4}/);
                     if (match) {
@@ -718,6 +718,7 @@ const Chart: React.FC<ChartProps> = ({
                   strokeLinecap="round"
                   style={{ filter: glowFilter }}
                   opacity={lineOpacity}
+                  pointerEvents="none"
                 />
                 {tooltipOpen && tooltipData && !tooltipData.isForecast && (
                   <Circle
@@ -728,6 +729,7 @@ const Chart: React.FC<ChartProps> = ({
                     stroke="#1e293b"
                     strokeWidth={2}
                     opacity={lineOpacity}
+                    pointerEvents="none"
                   />
                 )}
               </React.Fragment>
@@ -779,6 +781,7 @@ const Chart: React.FC<ChartProps> = ({
                   `}
                   fill={FORECAST_COLOR}
                   opacity={0.15}
+                  pointerEvents="none"
                 />
                 <LinePath
                   data={connectionPoints}
@@ -789,6 +792,7 @@ const Chart: React.FC<ChartProps> = ({
                   strokeDasharray="4,4"
                   curve={curveMonotoneX}
                   strokeLinecap="round"
+                  pointerEvents="none"
                 />
               </React.Fragment>
             );
