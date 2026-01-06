@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect, memo, useCallback } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useBatchTimelinesLegacy } from '../../hooks/useBatchTimelines';
+import { useClusterBenchmark } from '../../hooks/useClusterBenchmark';
 import { ChartErrorBoundary } from '../../components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -128,6 +129,9 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     isError,
   } = useBatchTimelinesLegacy(primaryBusinessId, comparisonIds);
 
+  // Fetch cluster benchmark for primary business
+  const { clusterTimeline, clusterLabel } = useClusterBenchmark(primaryBusinessId);
+
   // Shared state for synchronized interactions (legends and tooltips)
   // Persist hidden series across tab switches using localStorage
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(() => {
@@ -217,10 +221,21 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     ?.map((t: any) => t.business_ratings)
     .filter((t: any): t is RatingsTimeline => !!t) ?? [];
 
+  // Transform cluster timeline to match expected format
+  const clusterRatingsTimeline = clusterTimeline ? {
+    business_name: clusterLabel || 'Cluster Average',
+    time_series: clusterTimeline.data.map(point => ({
+      period_start: point.period_start,
+      avg_rating: point.avg_rating,
+      review_count: point.review_count,
+    })),
+  } : undefined;
+
   const benchmarkTimelines = {
     city: cityTimeline.data?.city_ratings,
     neighborhood: neighborhoodTimeline.data?.neighborhood_ratings,
     category: categoryTimeline.data?.category_ratings,
+    cluster: clusterRatingsTimeline,
   };
 
   // Prepare props for SentimentTrends
@@ -230,10 +245,22 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     ?.map((t: any) => t.business_sentiment)
     .filter((t: any): t is SentimentTimeline => !!t) ?? [];
 
+  // Transform cluster sentiment timeline
+  const clusterSentimentTimeline = clusterTimeline ? {
+    business_name: clusterLabel || 'Cluster Average',
+    time_series: clusterTimeline.data.map(point => ({
+      period_start: point.period_start,
+      avg_sentiment_score: point.avg_sentiment_score,
+      avg_sentiment_expected: point.avg_sentiment_expected,
+      review_count: point.review_count,
+    })),
+  } : undefined;
+
   const benchmarkSentimentTimelines = {
     city: cityTimeline.data?.city_sentiment,
     neighborhood: neighborhoodTimeline.data?.neighborhood_sentiment,
     category: categoryTimeline.data?.category_sentiment,
+    cluster: clusterSentimentTimeline,
   };
 
   return (

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type ViewMode = 'SCAN' | 'COMPARE';
+export type MapColorMode = 'MARKET_POSITIONING' | 'COMPETITIVE_LANDSCAPE';
 
 // Hardcoded business: Maggiano's Little Italy - Tampa, FL
 export const MAGGIANOS_TAMPA_BUSINESS_ID = 'RiC_-68qxtDJqiIs5mRR6g';
@@ -30,6 +31,11 @@ export interface AppState {
   selectedKeyword: string | null; // For Keyword Chart interaction
   highlightedBusinessId: string | null; // For map-scatter plot bidirectional linking
   clickedBusinessId: string | null; // For opening map popup from scatter plot
+
+  // Cluster Context
+  mapColorMode: MapColorMode; // Map visualization mode
+  selectedClusterId: number | null; // Currently selected cluster for details
+  clusterFilter: number | null; // When set, filter map to show only businesses in this cluster
 
   // Benchmarking
   benchmarks: {
@@ -62,6 +68,11 @@ export interface AppState {
   setHighlightedBusiness: (id: string | null) => void;
   setClickedBusiness: (id: string | null) => void;
   resetFilters: () => void;
+
+  // Cluster Actions
+  setMapColorMode: (mode: MapColorMode) => void;
+  setSelectedCluster: (id: number | null) => void;
+  setClusterFilter: (id: number | null) => void;
 }
 
 const initialFilters: AppState['filters'] = {
@@ -94,6 +105,11 @@ export const useAppStore = create<AppState>()(
       selectedKeyword: null,
       highlightedBusinessId: null,
       clickedBusinessId: null,
+
+      // Cluster state
+      mapColorMode: 'MARKET_POSITIONING',
+      selectedClusterId: null,
+      clusterFilter: null,
 
       benchmarks: {
         showCityAvg: false,
@@ -146,6 +162,13 @@ export const useAppStore = create<AppState>()(
       setClickedBusiness: (id) => set({ clickedBusinessId: id }),
 
       resetFilters: () => set({ filters: initialFilters }),
+
+      // Cluster actions
+      setMapColorMode: (mode) => set({ mapColorMode: mode }),
+
+      setSelectedCluster: (id) => set({ selectedClusterId: id }),
+
+      setClusterFilter: (id) => set({ clusterFilter: id }),
     }),
     {
       name: 'yelp-analytics-storage',

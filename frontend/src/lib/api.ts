@@ -180,6 +180,72 @@ export interface ForecastData {
 }
 
 // ============================================================================
+// Cluster Types
+// ============================================================================
+
+export interface ClusterRunDTO {
+  run_id: number;
+  level: string;
+  created_at: string;
+  feature_variant: string;
+  dimred_method?: string;
+  total_entities_processed: number;
+  total_clusters_created: number;
+  avg_composite_score?: number;
+  execution_time_seconds?: number;
+}
+
+export interface ClusterSummaryDTO {
+  cluster_id: number;
+  run_id: number;
+  city: string;
+  neighborhood?: string;
+  cluster_label: number;
+  method: string;
+  size: number;
+  avg_stars?: number;
+  avg_review_count?: number;
+  centroid_lat?: number;
+  centroid_lon?: number;
+  ai_label?: string;
+  ai_description?: string;
+  top_categories?: Array<{ category: string; count: number }>;
+}
+
+export interface ClusterDetailDTO extends ClusterSummaryDTO {
+  ai_key_characteristics?: string[];
+  attribute_patterns?: Record<string, any>;
+  silhouette_score?: number;
+  davies_bouldin_score?: number;
+  calinski_harabasz_score?: number;
+  composite_score?: number;
+  method_params?: Record<string, any>;
+  avg_price_range?: number;
+}
+
+export interface ClusterTimelinePointDTO {
+  period_start: string;
+  avg_rating: number;
+  avg_sentiment_score: number;
+  avg_sentiment_expected: number;
+  review_count: number;
+  business_count: number;
+}
+
+export interface ClusterTimelineDTO {
+  cluster_id: number;
+  cluster_label?: string;
+  period: string;
+  data: ClusterTimelinePointDTO[];
+  statistics: Record<string, any>;
+}
+
+export interface ClusterCatalogResponse {
+  runs: ClusterRunDTO[];
+  latest_run?: ClusterRunDTO;
+}
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -447,6 +513,66 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(params),
       }),
+  },
+
+  /**
+   * Cluster Endpoints
+   */
+  clusters: {
+    /**
+     * Get catalog of available cluster runs
+     */
+    getCatalog: () =>
+      fetchJson<ClusterCatalogResponse>(buildUrl('/api/clusters/catalog')),
+
+    /**
+     * Get clusters in viewport for map visualization
+     */
+    getInViewport: (params: {
+      south: number;
+      north: number;
+      west: number;
+      east: number;
+      run_id?: number;
+      min_size?: number;
+    }) =>
+      fetchJson<ClusterSummaryDTO[]>(buildUrl('/api/clusters/viewport', params)),
+
+    /**
+     * List all clusters with optional filters
+     */
+    list: (params?: {
+      run_id?: number;
+      city?: string;
+      min_size?: number;
+      skip?: number;
+      limit?: number;
+    }) =>
+      fetchJson<{ clusters: ClusterSummaryDTO[]; total: number; skip: number; limit: number }>(
+        buildUrl('/api/clusters/', params)
+      ),
+
+    /**
+     * Get detailed cluster information
+     */
+    getDetail: (clusterId: number) =>
+      fetchJson<ClusterDetailDTO>(buildUrl(`/api/clusters/${clusterId}`)),
+
+    /**
+     * Get cluster timeline data
+     */
+    getTimeline: (clusterId: number, params?: { period?: 'month' | 'year'; start_date?: string; end_date?: string }) =>
+      fetchJson<ClusterTimelineDTO>(
+        buildUrl(`/api/clusters/${clusterId}/timeline`, params)
+      ),
+
+    /**
+     * Get business IDs in a cluster
+     */
+    getBusinessIds: (clusterId: number, limit?: number) =>
+      fetchJson<string[]>(
+        buildUrl(`/api/clusters/${clusterId}/businesses`, limit ? { limit } : undefined)
+      ),
   },
 };
 

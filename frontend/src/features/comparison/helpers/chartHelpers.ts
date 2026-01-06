@@ -26,6 +26,7 @@ export const BENCHMARK_COLORS = {
   CITY: '#a855f7',        // Purple - ALWAYS for City
   NEIGHBORHOOD: '#22c55e', // Green - ALWAYS for Neighborhood
   CATEGORY: '#f59e0b',     // Amber for Category
+  CLUSTER: '#14b8a6',      // Teal - ALWAYS for Cluster (Competitor Group)
 };
 
 /**
@@ -46,6 +47,10 @@ export function getSeriesColor(seriesName: string, index: number): string {
 
   if (lowerName.includes('category avg') || lowerName.includes('category average')) {
     return BENCHMARK_COLORS.CATEGORY;
+  }
+
+  if (lowerName.includes('cluster avg') || lowerName.includes('cluster average')) {
+    return BENCHMARK_COLORS.CLUSTER;
   }
 
   // For primary business and comparisons, use LINE_COLORS by index

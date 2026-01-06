@@ -10,11 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.database import get_async_session
 from repositories.business_repository import BusinessRepository
 from repositories.review_repository import ReviewRepository
-from repositories.interfaces import BusinessRepositoryInterface, ReviewRepositoryInterface
+from repositories.cluster_repository import ClusterRepository
+from repositories.interfaces import BusinessRepositoryInterface, ReviewRepositoryInterface, ClusterRepositoryInterface
 from services.business_service import BusinessService
 from services.analytics_service import AnalyticsService
 from services.forecast_service import ForecastService
 from services.keyword_service import KeywordService, EmbeddingStore
+from services.cluster_service import ClusterService
 from services.interfaces import BusinessServiceInterface, AnalyticsServiceInterface
 
 
@@ -62,6 +64,13 @@ def get_review_repository(
     return ReviewRepository(db)
 
 
+def get_cluster_repository(
+    db: AsyncSession = Depends(get_async_session)
+) -> ClusterRepositoryInterface:
+    """Get cluster repository instance."""
+    return ClusterRepository(db)
+
+
 # ============================================================================
 # Service Dependencies
 # ============================================================================
@@ -80,6 +89,14 @@ def get_analytics_service(
 ) -> AnalyticsServiceInterface:
     """Get analytics service instance."""
     return AnalyticsService(review_repository, business_repository, db)
+
+
+def get_cluster_service(
+    cluster_repository: ClusterRepositoryInterface = Depends(get_cluster_repository),
+    db: AsyncSession = Depends(get_async_session)
+) -> ClusterService:
+    """Get cluster service instance."""
+    return ClusterService(cluster_repository, db)
 
 
 # ============================================================================

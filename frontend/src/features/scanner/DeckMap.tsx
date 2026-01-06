@@ -15,10 +15,12 @@ import { MapControls } from './MapControls';
 import { SearchPanel } from './SearchPanel';
 import { MapTooltip } from './components/MapTooltip';
 import { MapClickPopup } from './components/MapClickPopup';
+import { MapLayerSwitcher } from './components/MapLayerSwitcher';
 import { useMapClustering } from './hooks/useMapClustering';
 import { useNavigateToCity, useNavigateToNeighborhood } from './hooks/useMapNavigation';
 import { usePrefetchComparison } from './hooks/usePrefetchComparison';
 import { useMapLayers } from './hooks/useMapLayers';
+import { useClustersInViewport, useAllClusters, useClusterBusinessIds, useBusinessesWithClusters } from '@/hooks/useClusterData';
 
 export function DeckMap() {
   // Local state
@@ -43,6 +45,8 @@ export function DeckMap() {
   const clickedId = useAppStore((state) => state.clickedBusinessId);
   const setClickedId = useAppStore((state) => state.setClickedBusiness);
   const filters = useAppStore((state) => state.filters);
+  const mapColorMode = useAppStore((state) => state.mapColorMode);
+  const clusterFilter = useAppStore((state) => state.clusterFilter);
 
   const selectedState = filters.cityId?.split('_')[1];
   const selectedCity = filters.cityId?.split('_')[0];
@@ -77,6 +81,19 @@ export function DeckMap() {
   // Fetch data
   const { data: businesses = [], isLoading } = useMapBusinesses(viewport);
   const { data: neighborhoods } = useNeighborhoods(selectedCity, selectedState);
+
+  // Cluster data
+  const { data: allClusters = [] } = useAllClusters();
+  const { data: clusterBusinessIds } = useClusterBusinessIds(clusterFilter);
+
+  // Enrich businesses with cluster assignments and apply filter
+  const enrichedBusinesses = useBusinessesWithClusters(
+    businesses,
+    allClusters,
+    clusterFilter,
+    clusterBusinessIds
+  );
+
   const { data: cityBoundary, isLoading: isCityBoundaryLoading } = useQuery({
     queryKey: ['cityBoundary', selectedCity, selectedState],
     queryFn: async () => {
@@ -92,9 +109,9 @@ export function DeckMap() {
     staleTime: Infinity, // City boundaries don't change
   });
 
-  // Clustering logic (extracted)
+  // Clustering logic (extracted) - use enriched businesses
   const { clusterData, pointData, showClusters, showBoth, supercluster } = useMapClustering(
-    businesses,
+    enrichedBusinesses,
     viewport,
     mapViewState.zoom
   );
@@ -136,6 +153,7 @@ export function DeckMap() {
     setPrimaryBusiness,
     setHighlightedBusiness,
     prefetchComparisonData,
+    mapColorMode, // NEW: Pass map color mode
   });
 
   // Map control handlers
@@ -444,6 +462,9 @@ export function DeckMap() {
         isSearchOpen={isSearchOpen}
         currentZoom={mapViewState.zoom}
       />
+
+      {/* Layer Switcher (bottom-left) */}
+      <MapLayerSwitcher />
 
       {/* Search Panel */}
       <SearchPanel

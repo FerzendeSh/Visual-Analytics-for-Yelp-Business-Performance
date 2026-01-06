@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useState, useMemo } from 'react';
 import * as React from 'react';
 import { format } from 'date-fns';
+import { useAllClusters } from '@/hooks/useClusterData';
 
 export function ControlTower() {
   // ✅ Atomic selectors - only re-render when these specific values change
@@ -21,6 +22,11 @@ export function ControlTower() {
   const toggleBenchmark = useAppStore((state) => state.toggleBenchmark);
   const toggleComparison = useAppStore((state) => state.toggleComparison);
   const resetFilters = useAppStore((state) => state.resetFilters);
+
+  // Cluster state
+  const mapColorMode = useAppStore((state) => state.mapColorMode);
+  const clusterFilter = useAppStore((state) => state.clusterFilter);
+  const setClusterFilter = useAppStore((state) => state.setClusterFilter);
 
   // Initialize local state from global filters
   const [selectedCity, setSelectedCity] = useState<string | null>(
@@ -82,6 +88,9 @@ export function ControlTower() {
     },
     enabled: !!selectedCity && !!filters.cityId,
   });
+
+  // Fetch all clusters for filter dropdown
+  const { data: allClusters = [] } = useAllClusters();
 
   const handleCityChange = (cityValue: string) => {
     if (!cityValue) {
@@ -157,6 +166,27 @@ export function ControlTower() {
           disabled={!selectedCity}
         />
       </div>
+
+      {/* Cluster Filter (only visible in Competitive Landscape mode) */}
+      {mapColorMode === 'COMPETITIVE_LANDSCAPE' && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Competitor Group</label>
+          <Combobox
+            value={clusterFilter?.toString() || ''}
+            onChange={(value) => setClusterFilter(value ? Number(value) : null)}
+            options={[
+              { value: '', label: 'All Groups' },
+              ...(allClusters?.map(c => ({
+                value: c.cluster_id.toString(),
+                label: c.ai_label || `Cluster ${c.cluster_label}`
+              })) || [])
+            ]}
+            placeholder="Filter by group"
+            searchPlaceholder="Search groups..."
+            emptyText="No groups found"
+          />
+        </div>
+      )}
 
       {/* SCAN MODE: Rating Filter */}
       {viewMode === 'SCAN' && (

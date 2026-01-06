@@ -7,7 +7,8 @@ import { GeoJsonLayer, ScatterplotLayer, IconLayer, TextLayer } from '@deck.gl/l
 import { scaleLinear } from 'd3-scale';
 import Supercluster from 'supercluster';
 import { Business } from '@/lib/api';
-import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID } from '@/stores/useAppStore';
+import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID, MapColorMode } from '@/stores/useAppStore';
+import { getClusterColor } from '@/utils/clusterColors';
 
 // Quadrant colors matching scatter plot
 const QUADRANT_COLORS = {
@@ -64,6 +65,7 @@ interface UseMapLayersProps {
   setPrimaryBusiness: (id: string) => void;
   setHighlightedBusiness: (id: string | null) => void;
   prefetchComparisonData: (id: string, business: Business) => void;
+  mapColorMode: MapColorMode; // NEW: Map coloring mode
 }
 
 export function useMapLayers({
@@ -86,6 +88,7 @@ export function useMapLayers({
   setPrimaryBusiness,
   setHighlightedBusiness,
   prefetchComparisonData,
+  mapColorMode,
 }: UseMapLayersProps) {
   const filters = useAppStore((state) => state.filters);
   const selectedNeighborhood = filters.neighborhoodId;
@@ -284,7 +287,18 @@ export function useMapLayers({
                 return [168, 85, 247, 255]; // Purple for comparisons
               }
 
-              // Color by quadrant (same as scatter plot)
+              // Competitive Landscape mode - color by cluster
+              if (mapColorMode === 'COMPETITIVE_LANDSCAPE') {
+                const clusterLabel = (d as any).cluster_label;
+                if (clusterLabel !== null && clusterLabel !== undefined) {
+                  const clusterRgb = getClusterColor(clusterLabel);
+                  return [clusterRgb[0], clusterRgb[1], clusterRgb[2], 240];
+                }
+                // No cluster assignment - use gray
+                return [150, 150, 150, 180];
+              }
+
+              // Market Positioning mode - color by quadrant (default)
               const quadrant = getQuadrant(d.stars, d.review_count);
               const rgb = QUADRANT_COLORS[quadrant];
               return [rgb[0], rgb[1], rgb[2], 240];
@@ -344,5 +358,6 @@ export function useMapLayers({
     setHoveredId,
     setClickedId,
     selectedNeighborhood,
+    mapColorMode,
   ]);
 }

@@ -1,0 +1,1512 @@
+# BUSINESS COMPETITOR CLUSTERS - LABELED
+# Generated: 2026-01-02 14:27:43
+# Labeled: 2026-01-02
+# Total businesses: 8,078
+# Total clusters: 43
+#
+================================================================================
+
+CLUSTER 0
+----------------------------------------
+Size: 154 businesses
+Geographic spread: 21.2 miles
+Center: (53.5258, -113.5114)
+
+LOCATION:
+  States: AB (154)
+  Top cities: Edmonton (149), St. Albert (1), Beaumont (1), Enoch (1), Sherwood (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.86 stars
+  Avg reviews: 110
+  Avg sentiment: 0.598
+  Price range: $ to $$$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 154 (100%)
+  - Nightlife: 55 (36%)
+  - Bars: 54 (35%)
+  - Canadian (New): 42 (27%)
+  - Food: 41 (27%)
+  - Breakfast & Brunch: 22 (14%)
+  - American (Traditional): 19 (12%)
+  - American (New): 17 (11%)
+  - Cafes: 16 (10%)
+  - Lounges: 15 (10%)
+
+LABELS:
+  Label: Edmonton Casual Dining Scene
+  Description: Diverse restaurant cluster in Edmonton featuring trendy cafes, bakeries, bars, and fusion eateries catering to an eclectic urban crowd. Strong representation of Canadian New cuisine alongside international flavors.
+  Key characteristics: Urban/trendy atmosphere, nightlife integration, artisan bakeries and cafes, Canadian New cuisine emphasis, mid-range pricing
+
+================================================================================
+
+CLUSTER 1
+----------------------------------------
+Size: 357 businesses
+Geographic spread: 23.0 miles
+Center: (34.4217, -119.7129)
+
+LOCATION:
+  States: CA (357)
+  Top cities: Santa Barbara (276), Goleta (43), Carpinteria (21), Montecito (9), Isla Vista (7)
+
+BUSINESS METRICS:
+  Avg rating: 4.00 stars
+  Avg reviews: 394
+  Avg sentiment: 0.605
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 357 (100%)
+  - Food: 139 (39%)
+  - Nightlife: 125 (35%)
+  - Bars: 117 (33%)
+  - American (New): 97 (27%)
+  - Breakfast & Brunch: 83 (23%)
+  - Seafood: 60 (17%)
+  - American (Traditional): 56 (16%)
+  - Sandwiches: 49 (14%)
+  - Mexican: 47 (13%)
+
+LABELS:
+  Label: Santa Barbara Coastal Dining
+  Description: Upscale coastal California dining scene featuring fresh seafood, California-Mexican fusion, and beachside ambiance. High engagement with strong review counts and positive sentiment.
+  Key characteristics: Coastal/beach location, seafood emphasis, California-Mexican fusion, upscale casual atmosphere, high customer engagement, tourist destination
+
+================================================================================
+
+CLUSTER 2
+----------------------------------------
+Size: 41 businesses
+Geographic spread: 32.7 miles
+Center: (36.1039, -86.7657)
+
+LOCATION:
+  States: TN (41)
+  Top cities: Nashville (25), Franklin (6), Brentwood (3), Hermitage (2), Antioch (2)
+
+BUSINESS METRICS:
+  Avg rating: 3.90 stars
+  Avg reviews: 255
+  Avg sentiment: 0.556
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Pizza: 41 (100%)
+  - Restaurants: 41 (100%)
+  - Italian: 21 (51%)
+  - Sandwiches: 14 (34%)
+  - Food: 14 (34%)
+  - Salad: 13 (32%)
+  - Nightlife: 11 (27%)
+  - Bars: 9 (22%)
+  - Event Planning & Services: 8 (20%)
+  - Caterers: 7 (17%)
+
+LABELS:
+  Label: Nashville Artisan Pizza
+  Description: Specialty pizza-focused restaurants in the Nashville metro area, ranging from authentic Neapolitan to creative artisan styles. Many offer catering and event services.
+  Key characteristics: Pizza specialty, Italian influence, catering services, artisan/craft focus, family-friendly with bar options
+
+================================================================================
+
+CLUSTER 3
+----------------------------------------
+Size: 182 businesses
+Geographic spread: 14.8 miles
+Center: (43.6194, -116.2674)
+
+LOCATION:
+  States: ID (182)
+  Top cities: Boise (126), Meridian (40), Eagle (16)
+
+BUSINESS METRICS:
+  Avg rating: 3.85 stars
+  Avg reviews: 218
+  Avg sentiment: 0.548
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 182 (100%)
+  - Food: 65 (36%)
+  - Nightlife: 61 (34%)
+  - Bars: 60 (33%)
+  - American (Traditional): 50 (27%)
+  - American (New): 49 (27%)
+  - Breakfast & Brunch: 42 (23%)
+  - Sandwiches: 35 (19%)
+  - Burgers: 33 (18%)
+  - Cocktail Bars: 22 (12%)
+
+LABELS:
+  Label: Boise Metro American Dining
+  Description: Growing Boise dining scene featuring American comfort food, craft breweries, and farm-to-table concepts. Strong breakfast and brunch culture with emerging gastropub scene.
+  Key characteristics: American comfort food, craft brewery integration, farm-to-table movement, strong breakfast culture, suburban expansion
+
+================================================================================
+
+CLUSTER 4
+----------------------------------------
+Size: 53 businesses
+Geographic spread: 27.4 miles
+Center: (39.8348, -86.1359)
+
+LOCATION:
+  States: IN (53)
+  Top cities: Indianapolis (35), Carmel (8), Fishers (6), Greenwood (3), Avon (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.96 stars
+  Avg reviews: 267
+  Avg sentiment: 0.610
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 53 (100%)
+  - Mexican: 50 (94%)
+  - Bars: 18 (34%)
+  - Nightlife: 18 (34%)
+  - Food: 12 (23%)
+  - Tex-Mex: 12 (23%)
+  - Tacos: 11 (21%)
+  - Latin American: 9 (17%)
+  - Breakfast & Brunch: 7 (13%)
+  - Cocktail Bars: 7 (13%)
+
+LABELS:
+  Label: Indianapolis Mexican & Tacos
+  Description: Trendy Mexican and taco-focused restaurants in Indianapolis, featuring upscale cantinas, authentic taquerias, and Latin-inspired cocktail bars. Strong nightlife integration.
+  Key characteristics: Mexican cuisine specialty, taco focus, cocktail bar integration, upscale casual atmosphere, high customer satisfaction
+
+================================================================================
+
+CLUSTER 5
+----------------------------------------
+Size: 29 businesses
+Geographic spread: 24.8 miles
+Center: (36.1765, -86.7414)
+
+LOCATION:
+  States: TN (29)
+  Top cities: Nashville (25), Mount Juliet (2), White House (1), Hendersonville (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.74 stars
+  Avg reviews: 351
+  Avg sentiment: 0.524
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 29 (100%)
+  - Mexican: 28 (97%)
+  - Nightlife: 17 (59%)
+  - Bars: 16 (55%)
+  - Tex-Mex: 7 (24%)
+  - Event Planning & Services: 6 (21%)
+  - Tacos: 6 (21%)
+  - Caterers: 5 (17%)
+  - Food: 5 (17%)
+  - Cocktail Bars: 5 (17%)
+
+LABELS:
+  Label: Nashville Mexican Nightlife
+  Description: Nashville's Mexican restaurant and bar scene with strong nightlife component. Popular taco spots and cantinas attracting high customer traffic with bar-forward concepts.
+  Key characteristics: Mexican-nightlife fusion, high-traffic locations, taco specialty, bar-centric, young professional appeal
+
+================================================================================
+
+CLUSTER 6
+----------------------------------------
+Size: 712 businesses
+Geographic spread: 37.6 miles
+Center: (36.1322, -86.7658)
+
+LOCATION:
+  States: TN (712)
+  Top cities: Nashville (518), Franklin (66), Brentwood (36), Hendersonville (21), Mount Juliet (12)
+
+BUSINESS METRICS:
+  Avg rating: 3.86 stars
+  Avg reviews: 318
+  Avg sentiment: 0.543
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 712 (100%)
+  - Nightlife: 298 (42%)
+  - Bars: 286 (40%)
+  - American (Traditional): 239 (34%)
+  - Food: 239 (34%)
+  - American (New): 208 (29%)
+  - Breakfast & Brunch: 181 (25%)
+  - Southern: 121 (17%)
+  - Sandwiches: 114 (16%)
+  - Burgers: 90 (13%)
+
+LABELS:
+  Label: Nashville Southern & American
+  Description: The core Nashville dining ecosystem featuring hot chicken, Southern comfort food, BBQ, and American classics. Major tourist destination with iconic establishments and strong nightlife.
+  Key characteristics: Hot chicken specialty, Southern cuisine, BBQ culture, tourist destination, live music integration, breakfast/brunch culture
+
+================================================================================
+
+CLUSTER 7
+----------------------------------------
+Size: 432 businesses
+Geographic spread: 24.3 miles
+Center: (32.2589, -110.9412)
+
+LOCATION:
+  States: AZ (432)
+  Top cities: Tucson (404), Oro Valley (16), Marana (5), Sahuarita (2), Green Valley (2)
+
+BUSINESS METRICS:
+  Avg rating: 3.76 stars
+  Avg reviews: 281
+  Avg sentiment: 0.506
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 432 (100%)
+  - Food: 131 (30%)
+  - Nightlife: 117 (27%)
+  - Bars: 115 (27%)
+  - Breakfast & Brunch: 100 (23%)
+  - American (New): 92 (21%)
+  - American (Traditional): 88 (20%)
+  - Sandwiches: 75 (17%)
+  - Mexican: 66 (15%)
+  - Pizza: 54 (12%)
+
+LABELS:
+  Label: Tucson Southwest Fusion
+  Description: Tucson's diverse dining scene blending Sonoran Mexican traditions with American Southwest cuisine. Strong breakfast culture and casual neighborhood dining.
+  Key characteristics: Southwest-Mexican fusion, Sonoran influence, strong breakfast scene, diverse price points, neighborhood-focused
+
+================================================================================
+
+CLUSTER 8
+----------------------------------------
+Size: 808 businesses
+Geographic spread: 13.1 miles
+Center: (29.9579, -90.0947)
+
+LOCATION:
+  States: LA (808)
+  Top cities: New Orleans (646), Metairie (96), Kenner (15), Gretna (15), Harvey (11)
+
+BUSINESS METRICS:
+  Avg rating: 3.92 stars
+  Avg reviews: 486
+  Avg sentiment: 0.579
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 808 (100%)
+  - Nightlife: 282 (35%)
+  - Bars: 264 (33%)
+  - Food: 253 (31%)
+  - Cajun/Creole: 213 (26%)
+  - Seafood: 189 (23%)
+  - American (New): 181 (22%)
+  - Breakfast & Brunch: 175 (22%)
+  - American (Traditional): 160 (20%)
+  - Sandwiches: 128 (16%)
+
+LABELS:
+  Label: New Orleans Cajun/Creole
+  Description: The iconic New Orleans dining scene featuring Cajun/Creole cuisine, Gulf seafood, and legendary establishments. Highest average review counts indicating major tourist destination.
+  Key characteristics: Cajun/Creole specialty, oyster bars, Gulf seafood, iconic establishments, high tourist traffic, French Quarter influence
+
+================================================================================
+
+CLUSTER 9
+----------------------------------------
+Size: 41 businesses
+Geographic spread: 29.8 miles
+Center: (39.8390, -86.1351)
+
+LOCATION:
+  States: IN (41)
+  Top cities: Indianapolis (27), Carmel (6), Greenwood (2), Plainfield (1), Avon (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.85 stars
+  Avg reviews: 199
+  Avg sentiment: 0.537
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Pizza: 41 (100%)
+  - Restaurants: 41 (100%)
+  - Salad: 17 (41%)
+  - Nightlife: 14 (34%)
+  - Bars: 13 (32%)
+  - Italian: 12 (29%)
+  - Gluten-Free: 9 (22%)
+  - Food: 7 (17%)
+  - Sandwiches: 7 (17%)
+  - Fast Food: 5 (12%)
+
+LABELS:
+  Label: Indianapolis Pizza Scene
+  Description: Indianapolis metro pizza restaurants ranging from local favorites to artisan pizzerias. Strong emphasis on salads and gluten-free options alongside traditional offerings.
+  Key characteristics: Pizza specialty, local pizzeria culture, dietary accommodation (gluten-free), bar/pub integration, family-friendly
+
+================================================================================
+
+CLUSTER 10
+----------------------------------------
+Size: 84 businesses
+Geographic spread: 15.1 miles
+Center: (39.9154, -86.0323)
+
+LOCATION:
+  States: IN (84)
+  Top cities: Indianapolis (50), Fishers (33), McCordsville (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.87 stars
+  Avg reviews: 215
+  Avg sentiment: 0.551
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 84 (100%)
+  - Food: 28 (33%)
+  - American (Traditional): 27 (32%)
+  - Nightlife: 20 (24%)
+  - Bars: 19 (23%)
+  - American (New): 19 (23%)
+  - Breakfast & Brunch: 15 (18%)
+  - Sandwiches: 14 (17%)
+  - Burgers: 13 (15%)
+  - Salad: 12 (14%)
+
+LABELS:
+  Label: Indianapolis Northeast Suburbs
+  Description: Suburban dining corridor spanning Indianapolis northeast side to Fishers. Mix of craft breweries, sports bars, and diverse ethnic options in growing suburban communities.
+  Key characteristics: Suburban growth market, craft brewery presence, diverse cuisine mix, family-oriented, sports bar culture
+
+================================================================================
+
+CLUSTER 11
+----------------------------------------
+Size: 41 businesses
+Geographic spread: 39.8 miles
+Center: (40.0225, -75.1541)
+
+LOCATION:
+  States: PA (36), NJ (5)
+  Top cities: Philadelphia (20), Norristown (2), Fort Washington (1), Doylestown (1), Voorhees Township (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.93 stars
+  Avg reviews: 206
+  Avg sentiment: 0.567
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 41 (100%)
+  - Indian: 40 (98%)
+  - Pakistani: 17 (41%)
+  - Halal: 12 (29%)
+  - Food: 12 (29%)
+  - Vegetarian: 7 (17%)
+  - Nightlife: 5 (12%)
+  - Asian Fusion: 5 (12%)
+  - Event Planning & Services: 5 (12%)
+  - Bars: 4 (10%)
+
+LABELS:
+  Label: Philadelphia Indian/Pakistani
+  Description: Concentrated cluster of Indian and Pakistani restaurants serving the Philadelphia metro area. Strong halal and vegetarian options with both casual and upscale concepts.
+  Key characteristics: South Asian cuisine specialty, halal certification, vegetarian-friendly, buffet options, catering services
+
+================================================================================
+
+CLUSTER 12
+----------------------------------------
+Size: 34 businesses
+Geographic spread: 34.1 miles
+Center: (28.0175, -82.4630)
+
+LOCATION:
+  States: FL (34)
+  Top cities: Tampa (23), Lutz (4), Brandon (2), Apollo Beach (1), Wesley Chapel (1)
+
+BUSINESS METRICS:
+  Avg rating: 4.01 stars
+  Avg reviews: 221
+  Avg sentiment: 0.593
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 34 (100%)
+  - Pizza: 34 (100%)
+  - Salad: 13 (38%)
+  - Italian: 12 (35%)
+  - Food: 12 (35%)
+  - Nightlife: 10 (29%)
+  - Bars: 10 (29%)
+  - Sandwiches: 9 (26%)
+  - Chicken Wings: 5 (15%)
+  - Desserts: 5 (15%)
+
+LABELS:
+  Label: Tampa Artisan Pizza
+  Description: High-quality pizza specialists in the Tampa area featuring Neapolitan, NY-style, and wood-fired pizzas. Higher ratings indicate quality-focused operators.
+  Key characteristics: Artisan pizza focus, wood-fired/Neapolitan styles, Italian authenticity, wine bar integration, above-average ratings
+
+================================================================================
+
+CLUSTER 13
+----------------------------------------
+Size: 619 businesses
+Geographic spread: 24.9 miles
+Center: (27.8706, -82.7241)
+
+LOCATION:
+  States: FL (619)
+  Top cities: St. Petersburg (114), Clearwater (110), Saint Petersburg (95), St. Pete Beach (46), Clearwater Beach (30)
+
+BUSINESS METRICS:
+  Avg rating: 3.92 stars
+  Avg reviews: 289
+  Avg sentiment: 0.582
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 619 (100%)
+  - Nightlife: 233 (38%)
+  - Bars: 228 (37%)
+  - Food: 193 (31%)
+  - American (Traditional): 191 (31%)
+  - Seafood: 165 (27%)
+  - American (New): 153 (25%)
+  - Breakfast & Brunch: 142 (23%)
+  - Sandwiches: 76 (12%)
+  - Burgers: 66 (11%)
+
+LABELS:
+  Label: St. Pete/Clearwater Beach Dining
+  Description: Gulf Coast beach destination dining featuring waterfront seafood, casual beach bars, and fresh Florida cuisine. Major tourist market with strong seasonal traffic.
+  Key characteristics: Beach/waterfront location, Gulf seafood specialty, tourist destination, casual atmosphere, outdoor dining emphasis
+
+================================================================================
+
+CLUSTER 14
+----------------------------------------
+Size: 383 businesses
+Geographic spread: 36.2 miles
+Center: (39.5110, -119.8126)
+
+LOCATION:
+  States: NV (383)
+  Top cities: Reno (302), Sparks (59), Carson City (11), Incline Village (7), Verdi (2)
+
+BUSINESS METRICS:
+  Avg rating: 3.78 stars
+  Avg reviews: 334
+  Avg sentiment: 0.501
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 383 (100%)
+  - Food: 131 (34%)
+  - Nightlife: 109 (28%)
+  - Bars: 107 (28%)
+  - American (Traditional): 87 (23%)
+  - Breakfast & Brunch: 73 (19%)
+  - American (New): 73 (19%)
+  - Mexican: 53 (14%)
+  - Sushi Bars: 43 (11%)
+  - Burgers: 42 (11%)
+
+LABELS:
+  Label: Reno-Sparks Casino & Dining
+  Description: Reno metro dining scene featuring casino restaurants, diverse ethnic cuisine, and emerging craft food culture. Mix of classic establishments and newer concepts.
+  Key characteristics: Casino/gaming integration, diverse ethnic options, craft brewery growth, ski resort proximity, breakfast culture
+
+================================================================================
+
+CLUSTER 15
+----------------------------------------
+Size: 37 businesses
+Geographic spread: 18.0 miles
+Center: (39.5209, -119.7863)
+
+LOCATION:
+  States: NV (37)
+  Top cities: Reno (29), Sparks (8)
+
+BUSINESS METRICS:
+  Avg rating: 3.55 stars
+  Avg reviews: 219
+  Avg sentiment: 0.384
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 37 (100%)
+  - Pizza: 37 (100%)
+  - Italian: 11 (30%)
+  - Salad: 11 (30%)
+  - Nightlife: 11 (30%)
+  - Bars: 11 (30%)
+  - Chicken Wings: 7 (19%)
+  - Buffets: 7 (19%)
+  - Food: 6 (16%)
+  - Vegan: 5 (14%)
+
+LABELS:
+  Label: Reno Pizza & Pub
+  Description: Reno-area pizza restaurants including local pizzerias and chains. Lower sentiment scores suggest competitive market with room for differentiation.
+  Key characteristics: Pizza specialty, pub atmosphere, casino buffet presence, value-oriented, local chain competition
+
+================================================================================
+
+CLUSTER 16
+----------------------------------------
+Size: 35 businesses
+Geographic spread: 27.5 miles
+Center: (39.9490, -75.1612)
+
+LOCATION:
+  States: PA (33), NJ (2)
+  Top cities: Philadelphia (29), Woodlyn (1), Folcroft (1), Camden (1), Bala Cynwyd (1)
+
+BUSINESS METRICS:
+  Avg rating: 4.00 stars
+  Avg reviews: 833
+  Avg sentiment: 0.555
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 35 (100%)
+  - Cheesesteaks: 31 (89%)
+  - Sandwiches: 30 (86%)
+  - Food: 10 (29%)
+  - American (Traditional): 10 (29%)
+  - Burgers: 7 (20%)
+  - Steakhouses: 6 (17%)
+  - Delis: 6 (17%)
+  - Pizza: 6 (17%)
+  - Italian: 5 (14%)
+
+LABELS:
+  Label: Philadelphia Cheesesteak Icons
+  Description: The legendary Philadelphia cheesesteak scene featuring iconic establishments and local favorites. Highest average review counts in the dataset indicate tourist and local landmark status.
+  Key characteristics: Cheesesteak specialty, iconic/landmark status, extremely high customer volume, tourist destination, local institution
+
+================================================================================
+
+CLUSTER 17
+----------------------------------------
+Size: 79 businesses
+Geographic spread: 27.3 miles
+Center: (39.9546, -75.1527)
+
+LOCATION:
+  States: PA (70), NJ (9)
+  Top cities: Philadelphia (65), Ardmore (3), Mt. Laurel (2), Collingswood (2), Medford (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.82 stars
+  Avg reviews: 389
+  Avg sentiment: 0.572
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 79 (100%)
+  - Mexican: 62 (78%)
+  - Bars: 27 (34%)
+  - Nightlife: 27 (34%)
+  - Food: 20 (25%)
+  - Latin American: 17 (22%)
+  - Breakfast & Brunch: 13 (16%)
+  - Tacos: 12 (15%)
+  - Cocktail Bars: 11 (14%)
+  - Tex-Mex: 9 (11%)
+
+LABELS:
+  Label: Philadelphia Latin & Mexican
+  Description: Philadelphia's Mexican and Latin American restaurant scene featuring upscale cantinas, authentic taquerias, and Cuban cuisine. Strong cocktail bar and nightlife presence.
+  Key characteristics: Mexican/Latin specialty, cocktail culture, upscale casual, Cuban influence, weekend brunch scene
+
+================================================================================
+
+CLUSTER 18
+----------------------------------------
+Size: 17 businesses
+Geographic spread: 27.7 miles
+Center: (39.7862, -75.6244)
+
+LOCATION:
+  States: DE (13), PA (4)
+  Top cities: Wilmington (7), Newark (4), Exton (2), Glen Mills (2), Hockessin (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.94 stars
+  Avg reviews: 155
+  Avg sentiment: 0.564
+  Price range: $ to $$$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 17 (100%)
+  - Japanese: 11 (65%)
+  - Sushi Bars: 9 (53%)
+  - Chinese: 6 (35%)
+  - Asian Fusion: 6 (35%)
+  - Thai: 4 (24%)
+  - Food: 3 (18%)
+  - Tapas/Small Plates: 2 (12%)
+  - Nightlife: 2 (12%)
+  - Bars: 2 (12%)
+
+LABELS:
+  Label: Delaware Valley Asian Cuisine
+  Description: Asian restaurant cluster spanning Delaware and Chester County PA, featuring sushi bars, Thai, and pan-Asian concepts serving suburban communities.
+  Key characteristics: Asian cuisine diversity, sushi bar focus, suburban locations, moderate price range, family-friendly
+
+================================================================================
+
+CLUSTER 19
+----------------------------------------
+Size: 85 businesses
+Geographic spread: 26.9 miles
+Center: (40.2322, -75.1519)
+
+LOCATION:
+  States: PA (85)
+  Top cities: Willow Grove (14), Doylestown (10), Warrington (9), North Wales (9), Horsham (6)
+
+BUSINESS METRICS:
+  Avg rating: 3.68 stars
+  Avg reviews: 172
+  Avg sentiment: 0.486
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 85 (100%)
+  - American (Traditional): 38 (45%)
+  - Nightlife: 37 (44%)
+  - Bars: 36 (42%)
+  - American (New): 31 (36%)
+  - Food: 28 (33%)
+  - Pizza: 20 (24%)
+  - Breakfast & Brunch: 19 (22%)
+  - Italian: 19 (22%)
+  - Sandwiches: 15 (18%)
+
+LABELS:
+  Label: Montgomery County Suburban
+  Description: Suburban dining corridor in Montgomery County PA featuring American restaurants, gastropubs, and chain establishments. Middle-market segment with bar/nightlife focus.
+  Key characteristics: Suburban American dining, sports bar presence, chain restaurants, moderate ratings, family/casual orientation
+
+================================================================================
+
+CLUSTER 20
+----------------------------------------
+Size: 11 businesses
+Geographic spread: 20.1 miles
+Center: (35.9662, -86.7817)
+
+LOCATION:
+  States: TN (11)
+  Top cities: Franklin (6), Brentwood (3), Smyrna (1), Nashville (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.68 stars
+  Avg reviews: 249
+  Avg sentiment: 0.468
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 11 (100%)
+  - Mexican: 11 (100%)
+  - Nightlife: 5 (45%)
+  - Bars: 5 (45%)
+  - Tex-Mex: 4 (36%)
+  - Seafood: 3 (27%)
+  - Event Planning & Services: 3 (27%)
+  - Caterers: 3 (27%)
+  - Tacos: 3 (27%)
+  - Historical Tours: 2 (18%)
+
+LABELS:
+  Label: Williamson County Mexican
+  Description: Mexican restaurants in affluent Nashville suburbs of Franklin and Brentwood. Mix of Tex-Mex chains and local favorites serving suburban families.
+  Key characteristics: Suburban Mexican, family-friendly, Tex-Mex focus, affluent demographic, moderate competition
+
+================================================================================
+
+CLUSTER 21
+----------------------------------------
+Size: 220 businesses
+Geographic spread: 30.1 miles
+Center: (38.6206, -90.3394)
+
+LOCATION:
+  States: MO (217), IL (3)
+  Top cities: St. Louis (128), Kirkwood (14), Clayton (12), Ballwin (9), Webster Groves (9)
+
+BUSINESS METRICS:
+  Avg rating: 3.73 stars
+  Avg reviews: 214
+  Avg sentiment: 0.489
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 220 (100%)
+  - American (Traditional): 81 (37%)
+  - Nightlife: 71 (32%)
+  - Bars: 69 (31%)
+  - Food: 58 (26%)
+  - American (New): 56 (25%)
+  - Breakfast & Brunch: 47 (21%)
+  - Italian: 35 (16%)
+  - Pizza: 33 (15%)
+  - Burgers: 32 (15%)
+
+LABELS:
+  Label: St. Louis West County
+  Description: St. Louis metro western suburbs featuring American restaurants, Italian traditions, and neighborhood bars. Established suburban dining with moderate ratings.
+  Key characteristics: Suburban American, Italian heritage, neighborhood bars, family dining, established restaurants
+
+================================================================================
+
+CLUSTER 22
+----------------------------------------
+Size: 49 businesses
+Geographic spread: 23.2 miles
+Center: (39.7612, -86.3207)
+
+LOCATION:
+  States: IN (49)
+  Top cities: Indianapolis (19), Plainfield (12), Avon (11), Speedway (3), Mooresville (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.54 stars
+  Avg reviews: 179
+  Avg sentiment: 0.424
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 49 (100%)
+  - American (Traditional): 24 (49%)
+  - Bars: 14 (29%)
+  - Nightlife: 14 (29%)
+  - Burgers: 14 (29%)
+  - American (New): 13 (27%)
+  - Breakfast & Brunch: 12 (24%)
+  - Food: 12 (24%)
+  - Sandwiches: 11 (22%)
+  - Diners: 7 (14%)
+
+LABELS:
+  Label: Indianapolis West Suburbs
+  Description: Western Indianapolis suburbs featuring diners, casual American, and ethnic restaurants. Lower sentiment indicates opportunity for quality improvement.
+  Key characteristics: Suburban casual dining, diner culture, diverse ethnic options, value-focused, sports bar presence
+
+================================================================================
+
+CLUSTER 23
+----------------------------------------
+Size: 287 businesses
+Geographic spread: 22.4 miles
+Center: (38.6209, -90.2348)
+
+LOCATION:
+  States: MO (284), IL (3)
+  Top cities: St. Louis (283), Alton (2), Waterloo (1), Ferguson (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.99 stars
+  Avg reviews: 316
+  Avg sentiment: 0.624
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 287 (100%)
+  - Nightlife: 140 (49%)
+  - Bars: 130 (45%)
+  - Food: 101 (35%)
+  - American (New): 86 (30%)
+  - American (Traditional): 64 (22%)
+  - Breakfast & Brunch: 51 (18%)
+  - Sandwiches: 47 (16%)
+  - Event Planning & Services: 36 (13%)
+  - Cocktail Bars: 34 (12%)
+
+LABELS:
+  Label: St. Louis Urban Core
+  Description: Downtown St. Louis and urban neighborhoods featuring acclaimed BBQ, craft cocktails, and innovative American cuisine. High ratings indicate quality culinary scene.
+  Key characteristics: BBQ/smokehouse specialty, craft cocktail scene, urban neighborhoods, high quality ratings, foodie destination
+
+================================================================================
+
+CLUSTER 24
+----------------------------------------
+Size: 125 businesses
+Geographic spread: 20.6 miles
+Center: (38.6901, -90.4720)
+
+LOCATION:
+  States: MO (125)
+  Top cities: Creve Coeur (23), St. Louis (20), St. Charles (19), Saint Charles (12), Chesterfield (10)
+
+BUSINESS METRICS:
+  Avg rating: 3.77 stars
+  Avg reviews: 198
+  Avg sentiment: 0.514
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 125 (100%)
+  - Food: 41 (33%)
+  - Nightlife: 36 (29%)
+  - Bars: 34 (27%)
+  - American (Traditional): 34 (27%)
+  - American (New): 25 (20%)
+  - Breakfast & Brunch: 23 (18%)
+  - Asian Fusion: 17 (14%)
+  - Sandwiches: 16 (13%)
+  - Salad: 15 (12%)
+
+LABELS:
+  Label: St. Charles/West County
+  Description: St. Louis western suburbs and St. Charles corridor featuring American chains, breakfast spots, and Asian fusion restaurants. Growing suburban market.
+  Key characteristics: Suburban chains, breakfast focus, Asian fusion growth, family dining, shopping center locations
+
+================================================================================
+
+CLUSTER 25
+----------------------------------------
+Size: 42 businesses
+Geographic spread: 23.0 miles
+Center: (38.6383, -89.9682)
+
+LOCATION:
+  States: IL (42)
+  Top cities: Edwardsville (10), Fairview Heights (9), O'Fallon (8), Belleville (5), Collinsville (3)
+
+BUSINESS METRICS:
+  Avg rating: 3.63 stars
+  Avg reviews: 158
+  Avg sentiment: 0.436
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 42 (100%)
+  - American (Traditional): 22 (52%)
+  - Bars: 13 (31%)
+  - Nightlife: 13 (31%)
+  - Food: 11 (26%)
+  - American (New): 11 (26%)
+  - Steakhouses: 10 (24%)
+  - Breakfast & Brunch: 8 (19%)
+  - Burgers: 8 (19%)
+  - Sandwiches: 7 (17%)
+
+LABELS:
+  Label: Metro East Illinois
+  Description: Illinois side of St. Louis metro featuring Southern comfort food, German heritage, and American steakhouses. Lower ratings indicate competitive challenges.
+  Key characteristics: Southern comfort food, German heritage (Hofbrauhaus), steakhouse presence, farm-to-table emerging, craft brewery growth
+
+================================================================================
+
+CLUSTER 26
+----------------------------------------
+Size: 198 businesses
+Geographic spread: 15.4 miles
+Center: (39.9212, -86.1570)
+
+LOCATION:
+  States: IN (198)
+  Top cities: Indianapolis (127), Carmel (58), Zionsville (11), Whitestown (2)
+
+BUSINESS METRICS:
+  Avg rating: 3.90 stars
+  Avg reviews: 228
+  Avg sentiment: 0.583
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 198 (100%)
+  - Nightlife: 73 (37%)
+  - Bars: 70 (35%)
+  - Food: 67 (34%)
+  - American (Traditional): 60 (30%)
+  - American (New): 47 (24%)
+  - Breakfast & Brunch: 37 (19%)
+  - Sandwiches: 32 (16%)
+  - Burgers: 30 (15%)
+  - Salad: 23 (12%)
+
+LABELS:
+  Label: Indy North & Carmel
+  Description: Affluent northern Indianapolis and Carmel corridor featuring upscale casual dining, wine bars, and quality American restaurants. Strong suburban growth market.
+  Key characteristics: Affluent suburban, upscale casual, wine bar presence, quality focus, strong growth area
+
+================================================================================
+
+CLUSTER 27
+----------------------------------------
+Size: 51 businesses
+Geographic spread: 8.9 miles
+Center: (39.6504, -86.1181)
+
+LOCATION:
+  States: IN (51)
+  Top cities: Indianapolis (29), Greenwood (20), Beech Grove (1), Southport (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.75 stars
+  Avg reviews: 141
+  Avg sentiment: 0.488
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 51 (100%)
+  - American (Traditional): 21 (41%)
+  - Food: 17 (33%)
+  - Burgers: 12 (24%)
+  - Nightlife: 12 (24%)
+  - Bars: 12 (24%)
+  - American (New): 11 (22%)
+  - Breakfast & Brunch: 7 (14%)
+  - Steakhouses: 7 (14%)
+  - Sports Bars: 7 (14%)
+
+LABELS:
+  Label: Indianapolis Southside
+  Description: South Indianapolis and Greenwood area featuring casual American, sports bars, and chain restaurants. Value-oriented suburban market.
+  Key characteristics: Suburban casual, sports bar focus, chain presence, value-oriented, family dining
+
+================================================================================
+
+CLUSTER 28
+----------------------------------------
+Size: 216 businesses
+Geographic spread: 10.2 miles
+Center: (39.7758, -86.1481)
+
+LOCATION:
+  States: IN (216)
+  Top cities: Indianapolis (216)
+
+BUSINESS METRICS:
+  Avg rating: 4.06 stars
+  Avg reviews: 305
+  Avg sentiment: 0.657
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 216 (100%)
+  - Nightlife: 100 (46%)
+  - Bars: 96 (44%)
+  - Food: 82 (38%)
+  - American (Traditional): 64 (30%)
+  - American (New): 64 (30%)
+  - Breakfast & Brunch: 35 (16%)
+  - Sandwiches: 35 (16%)
+  - Seafood: 28 (13%)
+  - Burgers: 27 (12%)
+
+LABELS:
+  Label: Indianapolis Downtown Core
+  Description: Downtown Indianapolis and Mass Ave featuring acclaimed restaurants, craft breweries, and destination dining. Highest ratings and sentiment in Indianapolis clusters.
+  Key characteristics: Urban core, destination dining, craft scene, high ratings, steakhouse/fine dining presence, sports venue proximity
+
+================================================================================
+
+CLUSTER 29
+----------------------------------------
+Size: 11 businesses
+Geographic spread: 28.9 miles
+Center: (39.9849, -75.5421)
+
+LOCATION:
+  States: PA (7), DE (4)
+  Top cities: King Of Prussia (2), Exton (2), Malvern (1), Newark (1), Wayne (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.73 stars
+  Avg reviews: 123
+  Avg sentiment: 0.506
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Indian: 11 (100%)
+  - Restaurants: 11 (100%)
+  - Food: 5 (45%)
+  - Vegetarian: 4 (36%)
+  - Halal: 3 (27%)
+  - Pakistani: 2 (18%)
+  - Vegan: 2 (18%)
+  - Desserts: 2 (18%)
+  - Cupcakes: 1 (9%)
+  - Bakeries: 1 (9%)
+
+LABELS:
+  Label: Main Line/Chester Indian
+  Description: Indian restaurants serving Philadelphia's Main Line and Chester County suburbs. Vegetarian-friendly options for suburban communities.
+  Key characteristics: Indian cuisine specialty, suburban locations, vegetarian emphasis, moderate ratings, family dining
+
+================================================================================
+
+CLUSTER 30
+----------------------------------------
+Size: 28 businesses
+Geographic spread: 29.8 miles
+Center: (27.8885, -82.7477)
+
+LOCATION:
+  States: FL (28)
+  Top cities: Clearwater (8), Saint Petersburg (5), St. Pete Beach (3), St. Petersburg (2), Largo (2)
+
+BUSINESS METRICS:
+  Avg rating: 4.12 stars
+  Avg reviews: 209
+  Avg sentiment: 0.638
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 28 (100%)
+  - Pizza: 28 (100%)
+  - Italian: 19 (68%)
+  - Salad: 11 (39%)
+  - Sandwiches: 10 (36%)
+  - Bars: 8 (29%)
+  - Nightlife: 8 (29%)
+  - Chicken Wings: 5 (18%)
+  - Wine Bars: 4 (14%)
+  - Food: 4 (14%)
+
+LABELS:
+  Label: Pinellas County Pizza
+  Description: High-quality pizza restaurants along the Pinellas County beaches and cities. Highest ratings in pizza clusters indicate strong quality focus.
+  Key characteristics: Quality pizza focus, Italian authenticity, beach locations, wine bar integration, high customer satisfaction
+
+================================================================================
+
+CLUSTER 31
+----------------------------------------
+Size: 549 businesses
+Geographic spread: 27.7 miles
+Center: (27.9429, -82.4438)
+
+LOCATION:
+  States: FL (549)
+  Top cities: Tampa (432), Brandon (64), Riverview (24), Plant City (6), Ruskin (6)
+
+BUSINESS METRICS:
+  Avg rating: 3.87 stars
+  Avg reviews: 304
+  Avg sentiment: 0.557
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 549 (100%)
+  - Nightlife: 204 (37%)
+  - Bars: 200 (36%)
+  - Food: 196 (36%)
+  - American (New): 132 (24%)
+  - American (Traditional): 114 (21%)
+  - Breakfast & Brunch: 107 (19%)
+  - Sandwiches: 76 (14%)
+  - Seafood: 74 (13%)
+  - Cocktail Bars: 59 (11%)
+
+LABELS:
+  Label: Tampa Bay Urban Dining
+  Description: Core Tampa dining scene featuring iconic establishments, upscale American, and diverse international cuisine. Major foodie destination with strong craft cocktail scene.
+  Key characteristics: Iconic establishments, upscale dining, craft cocktails, diverse cuisine, Cuban influence, ramen scene growth
+
+================================================================================
+
+CLUSTER 32
+----------------------------------------
+Size: 15 businesses
+Geographic spread: 33.7 miles
+Center: (39.9253, -75.5542)
+
+LOCATION:
+  States: PA (10), DE (5)
+  Top cities: Wilmington (3), West Chester (3), Exton (2), Hockessin (1), Media (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.87 stars
+  Avg reviews: 200
+  Avg sentiment: 0.534
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 15 (100%)
+  - Mexican: 14 (93%)
+  - Tex-Mex: 4 (27%)
+  - Bars: 4 (27%)
+  - Nightlife: 4 (27%)
+  - Tacos: 4 (27%)
+  - Food: 4 (27%)
+  - Latin American: 2 (13%)
+  - New Mexican Cuisine: 2 (13%)
+  - Salad: 2 (13%)
+
+LABELS:
+  Label: Chester/Delaware County Mexican
+  Description: Mexican restaurants spanning Chester County PA and northern Delaware. Mix of fast-casual taquerias and sit-down cantinas serving suburban communities.
+  Key characteristics: Mexican specialty, suburban locations, Tex-Mex and authentic mix, family-friendly, moderate competition
+
+================================================================================
+
+CLUSTER 33
+----------------------------------------
+Size: 220 businesses
+Geographic spread: 24.2 miles
+Center: (39.9720, -75.1652)
+
+LOCATION:
+  States: PA (217), NJ (3)
+  Top cities: Philadelphia (193), Upper Darby (5), Elkins Park (3), Willow Grove (3), Horsham (2)
+
+BUSINESS METRICS:
+  Avg rating: 3.98 stars
+  Avg reviews: 326
+  Avg sentiment: 0.612
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 220 (100%)
+  - Japanese: 79 (36%)
+  - Sushi Bars: 65 (30%)
+  - Chinese: 65 (30%)
+  - Asian Fusion: 61 (28%)
+  - Food: 40 (18%)
+  - Korean: 33 (15%)
+  - Thai: 32 (15%)
+  - Nightlife: 25 (11%)
+  - Bars: 24 (11%)
+
+LABELS:
+  Label: Philadelphia Asian Dining
+  Description: Philadelphia's diverse Asian restaurant scene featuring acclaimed Chinese, Japanese, and pan-Asian concepts. Strong Chinatown presence with suburban expansion.
+  Key characteristics: Chinatown anchor, dim sum specialty, ramen scene, Korean BBQ growth, high customer engagement
+
+================================================================================
+
+CLUSTER 34
+----------------------------------------
+Size: 198 businesses
+Geographic spread: 31.1 miles
+Center: (40.0553, -75.4369)
+
+LOCATION:
+  States: PA (198)
+  Top cities: King Of Prussia (40), Wayne (23), Bryn Mawr (14), Exton (14), Malvern (13)
+
+BUSINESS METRICS:
+  Avg rating: 3.65 stars
+  Avg reviews: 183
+  Avg sentiment: 0.463
+  Price range: $ to $$$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 198 (100%)
+  - American (Traditional): 83 (42%)
+  - American (New): 72 (36%)
+  - Nightlife: 68 (34%)
+  - Bars: 65 (33%)
+  - Food: 57 (29%)
+  - Breakfast & Brunch: 48 (24%)
+  - Italian: 40 (20%)
+  - Sandwiches: 38 (19%)
+  - Pizza: 35 (18%)
+
+LABELS:
+  Label: Philadelphia Main Line
+  Description: Affluent Main Line suburbs featuring upscale American chains, farm-to-table concepts, and established Italian restaurants. Mall-centric dining at King of Prussia.
+  Key characteristics: Affluent suburban, upscale chains, mall dining, farm-to-table trend, Italian tradition
+
+================================================================================
+
+CLUSTER 35
+----------------------------------------
+Size: 15 businesses
+Geographic spread: 29.3 miles
+Center: (40.2042, -75.0990)
+
+LOCATION:
+  States: PA (14), NJ (1)
+  Top cities: Bensalem (2), Willow Grove (2), Doylestown (2), Blue Bell (1), Ambler (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.63 stars
+  Avg reviews: 231
+  Avg sentiment: 0.443
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Mexican: 15 (100%)
+  - Restaurants: 15 (100%)
+  - Tex-Mex: 7 (47%)
+  - Nightlife: 5 (33%)
+  - Bars: 5 (33%)
+  - Food: 3 (20%)
+  - Event Planning & Services: 2 (13%)
+  - Caterers: 2 (13%)
+  - Fast Food: 2 (13%)
+  - Peruvian: 2 (13%)
+
+LABELS:
+  Label: Bucks/Montgomery Mexican
+  Description: Mexican restaurants in Bucks and Montgomery County suburbs. Mix of Tex-Mex chains and local favorites with Peruvian influence emerging.
+  Key characteristics: Suburban Mexican, Tex-Mex dominant, Peruvian fusion emerging, family dining, moderate ratings
+
+================================================================================
+
+CLUSTER 36
+----------------------------------------
+Size: 73 businesses
+Geographic spread: 27.7 miles
+Center: (40.0864, -75.3744)
+
+LOCATION:
+  States: PA (73)
+  Top cities: Ardmore (5), Royersford (4), Media (4), Wayne (4), East Norriton (4)
+
+BUSINESS METRICS:
+  Avg rating: 3.91 stars
+  Avg reviews: 179
+  Avg sentiment: 0.580
+  Price range: $ to $$$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 73 (100%)
+  - Sushi Bars: 36 (49%)
+  - Japanese: 35 (48%)
+  - Asian Fusion: 28 (38%)
+  - Chinese: 22 (30%)
+  - Thai: 16 (22%)
+  - Food: 11 (15%)
+  - Noodles: 9 (12%)
+  - Seafood: 7 (10%)
+  - Soup: 6 (8%)
+
+LABELS:
+  Label: Delaware Valley Suburban Asian
+  Description: Asian restaurants across Philadelphia's western suburbs featuring sushi bars, Thai, and pan-Asian concepts. Strong dim sum and pho presence.
+  Key characteristics: Suburban Asian dining, sushi focus, Thai variety, dim sum presence, Vietnamese emerging
+
+================================================================================
+
+CLUSTER 37
+----------------------------------------
+Size: 947 businesses
+Geographic spread: 28.6 miles
+Center: (39.9546, -75.1470)
+
+LOCATION:
+  States: PA (795), NJ (152)
+  Top cities: Philadelphia (708), Cherry Hill (35), Ardmore (18), Marlton (15), Collingswood (13)
+
+BUSINESS METRICS:
+  Avg rating: 3.84 stars
+  Avg reviews: 327
+  Avg sentiment: 0.563
+  Price range: $ to $$$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 947 (100%)
+  - Food: 356 (38%)
+  - Nightlife: 354 (37%)
+  - Bars: 346 (37%)
+  - American (New): 309 (33%)
+  - American (Traditional): 236 (25%)
+  - Breakfast & Brunch: 210 (22%)
+  - Italian: 161 (17%)
+  - Sandwiches: 143 (15%)
+  - Coffee & Tea: 120 (13%)
+
+LABELS:
+  Label: Greater Philadelphia Core
+  Description: The largest cluster representing Philadelphia's diverse dining ecosystem. From Reading Terminal to Rittenhouse Square, featuring acclaimed restaurants across all cuisines.
+  Key characteristics: Diverse cuisine, iconic markets, destination dining, strong Italian tradition, coffee culture, BYO tradition
+
+================================================================================
+
+CLUSTER 38
+----------------------------------------
+Size: 284 businesses
+Geographic spread: 33.4 miles
+Center: (28.1209, -82.4747)
+
+LOCATION:
+  States: FL (284)
+  Top cities: Tampa (177), Wesley Chapel (36), Lutz (23), New Port Richey (10), Temple Terrace (9)
+
+BUSINESS METRICS:
+  Avg rating: 3.86 stars
+  Avg reviews: 198
+  Avg sentiment: 0.537
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 284 (100%)
+  - Food: 96 (34%)
+  - American (Traditional): 78 (27%)
+  - Nightlife: 67 (24%)
+  - Bars: 66 (23%)
+  - Breakfast & Brunch: 52 (18%)
+  - American (New): 44 (15%)
+  - Seafood: 43 (15%)
+  - Sandwiches: 37 (13%)
+  - Cafes: 31 (11%)
+
+LABELS:
+  Label: Tampa North Suburbs
+  Description: Northern Tampa suburbs including Wesley Chapel and Lutz featuring diverse ethnic restaurants, Mexican favorites, and casual American dining. Growing suburban market.
+  Key characteristics: Suburban growth, ethnic diversity, Mexican strength, Vietnamese presence, family-oriented
+
+================================================================================
+
+CLUSTER 39
+----------------------------------------
+Size: 36 businesses
+Geographic spread: 20.6 miles
+Center: (39.8911, -74.9725)
+
+LOCATION:
+  States: NJ (36)
+  Top cities: Cherry Hill (17), Mount Laurel (4), Voorhees (3), Marlton (3), Clementon (1)
+
+BUSINESS METRICS:
+  Avg rating: 3.89 stars
+  Avg reviews: 154
+  Avg sentiment: 0.552
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 36 (100%)
+  - Japanese: 21 (58%)
+  - Sushi Bars: 17 (47%)
+  - Chinese: 10 (28%)
+  - Asian Fusion: 10 (28%)
+  - Food: 9 (25%)
+  - Ramen: 4 (11%)
+  - Vietnamese: 4 (11%)
+  - Bubble Tea: 3 (8%)
+  - Soup: 3 (8%)
+
+LABELS:
+  Label: South Jersey Asian
+  Description: Asian restaurant cluster in South Jersey suburbs featuring Korean, Japanese, and Chinese cuisine. Strong sushi and ramen presence serving Cherry Hill corridor.
+  Key characteristics: Korean standouts, sushi bars, ramen emerging, suburban Asian, bubble tea trend
+
+================================================================================
+
+CLUSTER 40
+----------------------------------------
+Size: 117 businesses
+Geographic spread: 30.3 miles
+Center: (39.8098, -75.5933)
+
+LOCATION:
+  States: DE (69), PA (44), NJ (4)
+  Top cities: Wilmington (39), Newark (21), West Chester (18), Glen Mills (11), Kennett Square (5)
+
+BUSINESS METRICS:
+  Avg rating: 3.71 stars
+  Avg reviews: 155
+  Avg sentiment: 0.506
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 117 (100%)
+  - Nightlife: 42 (36%)
+  - Bars: 41 (35%)
+  - American (New): 39 (33%)
+  - American (Traditional): 38 (32%)
+  - Food: 34 (29%)
+  - Italian: 23 (20%)
+  - Breakfast & Brunch: 19 (16%)
+  - Seafood: 18 (15%)
+  - Sandwiches: 18 (15%)
+
+LABELS:
+  Label: Brandywine Valley Dining
+  Description: Tri-state dining corridor spanning Delaware, Chester County PA, and South Jersey. Brewery scene, American classics, and Italian traditions in historic region.
+  Key characteristics: Brewery/brewpub strength, American tradition, Italian presence, historic area, tri-state market
+
+================================================================================
+
+CLUSTER 41
+----------------------------------------
+Size: 134 businesses
+Geographic spread: 27.1 miles
+Center: (40.1894, -74.9039)
+
+LOCATION:
+  States: PA (98), NJ (36)
+  Top cities: Philadelphia (20), New Hope (17), Bensalem (12), Yardley (10), Langhorne (9)
+
+BUSINESS METRICS:
+  Avg rating: 3.67 stars
+  Avg reviews: 171
+  Avg sentiment: 0.484
+  Price range: $$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 134 (100%)
+  - American (New): 44 (33%)
+  - American (Traditional): 38 (28%)
+  - Nightlife: 37 (28%)
+  - Bars: 37 (28%)
+  - Food: 35 (26%)
+  - Italian: 29 (22%)
+  - Breakfast & Brunch: 26 (19%)
+  - Seafood: 25 (19%)
+  - Pizza: 24 (18%)
+
+LABELS:
+  Label: Bucks County & River Towns
+  Description: Historic Bucks County and Delaware River communities featuring charming New Hope restaurants, brewery scene, and suburban dining along the river corridor.
+  Key characteristics: River town charm, New Hope destination, brewery presence, Italian tradition, weekend getaway appeal
+
+================================================================================
+
+CLUSTER 42
+----------------------------------------
+Size: 23 businesses
+Geographic spread: 22.6 miles
+Center: (40.1271, -74.9364)
+
+LOCATION:
+  States: PA (20), NJ (3)
+  Top cities: Philadelphia (6), Feasterville-Trevose (4), Langhorne (3), Levittown (2), Bensalem (2)
+
+BUSINESS METRICS:
+  Avg rating: 4.02 stars
+  Avg reviews: 150
+  Avg sentiment: 0.608
+  Price range: $ to $$$ (avg)
+
+TOP CATEGORIES:
+  - Restaurants: 23 (100%)
+  - Sushi Bars: 16 (70%)
+  - Japanese: 15 (65%)
+  - Asian Fusion: 5 (22%)
+  - Chinese: 4 (17%)
+  - Thai: 3 (13%)
+  - Steakhouses: 3 (13%)
+  - Korean: 2 (9%)
+  - Food: 2 (9%)
+  - Barbeque: 1 (4%)
+
+LABELS:
+  Label: Lower Bucks Asian/Japanese
+  Description: Asian restaurant cluster in Lower Bucks County featuring sushi bars, hibachi steakhouses, and Korean BBQ. Higher ratings indicate quality-focused establishments.
+  Key characteristics: Sushi/Japanese specialty, hibachi presence, Korean BBQ, suburban locations, higher quality ratings
+
+================================================================================
