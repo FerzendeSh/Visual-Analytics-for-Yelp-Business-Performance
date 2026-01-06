@@ -19,7 +19,7 @@ const MapControlsComponent = ({
   currentZoom,
 }: MapControlsProps) => {
   return (
-    <div className="absolute top-13 left-1 z-30 flex flex-col gap-2">
+    <div className="absolute bottom-1 right-1 z-30 flex flex-col gap-1">
       {/* Go to My Business Button */}
       {onGoToMyBusiness && (
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
