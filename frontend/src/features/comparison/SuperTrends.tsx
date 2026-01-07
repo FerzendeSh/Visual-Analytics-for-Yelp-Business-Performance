@@ -175,6 +175,7 @@ interface ChartProps {
   height: number;
   data: ChartDataPoint[];
   seriesNames: string[];
+  benchmarkMap: Map<string, 'city' | 'neighborhood' | 'cluster'>;
   period: 'month' | 'year';
   hiddenSeries: Set<string>;
   hideVolume?: boolean;
@@ -195,6 +196,7 @@ const Chart: React.FC<ChartProps> = ({
   height,
   data,
   seriesNames,
+  benchmarkMap,
   period,
   hiddenSeries,
   hideVolume = false,
@@ -312,9 +314,9 @@ const Chart: React.FC<ChartProps> = ({
     () =>
       scaleOrdinal<string, string>({
         domain: seriesNames,
-        range: seriesNames.map((name, index) => getSeriesColor(name, index)),
+        range: seriesNames.map((name, index) => getSeriesColor(name, index, benchmarkMap)),
       }),
-    [seriesNames]
+    [seriesNames, benchmarkMap]
   );
 
   const formattedForecastData = useMemo(() => {
@@ -965,7 +967,7 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
   onYearClick,
 }) => {
   // Extract chart data transformation to custom hook
-  const { chartData, seriesNames } = useChartData({
+  const { chartData, seriesNames, benchmarkMap } = useChartData({
     primaryTimeline,
     comparisonTimelines,
     benchmarkTimelines: benchmarkTimelines ? {
@@ -1070,6 +1072,7 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
               height={Math.max(height, 100)}
               data={chartData}
               seriesNames={seriesNames}
+              benchmarkMap={benchmarkMap}
               period={period}
               hiddenSeries={effectiveHiddenSeries}
               hideVolume={hideVolume}
@@ -1103,7 +1106,7 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
               className={`flex items-center gap-2 text-xs transition-opacity cursor-pointer ${isHidden ? 'opacity-50' : 'opacity-100'}`}
               onClick={() => toggleSeries(name)}
             >
-              <div className="w-3 h-1 rounded-full" style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }} />
+              <div className="w-3 h-1 rounded-full" style={{ backgroundColor: getSeriesColor(name, i, benchmarkMap) }} />
               <span className="text-slate-300">{name}</span>
             </button>
           );

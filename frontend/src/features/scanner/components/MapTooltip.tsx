@@ -1,10 +1,10 @@
 /**
  * Map hover tooltip component.
- * Displays business information when hovering over markers.
+ * Displays business information and cluster name when hovering over markers.
  */
 import { Business, ClusterSummaryDTO } from '@/lib/api';
 import { getTodayHours, getPriceRange } from '@/lib/utils';
-import { getSmartClusterLabel, getClusterDescription } from '@/utils/clusterLabeling';
+import { getSmartClusterLabel } from '@/utils/clusterLabeling';
 
 interface MapTooltipProps {
   business: Business | null;
@@ -46,26 +46,15 @@ export function MapTooltip({ business, clusterInfo }: MapTooltipProps) {
           {business.neighborhood || business.city}
         </p>
 
-        {/* Cluster Info Section */}
+        {/* Cluster Info Section - Only cluster name, no description */}
         {clusterInfo && (() => {
           const clusterLabel = getSmartClusterLabel(clusterInfo);
-          const clusterDescription = getClusterDescription(clusterInfo);
 
           return (
             <div className="mt-2 pt-2 border-t border-slate-700/50">
-              <div className="flex items-start gap-2">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-blue-400">
-                    {clusterLabel}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
-                    {clusterDescription}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {clusterInfo.size} businesses • {clusterInfo.avg_stars?.toFixed(1)} stars avg
-                  </p>
-                </div>
-              </div>
+              <p className="text-xs font-medium text-blue-400">
+                {clusterLabel}
+              </p>
             </div>
           );
         })()}

@@ -130,10 +130,13 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     isError,
   } = useBatchTimelinesLegacy(primaryBusinessId, comparisonIds);
 
-  // Fetch cluster benchmark for primary business
+  // Fetch cluster benchmark for primary business or filtered cluster
   const {
     primaryClusterTimeline,
-    primaryBusinessCluster
+    primaryBusinessCluster,
+    filteredClusterTimeline,
+    filteredClusterIds,
+    allClusters
   } = useClusterContext();
 
   // DEBUG: Log cluster data
@@ -236,9 +239,15 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     .filter((t: any): t is RatingsTimeline => !!t) ?? [];
 
   // Transform cluster timeline to match expected format
-  const clusterRatingsTimeline = primaryClusterTimeline ? {
-    business_name: primaryBusinessCluster ? getSmartClusterLabel(primaryBusinessCluster) : 'Cluster Average',
-    data: primaryClusterTimeline.data.map(point => ({
+  // Priority: Use filtered cluster timeline if a cluster filter is active, otherwise use primary business cluster
+  const activeClusterTimeline = filteredClusterTimeline || primaryClusterTimeline;
+  const activeCluster = filteredClusterIds.length > 0
+    ? allClusters.find(c => filteredClusterIds.includes(c.cluster_id))
+    : primaryBusinessCluster;
+
+  const clusterRatingsTimeline = activeClusterTimeline ? {
+    business_name: activeCluster ? getSmartClusterLabel(activeCluster) : 'Cluster Average',
+    data: activeClusterTimeline.data.map(point => ({
       period_start: point.period_start,
       avg_rating: point.avg_rating,
       review_count: point.review_count,
@@ -275,9 +284,10 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     .filter((t: any): t is SentimentTimeline => !!t) ?? [];
 
   // Transform cluster sentiment timeline
-  const clusterSentimentTimeline = primaryClusterTimeline ? {
-    business_name: primaryBusinessCluster ? getSmartClusterLabel(primaryBusinessCluster) : 'Cluster Average',
-    data: primaryClusterTimeline.data.map(point => ({
+  // Use the same active cluster timeline (filtered or primary)
+  const clusterSentimentTimeline = activeClusterTimeline ? {
+    business_name: activeCluster ? getSmartClusterLabel(activeCluster) : 'Cluster Average',
+    data: activeClusterTimeline.data.map(point => ({
       period_start: point.period_start,
       avg_sentiment_score: point.avg_sentiment_score,
       avg_sentiment_expected: point.avg_sentiment_expected,

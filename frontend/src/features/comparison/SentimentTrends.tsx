@@ -181,6 +181,7 @@ interface ChartProps {
   height: number;
   data: ChartDataPoint[];
   seriesNames: string[];
+  benchmarkMap: Map<string, 'city' | 'neighborhood' | 'cluster'>;
   period: 'month' | 'year';
   hiddenSeries: Set<string>;
   hideForecast?: boolean;
@@ -200,6 +201,7 @@ const Chart: React.FC<ChartProps> = ({
   height,
   data,
   seriesNames,
+  benchmarkMap,
   period,
   hiddenSeries,
   hideForecast = false,
@@ -319,9 +321,9 @@ const Chart: React.FC<ChartProps> = ({
     () =>
       scaleOrdinal<string, string>({
         domain: seriesNames,
-        range: seriesNames.map((name, index) => getSeriesColor(name, index)),
+        range: seriesNames.map((name, index) => getSeriesColor(name, index, benchmarkMap)),
       }),
-    [seriesNames]
+    [seriesNames, benchmarkMap]
   );
 
   const formattedForecastData = useMemo(() => {
@@ -967,27 +969,34 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
   onBrushModeChange,
   onYearClick,
 }) => {
-  const { chartData, seriesNames } = useMemo(() => {
+  const { chartData, seriesNames, benchmarkMap } = useMemo(() => {
     if (!primaryTimeline?.data || primaryTimeline.data.length === 0) {
-      return { chartData: [], seriesNames: [] };
+      return { chartData: [], seriesNames: [], benchmarkMap: new Map() };
     }
 
     const primaryPeriods = primaryTimeline.data.map((p) => p.period_start);
     const sortedPeriods = primaryPeriods.sort((a, b) => getDateSortKey(a) - getDateSortKey(b));
 
     const names: string[] = [];
+    const benchmarkMap = new Map<string, 'city' | 'neighborhood' | 'cluster'>();
     const primaryName = primaryTimeline.business_name || 'Primary Business';
     names.push(primaryName);
 
     // Always add benchmark names if data exists (user can toggle via legend)
     if (benchmarkTimelines?.city) {
-      names.push(benchmarkTimelines.city.business_name || 'City Avg');
+      const cityName = benchmarkTimelines.city.business_name || 'City Avg';
+      names.push(cityName);
+      benchmarkMap.set(cityName, 'city');
     }
     if (benchmarkTimelines?.neighborhood) {
-      names.push(benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg');
+      const neighborhoodName = benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg';
+      names.push(neighborhoodName);
+      benchmarkMap.set(neighborhoodName, 'neighborhood');
     }
     if (benchmarkTimelines?.cluster) {
-      names.push(benchmarkTimelines.cluster.business_name || 'Cluster Avg');
+      const clusterName = benchmarkTimelines.cluster.business_name || 'Cluster Avg';
+      names.push(clusterName);
+      benchmarkMap.set(clusterName, 'cluster');
     }
 
     // Comparisons
@@ -1029,7 +1038,7 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
       return point;
     });
 
-    return { chartData: data, seriesNames: names };
+    return { chartData: data, seriesNames: names, benchmarkMap };
   }, [primaryTimeline, comparisonTimelines, benchmarkTimelines, showBenchmarks, period]);
 
   // Use shared hiddenSeries if provided, otherwise use local state
@@ -1065,6 +1074,7 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
               height={Math.max(height, 100)}
               data={chartData}
               seriesNames={seriesNames}
+              benchmarkMap={benchmarkMap}
               period={period}
               hiddenSeries={effectiveHiddenSeries}
               hideForecast={hideForecast}
@@ -1097,7 +1107,7 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
               className={`flex items-center gap-2 text-xs transition-opacity cursor-pointer ${isHidden ? 'opacity-50' : 'opacity-100'}`}
               onClick={() => toggleSeries(name)}
             >
-              <div className="w-3 h-1 rounded-full" style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }} />
+              <div className="w-3 h-1 rounded-full" style={{ backgroundColor: getSeriesColor(name, i, benchmarkMap) }} />
               <span className="text-slate-300">{name}</span>
             </button>
           );

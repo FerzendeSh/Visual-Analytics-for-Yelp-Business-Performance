@@ -23,18 +23,36 @@ export const LINE_COLORS = [
 
 // Fixed colors for benchmarks
 export const BENCHMARK_COLORS = {
-  CITY: '#a855f7',        // Purple - ALWAYS for City
+  CITY: '#a855f7',           // Purple - ALWAYS for City
   NEIGHBORHOOD: '#3d9201ff', // Green - ALWAYS for Neighborhood
-  CATEGORY: '#f59e0b',     // Amber for Category
-  CLUSTER: '#ff7a7aff',      // Red - ALWAYS for Cluster (Competitor Group)
+  CATEGORY: '#f59e0b',       // Amber for Category
+  CLUSTER: '#3b82f6',        // Blue - ALWAYS for Cluster (Competitor Group)
 };
 
 /**
  * Get color for a series name.
  * Ensures benchmarks always get their designated colors regardless of order.
  */
-export function getSeriesColor(seriesName: string, index: number): string {
-  // Check if it's a benchmark (case-insensitive)
+export function getSeriesColor(
+  seriesName: string,
+  index: number,
+  benchmarkMap?: Map<string, 'city' | 'neighborhood' | 'cluster'>
+): string {
+  // First, check if this series is explicitly marked as a benchmark
+  if (benchmarkMap) {
+    const benchmarkType = benchmarkMap.get(seriesName);
+    if (benchmarkType === 'city') {
+      return BENCHMARK_COLORS.CITY;
+    }
+    if (benchmarkType === 'neighborhood') {
+      return BENCHMARK_COLORS.NEIGHBORHOOD;
+    }
+    if (benchmarkType === 'cluster') {
+      return BENCHMARK_COLORS.CLUSTER;
+    }
+  }
+
+  // Fallback: Check by name pattern (case-insensitive)
   const lowerName = seriesName.toLowerCase();
 
   if (lowerName.includes('city avg') || lowerName.includes('city average')) {
@@ -49,7 +67,15 @@ export function getSeriesColor(seriesName: string, index: number): string {
     return BENCHMARK_COLORS.CATEGORY;
   }
 
-  if (lowerName.includes('cluster avg') || lowerName.includes('cluster average')) {
+  // Cluster/Competitor Group - matches various cluster label formats
+  if (
+    lowerName.includes('cluster avg') ||
+    lowerName.includes('cluster average') ||
+    lowerName.includes('competitor group') ||
+    lowerName.includes('independent businesses') ||
+    lowerName.includes('isolated businesses') ||
+    lowerName.startsWith('cluster ')
+  ) {
     return BENCHMARK_COLORS.CLUSTER;
   }
 

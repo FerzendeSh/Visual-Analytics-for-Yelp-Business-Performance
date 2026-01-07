@@ -13,10 +13,12 @@ import { useMemo, useCallback } from 'react';
 import { api, ClusterSummaryDTO, ClusterTimelineDTO, Business } from '@/lib/api';
 import { useAppStore } from '@/stores/useAppStore';
 import type { BusinessWithCluster } from '@/types/clustering';
+import { parseClusterFilter } from './useClusterData';
 
 export function useClusterContext() {
   const filters = useAppStore((state) => state.filters);
   const primaryBusinessId = useAppStore((state) => state.primaryBusinessId);
+  const clusterFilter = useAppStore((state) => state.clusterFilter);
   const queryClient = useQueryClient();
 
   // Extract city and state from cityId (format: "Tampa_FL")
@@ -167,6 +169,94 @@ export function useClusterContext() {
     gcTime: 30 * 60 * 1000,
   });
 
+  // Query 5: Fetch filtered cluster timeline (when clusterFilter is active)
+  // This is used when user selects a specific competitor group from the filter dropdown
+  const filteredClusterIds = useMemo(() => parseClusterFilter(clusterFilter), [clusterFilter]);
+
+  const { data: filteredClusterTimeline, isLoading: isLoadingFilteredTimeline } = useQuery({
+    queryKey: [
+      'cluster-timeline-filtered',
+      clusterFilter,
+      filters.granularity,
+      filters.timeRange,
+      filters.customDateRange,
+    ],
+    queryFn: async () => {
+      if (filteredClusterIds.length === 0) {
+        console.log('[useClusterContext] No cluster filter, skipping filtered timeline fetch');
+        return null;
+      }
+
+      const params: any = {
+        period: filters.granularity === 'MONTHLY' ? 'month' : 'year',
+      };
+
+      if (filters.timeRange === 'CUSTOM' && filters.customDateRange) {
+        params.start_date = filters.customDateRange.start;
+        params.end_date = filters.customDateRange.end;
+      }
+
+      console.log('[useClusterContext] Fetching filtered cluster timeline', {
+        clusterIds: filteredClusterIds,
+        params,
+      });
+
+      // If single cluster, fetch directly
+      if (filteredClusterIds.length === 1) {
+        const timeline = await api.clusters.getTimeline(filteredClusterIds[0], params);
+        console.log('[useClusterContext] Fetched single filtered cluster timeline:', timeline);
+        return timeline;
+      }
+
+      // If multiple clusters (group), fetch all and aggregate
+      const timelines = await Promise.all(
+        filteredClusterIds.map(id => api.clusters.getTimeline(id, params))
+      );
+
+      // Aggregate timelines by averaging ratings and summing review counts
+      const aggregatedData = new Map<string, { total_rating: number; total_reviews: number; total_sentiment: number; total_sentiment_expected: number; count: number }>();
+
+      timelines.forEach(timeline => {
+        timeline.data.forEach(point => {
+          const existing = aggregatedData.get(point.period_start) || {
+            total_rating: 0,
+            total_reviews: 0,
+            total_sentiment: 0,
+            total_sentiment_expected: 0,
+            count: 0
+          };
+          existing.total_rating += point.avg_rating * point.review_count;
+          existing.total_reviews += point.review_count;
+          existing.total_sentiment += point.avg_sentiment_score * point.review_count;
+          existing.total_sentiment_expected += point.avg_sentiment_expected * point.review_count;
+          existing.count += 1;
+          aggregatedData.set(point.period_start, existing);
+        });
+      });
+
+      // Convert to timeline format
+      const aggregatedTimeline: ClusterTimelineDTO = {
+        cluster_id: filteredClusterIds[0], // Use first cluster ID as representative
+        period: params.period,
+        data: Array.from(aggregatedData.entries()).map(([period_start, agg]) => ({
+          period_start,
+          avg_rating: agg.total_reviews > 0 ? agg.total_rating / agg.total_reviews : 0,
+          review_count: agg.total_reviews,
+          avg_sentiment_score: agg.total_reviews > 0 ? agg.total_sentiment / agg.total_reviews : 0,
+          avg_sentiment_expected: agg.total_reviews > 0 ? agg.total_sentiment_expected / agg.total_reviews : 0,
+          business_count: agg.count,
+        })).sort((a, b) => a.period_start.localeCompare(b.period_start)),
+        statistics: {},
+      };
+
+      console.log('[useClusterContext] Aggregated filtered cluster timeline:', aggregatedTimeline);
+      return aggregatedTimeline;
+    },
+    enabled: filteredClusterIds.length > 0,
+    staleTime: 15 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
+
   // Helper: Get cluster for business (O(1) lookup)
   const getClusterForBusiness = useCallback(
     (businessId: string): ClusterSummaryDTO | null => {
@@ -212,9 +302,13 @@ export function useClusterContext() {
     primaryBusinessCluster,
     primaryClusterTimeline: primaryClusterTimeline || null,
 
+    // Filtered cluster (when user selects a competitor group)
+    filteredClusterTimeline: filteredClusterTimeline || null,
+    filteredClusterIds,
+
     // State
     isLoadingClusters: isLoadingClusters || isLoadingMap,
-    isLoadingTimeline,
+    isLoadingTimeline: isLoadingTimeline || isLoadingFilteredTimeline,
     hasError: !!clustersError,
 
     // Actions

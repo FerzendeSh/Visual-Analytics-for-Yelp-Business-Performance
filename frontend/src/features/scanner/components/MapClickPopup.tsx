@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { X, Plus, Check } from 'lucide-react';
 import { MAGGIANOS_TAMPA_BUSINESS_ID } from '@/stores/useAppStore';
 import { getTodayHours, getPriceRange } from '@/lib/utils';
-import { getSmartClusterLabel, getClusterType } from '@/utils/clusterLabeling';
+import { getSmartClusterLabel, getClusterType, getClusterDescription } from '@/utils/clusterLabeling';
+import { useState } from 'react';
 
 interface MapClickPopupProps {
   business: Business | null;
@@ -32,6 +33,7 @@ export function MapClickPopup({
 }: MapClickPopupProps) {
   if (!business) return null;
 
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const isOpen = business.is_open === 1;
   const isMaggianosMyBusiness = business.business_id === MAGGIANOS_TAMPA_BUSINESS_ID;
   const todayHours = getTodayHours(business.hours);
@@ -153,6 +155,7 @@ export function MapClickPopup({
           {clusterInfo ? (() => {
             const clusterLabel = getSmartClusterLabel(clusterInfo);
             const clusterType = getClusterType(clusterInfo);
+            const clusterDescription = getClusterDescription(clusterInfo);
 
             const tooltip = clusterType === 'unique'
               ? 'Independent businesses with no direct local competitors. Click to filter.'
@@ -160,16 +163,56 @@ export function MapClickPopup({
               ? 'Geographically isolated businesses. Click to filter.'
               : 'Click to filter by this competitor group';
 
+            // Character threshold for showing "read more"
+            const CHAR_THRESHOLD = 100;
+            const shouldTruncate = clusterDescription.length > CHAR_THRESHOLD;
+            const truncatedDescription = shouldTruncate
+              ? clusterDescription.slice(0, CHAR_THRESHOLD)
+              : clusterDescription;
+
             return (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Group:</span>
-                <button
-                  onClick={() => onClusterClick?.(clusterInfo.cluster_id)}
-                  className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors cursor-pointer"
-                  title={tooltip}
-                >
-                  {clusterLabel}
-                </button>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Group:</span>
+                  <button
+                    onClick={() => onClusterClick?.(clusterInfo.cluster_id)}
+                    className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors cursor-pointer"
+                    title={tooltip}
+                  >
+                    {clusterLabel}
+                  </button>
+                </div>
+                {/* Cluster Description with read more */}
+                <div className="text-xs text-muted-foreground">
+                  {isDescriptionExpanded ? (
+                    <>
+                      {clusterDescription}
+                      {shouldTruncate && (
+                        <button
+                          onClick={() => setIsDescriptionExpanded(false)}
+                          className="ml-1 text-blue-400 hover:text-blue-300 cursor-pointer underline"
+                        >
+                          show less
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {truncatedDescription}
+                      {shouldTruncate && (
+                        <>
+                          ...
+                          <button
+                            onClick={() => setIsDescriptionExpanded(true)}
+                            className="ml-1 text-blue-400 hover:text-blue-300 cursor-pointer underline"
+                          >
+                            read more
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             );
           })() : (

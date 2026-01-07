@@ -36,28 +36,35 @@ export function useChartData({
   benchmarkTimelines,
   showBenchmarks,
   period,
-}: UseChartDataProps): { chartData: ChartDataPoint[]; seriesNames: string[] } {
+}: UseChartDataProps): { chartData: ChartDataPoint[]; seriesNames: string[]; benchmarkMap: Map<string, 'city' | 'neighborhood' | 'cluster'> } {
   return useMemo(() => {
     if (!primaryTimeline?.data || primaryTimeline.data.length === 0) {
-      return { chartData: [], seriesNames: [] };
+      return { chartData: [], seriesNames: [], benchmarkMap: new Map() };
     }
 
     const primaryPeriods = primaryTimeline.data.map((p) => p.period_start);
     const sortedPeriods = primaryPeriods.sort((a, b) => getDateSortKey(a) - getDateSortKey(b));
 
     const names: string[] = [];
+    const benchmarkMap = new Map<string, 'city' | 'neighborhood' | 'cluster'>();
     const primaryName = primaryTimeline.business_name || 'Primary Business';
     names.push(primaryName);
 
     // Always add benchmark names if data exists (user can toggle via legend)
     if (benchmarkTimelines?.city) {
-      names.push(benchmarkTimelines.city.business_name || 'City Avg');
+      const cityName = benchmarkTimelines.city.business_name || 'City Avg';
+      names.push(cityName);
+      benchmarkMap.set(cityName, 'city');
     }
     if (benchmarkTimelines?.neighborhood) {
-      names.push(benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg');
+      const neighborhoodName = benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg';
+      names.push(neighborhoodName);
+      benchmarkMap.set(neighborhoodName, 'neighborhood');
     }
     if (benchmarkTimelines?.cluster) {
-      names.push(benchmarkTimelines.cluster.business_name || 'Cluster Avg');
+      const clusterName = benchmarkTimelines.cluster.business_name || 'Cluster Avg';
+      names.push(clusterName);
+      benchmarkMap.set(clusterName, 'cluster');
     }
 
     // Add comparison names
@@ -101,6 +108,6 @@ export function useChartData({
       return point;
     });
 
-    return { chartData: data, seriesNames: names };
+    return { chartData: data, seriesNames: names, benchmarkMap };
   }, [primaryTimeline, comparisonTimelines, benchmarkTimelines, showBenchmarks, period]);
 }
