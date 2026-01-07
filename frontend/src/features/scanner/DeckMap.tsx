@@ -6,10 +6,9 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Map from 'react-map-gl/maplibre';
 import type { MapRef } from 'react-map-gl/maplibre';
 import DeckGL from '@deck.gl/react';
-import { useQuery } from '@tanstack/react-query';
 import { useMapBusinesses, useNeighborhoods } from '@/hooks/useMapBusinesses';
 import { useAppStore } from '@/stores/useAppStore';
-import { Business, api } from '@/lib/api';
+import { Business } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { MapControls } from './MapControls';
 import { SearchPanel } from './SearchPanel';
@@ -19,7 +18,7 @@ import { useMapClustering } from './hooks/useMapClustering';
 import { useNavigateToCity, useNavigateToNeighborhood } from './hooks/useMapNavigation';
 import { usePrefetchComparison } from './hooks/usePrefetchComparison';
 import { useMapLayers } from './hooks/useMapLayers';
-import { useClustersInViewport, useAllClusters, useClusterBusinessIds, useBusinessesWithClusters } from '@/hooks/useClusterData';
+import { useAllClusters, useClusterBusinessIds, useBusinessesWithClusters } from '@/hooks/useClusterData';
 import { useClusterContext } from '@/hooks/useClusterContext';
 
 export function DeckMap() {
@@ -98,20 +97,7 @@ export function DeckMap() {
     clusterBusinessIds
   );
 
-  const { data: cityBoundary, isLoading: isCityBoundaryLoading } = useQuery({
-    queryKey: ['cityBoundary', selectedCity, selectedState],
-    queryFn: async () => {
-      console.log('🗺️ Fetching city boundary:', { city: selectedCity, state: selectedState });
-      const result = await api.locations.getCityBoundary({ city: selectedCity!, state: selectedState! });
-      if (!result) {
-        console.log('🗺️ City boundary not available for:', { city: selectedCity, state: selectedState });
-      }
-      return result;
-    },
-    enabled: !!selectedState && !!selectedCity,
-    retry: false, // Don't retry 404s for missing boundaries
-    staleTime: Infinity, // City boundaries don't change
-  });
+  // City boundary removed - using business locations for navigation instead
 
   // Clustering logic (extracted) - use enriched businesses
   const { clusterData, pointData, showClusters, showBoth, supercluster } = useMapClustering(
@@ -133,12 +119,11 @@ export function DeckMap() {
   }, [pointData, selectedSearchBusiness]);
 
   // Auto-navigation (extracted)
-  useNavigateToCity(cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef, filters.cityId, businesses, isCityBoundaryLoading);
+  useNavigateToCity(mapRef, setMapViewState, isProgrammaticMoveRef, filters.cityId, businesses, isLoading);
   useNavigateToNeighborhood(filters.neighborhoodId, neighborhoods, mapRef, setMapViewState, isProgrammaticMoveRef);
 
   // Layers (extracted)
   const layers = useMapLayers({
-    cityBoundary,
     neighborhoods,
     showClusters,
     showBoth,

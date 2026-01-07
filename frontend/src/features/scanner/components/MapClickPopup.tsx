@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { X, Plus, Check } from 'lucide-react';
 import { MAGGIANOS_TAMPA_BUSINESS_ID } from '@/stores/useAppStore';
 import { getTodayHours, getPriceRange } from '@/lib/utils';
+import { getSmartClusterLabel, getClusterType } from '@/utils/clusterLabeling';
 
 interface MapClickPopupProps {
   business: Business | null;
@@ -149,20 +150,29 @@ export function MapClickPopup({
 
         {/* Cluster Section */}
         <div className="mt-2">
-          {clusterInfo ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Group:</span>
-              <button
-                onClick={() => onClusterClick?.(clusterInfo.cluster_id)}
-                className="px-2 py-1 rounded-full text-xs font-medium
-                           bg-blue-500/20 text-blue-400 hover:bg-blue-500/30
-                           transition-colors cursor-pointer"
-                title="Click to filter by this competitor group"
-              >
-                {clusterInfo.ai_label || `Cluster ${clusterInfo.cluster_label}`}
-              </button>
-            </div>
-          ) : (
+          {clusterInfo ? (() => {
+            const clusterLabel = getSmartClusterLabel(clusterInfo);
+            const clusterType = getClusterType(clusterInfo);
+
+            const tooltip = clusterType === 'unique'
+              ? 'Independent businesses with no direct local competitors. Click to filter.'
+              : clusterType === 'isolated'
+              ? 'Geographically isolated businesses. Click to filter.'
+              : 'Click to filter by this competitor group';
+
+            return (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Group:</span>
+                <button
+                  onClick={() => onClusterClick?.(clusterInfo.cluster_id)}
+                  className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors cursor-pointer"
+                  title={tooltip}
+                >
+                  {clusterLabel}
+                </button>
+              </div>
+            );
+          })() : (
             <div className="text-xs text-muted-foreground italic">
               No Competitor Group
             </div>

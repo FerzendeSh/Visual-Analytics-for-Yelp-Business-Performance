@@ -1,6 +1,6 @@
 /**
  * Map layers hook for Deck.gl visualization.
- * Manages city boundary, neighborhood, cluster, and business point layers.
+ * Manages neighborhood, cluster, and business point layers.
  */
 import { useMemo } from 'react';
 import { GeoJsonLayer, ScatterplotLayer, IconLayer, TextLayer } from '@deck.gl/layers';
@@ -12,11 +12,13 @@ import { getClusterColor } from '@/utils/clusterColors';
 
 // Quadrant colors matching scatter plot
 const QUADRANT_COLORS = {
-  'Market Leaders': [0, 255, 238],      // #00ffeeff
-  'Hidden Gems': [0, 8, 255],           // #0008ffd1
-  'Struggling': [123, 69, 186],         // #7b45baff
-  'Volume Drivers': [128, 245, 167],    // #80f5a7a4
+  'Market Leaders': [34, 211, 238],   // #22D3EE
+  'Hidden Gems':    [96, 165, 250],   // #60A5FA
+  'Struggling':     [192, 132, 252],  // #C084FC
+  'Volume Drivers': [251, 191, 36],   // #FBBF24
 };
+
+
 
 
 // Helper to determine quadrant
@@ -47,7 +49,6 @@ interface MapViewState {
 }
 
 interface UseMapLayersProps {
-  cityBoundary: any;
   neighborhoods: any;
   showClusters: boolean;
   showBoth: boolean; // Show both clusters and businesses (zoom 10-11)
@@ -70,7 +71,6 @@ interface UseMapLayersProps {
 }
 
 export function useMapLayers({
-  cityBoundary,
   neighborhoods,
   showClusters,
   showBoth,
@@ -97,24 +97,7 @@ export function useMapLayers({
   return useMemo(() => {
     const result: any[] = [];
 
-    // 1. City boundary layer
-    if (cityBoundary) {
-      result.push(
-        new GeoJsonLayer({
-          id: 'city-boundary',
-          data: cityBoundary as any,
-          filled: false,
-          stroked: true,
-          getLineColor: [255, 0, 0, 200], // Red color for city boundary
-          getLineWidth: 3,
-          lineWidthMinPixels: 1,
-          pickable: false,
-          getCursor: () => 'default',
-        })
-      );
-    }
-
-    // 2. Neighborhood boundaries layer
+    // 1. Neighborhood boundaries layer
     if (neighborhoods) {
       result.push(
         new GeoJsonLayer({
@@ -339,7 +322,6 @@ export function useMapLayers({
 
     return result;
   }, [
-    cityBoundary,
     neighborhoods,
     showClusters,
     showBoth,

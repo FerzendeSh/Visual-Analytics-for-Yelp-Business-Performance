@@ -71,23 +71,22 @@ function calculateZoomLevel(bounds: { minLng: number; minLat: number; maxLng: nu
 }
 
 /**
- * Auto-navigate to city boundary when city changes
- * Falls back to using business locations if boundaries aren't available
+ * Auto-navigate to city when city changes
+ * Uses business locations to calculate the view bounds
  */
 export function useNavigateToCity(
-  cityBoundary: GeoJSONFeatureCollection | null | undefined,
   mapRef: MapRef | null,
   setMapViewState: (state: MapViewState) => void,
   isProgrammaticMoveRef: React.MutableRefObject<boolean>,
   cityId?: string | null,
   businesses?: Array<{ longitude: number; latitude: number }>,
-  isCityBoundaryLoading?: boolean
+  isBusinessesLoading?: boolean
 ) {
   const previousCityRef = useRef<string | null>(null);
   const hasNavigatedForCityRef = useRef<string | null>(null);
   const isInitialMount = useRef(true);
 
-  // Effect 1: Detect city changes and reset navigation state
+  // Effect 1: Detect city changes and handle "All cities" selection
   useEffect(() => {
     // On initial mount, if cityId is Tampa_FL (our default business city),
     // mark it as already navigated to preserve the initial business-focused view
@@ -129,93 +128,32 @@ export function useNavigateToCity(
     }
   }, [cityId, mapRef, isProgrammaticMoveRef, setMapViewState]);
 
-  // Effect 2: Navigate to city boundary when available
-  useEffect(() => {
-    if (!cityId) return;
-    if (hasNavigatedForCityRef.current === cityId) return;
-    if (!mapRef) {
-      console.log('🗺️ Map ref not ready yet');
-      return;
-    }
-
-    // Use city boundary if available
-    if (cityBoundary) {
-      try {
-        const features = cityBoundary.features || [cityBoundary as any];
-        let allCoords: any[] = [];
-
-        features.forEach((feature: any) => {
-          if (feature.geometry?.coordinates) {
-            allCoords.push(feature.geometry.coordinates);
-          }
-        });
-
-        if (allCoords.length > 0) {
-          const bounds = calculateBounds(allCoords);
-          if (bounds) {
-            const centerLng = (bounds.minLng + bounds.maxLng) / 2;
-            const centerLat = (bounds.minLat + bounds.maxLat) / 2;
-            const zoom = calculateZoomLevel(bounds);
-
-            console.log('🗺️ Navigating to city boundary:', cityId, { centerLng, centerLat, zoom });
-
-            isProgrammaticMoveRef.current = true;
-            hasNavigatedForCityRef.current = cityId;
-            setMapViewState({
-              longitude: centerLng,
-              latitude: centerLat,
-              zoom,
-              pitch: 0,
-              bearing: 0,
-              transitionDuration: 1000,
-            });
-            return;
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to fit city boundary:', error);
-      }
-    }
-    // Don't navigate here if no boundary - let the businesses fallback effect handle it
-  }, [cityId, cityBoundary, mapRef, setMapViewState, isProgrammaticMoveRef, hasNavigatedForCityRef]);
-
-  // Effect 3: Fallback - navigate to business locations when no city boundary is available
-  // This effect fires whenever businesses change for the current city
+  // Effect 2: Navigate to business locations when businesses are loaded
   useEffect(() => {
     // Skip if no city selected or already navigated for this city
     if (!cityId) {
-      console.log('🗺️ [Fallback] No cityId');
       return;
     }
     if (hasNavigatedForCityRef.current === cityId) {
-      console.log('🗺️ [Fallback] Already navigated for city:', cityId);
+      console.log('🗺️ Already navigated for city:', cityId);
       return;
     }
-
-    // Skip if city boundary exists (Effect 2 handles it)
-    if (cityBoundary) {
-      console.log('🗺️ [Fallback] City boundary exists, skipping business fallback');
-      return;
-    }
-
-    // Wait for city boundary query to complete before falling back to businesses
-    // This prevents premature navigation while boundary is still loading
-    if (isCityBoundaryLoading) {
-      console.log('🗺️ [Fallback] Waiting for city boundary query to complete...');
-      return;
-    }
-
-    console.log('🗺️ [Fallback] City boundary not available (404), using business locations');
 
     // Skip if map not ready
     if (!mapRef) {
-      console.log('🗺️ [Fallback] Map ref not ready');
+      console.log('🗺️ Map ref not ready');
+      return;
+    }
+
+    // Wait for businesses to finish loading
+    if (isBusinessesLoading) {
+      console.log('🗺️ Waiting for businesses to finish loading for city:', cityId);
       return;
     }
 
     // If no businesses yet, wait for them to load
     if (!businesses || businesses.length === 0) {
-      console.log('🗺️ [Fallback] Waiting for businesses to load for city:', cityId);
+      console.log('🗺️ Waiting for businesses to load for city:', cityId);
       return;
     }
 
@@ -244,7 +182,7 @@ export function useNavigateToCity(
     const centerLat = (bounds.minLat + bounds.maxLat) / 2;
     const zoom = calculateZoomLevel(bounds);
 
-    console.log('🗺️ No city boundary available, fitting map to business locations:', {
+    console.log('🗺️ Navigating to business locations:', {
       cityId,
       centerLng,
       centerLat,
@@ -262,7 +200,7 @@ export function useNavigateToCity(
       bearing: 0,
       transitionDuration: 1000,
     });
-  }, [businesses, cityId, cityBoundary, isCityBoundaryLoading, mapRef, setMapViewState, isProgrammaticMoveRef]);
+  }, [businesses, cityId, mapRef, setMapViewState, isProgrammaticMoveRef, isBusinessesLoading]);
 }
 
 /**

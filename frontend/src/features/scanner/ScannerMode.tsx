@@ -1,4 +1,4 @@
-import { lazy, Suspense, memo, useMemo } from 'react';
+import { lazy, Suspense, memo } from 'react';
 import { useCompetitiveSnapshot } from '../../hooks/useComparisonData';
 import { useAppStore } from '../../stores/useAppStore';
 import { MapErrorBoundary, ChartErrorBoundary } from '../../components/common/ErrorBoundary';
@@ -18,24 +18,11 @@ const KeywordReviewDrawer = lazy(() => import('../comparison/KeywordReviewDrawer
 const ScannerModeComponent = () => {
   const filters = useAppStore((state) => state.filters);
   const primaryBusinessId = useAppStore((state) => state.primaryBusinessId);
-  const mapViewState = useAppStore((state) => state.mapViewState);
   const clusterFilter = useAppStore((state) => state.clusterFilter);
 
-  // Calculate viewport bounds from map view state for fetching businesses
-  // This is the same calculation as in DeckMap, but we need it here too
-  const viewport = useMemo(() => {
-    // Simple viewport estimation from map view state
-    // This is approximate but works for fetching businesses
-    const latOffset = 0.05 / Math.pow(2, mapViewState.zoom - 10);
-    const lonOffset = 0.05 / Math.pow(2, mapViewState.zoom - 10);
-
-    return {
-      south: mapViewState.latitude - latOffset,
-      north: mapViewState.latitude + latOffset,
-      west: mapViewState.longitude - lonOffset,
-      east: mapViewState.longitude + lonOffset,
-    };
-  }, [mapViewState.latitude, mapViewState.longitude, mapViewState.zoom]);
+  // Use the shared viewport from DeckMap (synced via global store)
+  // This ensures map and scatterplot show the EXACT same businesses
+  const viewport = useAppStore((state) => state.viewportBounds);
 
   // Fetch map businesses for the scatter plot when "All Cities" is selected
   const { data: mapBusinesses = [] } = useMapBusinesses(viewport);

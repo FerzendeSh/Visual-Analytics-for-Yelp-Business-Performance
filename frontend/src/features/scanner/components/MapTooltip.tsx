@@ -4,6 +4,7 @@
  */
 import { Business, ClusterSummaryDTO } from '@/lib/api';
 import { getTodayHours, getPriceRange } from '@/lib/utils';
+import { getSmartClusterLabel, getClusterDescription } from '@/utils/clusterLabeling';
 
 interface MapTooltipProps {
   business: Business | null;
@@ -46,26 +47,28 @@ export function MapTooltip({ business, clusterInfo }: MapTooltipProps) {
         </p>
 
         {/* Cluster Info Section */}
-        {clusterInfo && (
-          <div className="mt-2 pt-2 border-t border-slate-700/50">
-            <div className="flex items-start gap-2">
-              <span className="text-base">👥</span>
-              <div className="flex-1">
-                <p className="text-xs font-medium text-blue-400">
-                  {clusterInfo.ai_label || 'Cluster Group'}
-                </p>
-                {clusterInfo.ai_description && (
-                  <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
-                    {clusterInfo.ai_description}
+        {clusterInfo && (() => {
+          const clusterLabel = getSmartClusterLabel(clusterInfo);
+          const clusterDescription = getClusterDescription(clusterInfo);
+
+          return (
+            <div className="mt-2 pt-2 border-t border-slate-700/50">
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-blue-400">
+                    {clusterLabel}
                   </p>
-                )}
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  {clusterInfo.size} businesses • ⭐ {clusterInfo.avg_stars?.toFixed(1)} avg
-                </p>
+                  <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
+                    {clusterDescription}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {clusterInfo.size} businesses • {clusterInfo.avg_stars?.toFixed(1)} stars avg
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

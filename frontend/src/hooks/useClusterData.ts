@@ -4,14 +4,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, ClusterSummaryDTO } from '@/lib/api';
 import { useDebounce } from './useDebounce';
-import { useAppStore } from '@/stores/useAppStore';
-
-interface ViewportBounds {
-  south: number;
-  north: number;
-  west: number;
-  east: number;
-}
+import { ViewportBounds } from '@/stores/useAppStore';
 
 /**
  * Fetch clusters in the current map viewport

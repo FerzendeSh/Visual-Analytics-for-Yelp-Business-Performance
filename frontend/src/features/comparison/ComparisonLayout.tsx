@@ -5,6 +5,7 @@ import { useClusterContext } from '../../hooks/useClusterContext';
 import { ChartErrorBoundary } from '../../components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { getSmartClusterLabel } from '../../utils/clusterLabeling';
 
 // Lazy load heavy chart components for further code splitting
 // SuperTrends is 930 lines with complex visx visualizations
@@ -236,7 +237,7 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
 
   // Transform cluster timeline to match expected format
   const clusterRatingsTimeline = primaryClusterTimeline ? {
-    business_name: primaryBusinessCluster?.ai_label || 'Cluster Average',
+    business_name: primaryBusinessCluster ? getSmartClusterLabel(primaryBusinessCluster) : 'Cluster Average',
     data: primaryClusterTimeline.data.map(point => ({
       period_start: point.period_start,
       avg_rating: point.avg_rating,
@@ -275,7 +276,7 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
 
   // Transform cluster sentiment timeline
   const clusterSentimentTimeline = primaryClusterTimeline ? {
-    business_name: primaryBusinessCluster?.ai_label || 'Cluster Average',
+    business_name: primaryBusinessCluster ? getSmartClusterLabel(primaryBusinessCluster) : 'Cluster Average',
     data: primaryClusterTimeline.data.map(point => ({
       period_start: point.period_start,
       avg_sentiment_score: point.avg_sentiment_score,

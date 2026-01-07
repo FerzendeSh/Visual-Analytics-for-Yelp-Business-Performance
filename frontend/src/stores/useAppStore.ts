@@ -18,12 +18,22 @@ export interface MapViewState {
   transitionInterpolator?: any;
 }
 
+export interface ViewportBounds {
+  south: number;
+  north: number;
+  west: number;
+  east: number;
+}
+
 export interface AppState {
   // Navigation
   viewMode: ViewMode;
 
   // Map View State (Persistent across tab switches)
   mapViewState: MapViewState;
+
+  // Actual map viewport bounds (synced from DeckMap)
+  viewportBounds: ViewportBounds | null;
 
   // Selection Context
   primaryBusinessId: string | null;
@@ -59,6 +69,7 @@ export interface AppState {
   // Actions
   setMode: (mode: ViewMode) => void;
   setMapViewState: (viewState: MapViewState) => void;
+  setViewportBounds: (bounds: ViewportBounds | null) => void;
   setPrimaryBusiness: (id: string | null) => void;
   toggleComparison: (id: string) => void;
   clearComparisons: () => void;
@@ -76,7 +87,7 @@ export interface AppState {
 }
 
 const initialFilters: AppState['filters'] = {
-  cityId: MAGGIANOS_TAMPA_CITY_ID, // Default to our business city (Tampa, FL)
+  cityId: null, // Start with "All Cities" to preserve initial business-focused view
   neighborhoodId: null,
   categories: [],
   status: 'ALL',
@@ -89,7 +100,7 @@ const initialFilters: AppState['filters'] = {
 const initialMapViewState: MapViewState = {
   longitude: -82.526348, // Tampa, FL (Maggiano's exact location)
   latitude: 27.946453,
-  zoom: 16, // Zoomed in close to Maggiano's business
+  zoom: 15.1, // Configured zoom level for Maggiano's (matches "My Business" button)
   pitch: 0,
   bearing: 0,
 };
@@ -100,6 +111,7 @@ export const useAppStore = create<AppState>()(
       // Initial state
       viewMode: 'SCAN',
       mapViewState: initialMapViewState,
+      viewportBounds: null, // Will be set by DeckMap when ready
       primaryBusinessId: MAGGIANOS_TAMPA_BUSINESS_ID,
       comparisonIds: [],
       selectedKeyword: null,
@@ -123,6 +135,8 @@ export const useAppStore = create<AppState>()(
       setMode: (mode) => set({ viewMode: mode }),
 
       setMapViewState: (viewState) => set({ mapViewState: viewState }),
+
+      setViewportBounds: (bounds) => set({ viewportBounds: bounds }),
 
       // Primary business is hardcoded to Maggiano's - no changes allowed
       setPrimaryBusiness: (_id) => {
@@ -172,7 +186,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'yelp-analytics-storage',
-      version: 7, // Incremented to force reset with zoomed-in business view
+      version: 9, // Start with "All Cities" to preserve initial view at Maggiano's
       partialize: (state) => ({
         primaryBusinessId: state.primaryBusinessId,
         comparisonIds: state.comparisonIds,

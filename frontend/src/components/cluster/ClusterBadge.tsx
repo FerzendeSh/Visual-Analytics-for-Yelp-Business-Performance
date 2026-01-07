@@ -8,6 +8,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import type { ClusterSummaryDTO } from '@/lib/api';
+import { getSmartClusterLabel, getClusterType } from '@/utils/clusterLabeling';
 
 export interface ClusterBadgeProps {
   cluster: ClusterSummaryDTO;
@@ -22,7 +23,8 @@ export function ClusterBadge({
   showIcon = true,
   className,
 }: ClusterBadgeProps) {
-  const label = cluster.ai_label || `Cluster ${cluster.cluster_label}`;
+  const label = getSmartClusterLabel(cluster);
+  const clusterType = getClusterType(cluster);
   const isClickable = !!onClick;
 
   const handleClick = (e: React.MouseEvent) => {
@@ -30,6 +32,20 @@ export function ClusterBadge({
     if (onClick) {
       onClick(cluster.cluster_id);
     }
+  };
+
+  const getClusterTooltip = () => {
+    if (clusterType === 'unique') {
+      return isClickable
+        ? 'Independent businesses with no direct local competitors. Click to filter.'
+        : 'Independent businesses with no direct local competitors';
+    }
+    if (clusterType === 'isolated') {
+      return isClickable
+        ? 'Geographically isolated businesses. Click to filter.'
+        : 'Geographically isolated businesses';
+    }
+    return isClickable ? 'Click to filter by this competitor group' : undefined;
   };
 
   return (
@@ -46,9 +62,8 @@ export function ClusterBadge({
         !isClickable && 'cursor-default',
         className
       )}
-      title={isClickable ? 'Click to filter by this competitor group' : undefined}
+      title={getClusterTooltip()}
     >
-      {showIcon && <span className="text-[10px]">👥</span>}
       <span>{label}</span>
     </button>
   );

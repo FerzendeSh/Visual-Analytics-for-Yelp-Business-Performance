@@ -11,6 +11,7 @@ import { useState, useMemo } from 'react';
 import * as React from 'react';
 import { format } from 'date-fns';
 import { useClusterContext } from '@/hooks/useClusterContext';
+import { getSmartClusterLabel, getClusterDescription, getClusterSubtitle } from '@/utils/clusterLabeling';
 
 export function ControlTower() {
   // ✅ Atomic selectors - only re-render when these specific values change
@@ -192,11 +193,17 @@ export function ControlTower() {
             }}
             options={[
               { value: '', label: 'All Competitor Groups' },
-              ...(allClusters?.map(c => ({
-                value: c.cluster_id.toString(),
-                label: c.ai_label || `Cluster ${c.cluster_label}`,
-                description: c.ai_description,
-              })) || [])
+              ...(allClusters?.map(c => {
+                const label = getSmartClusterLabel(c);
+                const description = getClusterDescription(c);
+                const subtitle = getClusterSubtitle(c);
+
+                return {
+                  value: c.cluster_id.toString(),
+                  label: subtitle ? `${label} • ${subtitle}` : label,
+                  description: description,
+                };
+              }) || [])
             ]}
             placeholder="Select competitor group"
             searchPlaceholder="Search groups..."

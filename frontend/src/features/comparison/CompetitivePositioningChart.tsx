@@ -15,6 +15,7 @@ import { CompetitiveSnapshot } from '../../lib/api';
 import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID } from '../../stores/useAppStore';
 import { useComparisonBusinesses } from '../../hooks/useComparisonData';
 import { useClusterContext } from '../../hooks/useClusterContext';
+import { getSmartClusterLabel } from '../../utils/clusterLabeling';
 
 // --- Constants ---
 const BACKGROUND_COLOR = '#040919ff';
@@ -29,10 +30,10 @@ const CHART_COLORS = {
 };
 
 const QUADRANT_COLORS: Record<string, string> = {
-  'Market Leaders': '#00ffeeff',
-  'Hidden Gems': '#0008ffd1',
-  'Struggling': '#7b45baff',
-  'Volume Drivers': '#80f5a7a4', // Dark yellow
+  'Market Leaders': '#22D3EE', 
+  'Hidden Gems':    '#60A5FA', 
+  'Struggling':     '#C084FC', 
+  'Volume Drivers': '#FBBF24', 
 };
 
 const QUADRANT_DESCRIPTIONS: Record<string, string> = {
@@ -742,7 +743,7 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
             <span className="font-semibold text-blue-400">{cityName}, {stateName}</span> • {chartData.length} businesses • Avg: {stats.avgRating.toFixed(1)}★, Median: {stats.medianReviews} reviews
             {filteredClusterDetails && (
               <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
-              {filteredClusterDetails.ai_label || `Cluster ${filteredClusterDetails.cluster_label}`}
+              {getSmartClusterLabel(filteredClusterDetails)}
               </span>
             )}
           </p>
