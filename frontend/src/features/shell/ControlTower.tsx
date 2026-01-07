@@ -23,6 +23,7 @@ export function ControlTower() {
   const toggleBenchmark = useAppStore((state) => state.toggleBenchmark);
   const toggleComparison = useAppStore((state) => state.toggleComparison);
   const resetFilters = useAppStore((state) => state.resetFilters);
+  const clearComparisons = useAppStore((state) => state.clearComparisons);
 
   // Cluster state
   const mapColorMode = useAppStore((state) => state.mapColorMode);
@@ -205,6 +206,8 @@ export function ControlTower() {
           onClick={() => {
             resetFilters();
             setSelectedCity(null);
+            setClusterFilter(null);
+            clearComparisons();
           }}
           className="text-xs h-7"
         >
