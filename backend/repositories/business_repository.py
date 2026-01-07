@@ -42,17 +42,13 @@ class BusinessRepository(BusinessRepositoryInterface):
         """
         stmt = select(Business)
 
-        # Apply filters
         if state is not None:
             stmt = stmt.where(Business.state == state)
 
         if city is not None:
             stmt = stmt.where(Business.city == city)
 
-        # Order by stars and review count for relevance
         stmt = stmt.order_by(Business.stars.desc(), Business.review_count.desc())
-
-        # Apply pagination
         stmt = stmt.offset(skip).limit(limit)
 
         result = await self.db.execute(stmt)
@@ -90,7 +86,6 @@ class BusinessRepository(BusinessRepositoryInterface):
         Returns:
             List of Business objects within the viewport matching filters
         """
-        # Build base viewport query
         conditions = [
             Business.latitude >= south,
             Business.latitude <= north,
@@ -98,7 +93,6 @@ class BusinessRepository(BusinessRepositoryInterface):
             Business.longitude <= east
         ]
 
-        # Add optional filters
         if state is not None:
             conditions.append(Business.state == state)
 

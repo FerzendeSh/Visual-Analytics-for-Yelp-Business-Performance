@@ -50,7 +50,7 @@ async def get_businesses_in_viewport(
     category: Optional[str] = Query(None, min_length=1, description="Filter by category (partial match)"),
     min_rating: Optional[float] = Query(None, ge=0, le=5, description="Filter by minimum star rating (0-5)"),
     is_open: Optional[int] = Query(None, ge=0, le=1, description="Filter by open status (0=closed, 1=open)"),
-    limit: int = Query(1000, ge=1, le=5000, description="Maximum number of businesses to return"),
+    limit: int = Query(5000, ge=1, le=5000, description="Maximum number of businesses to return"),
     business_service: BusinessServiceInterface = Depends(get_business_service)
 ):
     """
@@ -70,7 +70,7 @@ async def get_businesses_in_viewport(
     - `is_open`: Business status (0=closed, 1=open)
 
     **Performance**:
-    - Returns up to 5000 businesses per request
+    - Returns up to 5000 businesses per request (default: 5000)
     - Results ordered by rating and review count
     - Much faster than loading all businesses and filtering client-side
 

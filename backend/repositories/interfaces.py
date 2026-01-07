@@ -270,3 +270,77 @@ class ReviewRepositoryInterface(ABC):
             List of dicts with keys: period_start, avg_sentiment_score, review_count, business_count
         """
         pass
+
+
+class ClusterRepositoryInterface(ABC):
+    """Abstract interface for cluster data access operations."""
+
+    @abstractmethod
+    async def get_latest_cluster_run(self, level: Optional[str] = None):
+        """Get the most recent cluster run."""
+        pass
+
+    @abstractmethod
+    async def get_cluster_runs(self, skip: int = 0, limit: int = 10):
+        """Get all cluster runs ordered by creation date."""
+        pass
+
+    @abstractmethod
+    async def get_cluster_by_id(self, cluster_id: int):
+        """Get a specific cluster by ID."""
+        pass
+
+    @abstractmethod
+    async def get_clusters_by_run(
+        self,
+        run_id: int,
+        city: Optional[str] = None,
+        min_size: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 100
+    ):
+        """Get clusters for a specific run with optional filters."""
+        pass
+
+    @abstractmethod
+    async def get_clusters_in_viewport(
+        self,
+        run_id: int,
+        south: float,
+        north: float,
+        west: float,
+        east: float,
+        min_size: int = 5
+    ):
+        """Get clusters whose centroids fall within viewport bounds."""
+        pass
+
+    @abstractmethod
+    async def get_business_ids_in_cluster(self, cluster_id: int, limit: Optional[int] = None):
+        """Get business IDs for a cluster."""
+        pass
+
+    @abstractmethod
+    async def get_cluster_for_business(self, business_id: str, run_id: Optional[int] = None):
+        """Get the cluster assignment for a business."""
+        pass
+
+    @abstractmethod
+    async def count_clusters_by_run(self, run_id: int):
+        """Count clusters in a run (excluding noise)."""
+        pass
+
+    @abstractmethod
+    async def create_cluster_run(self, run_data: dict):
+        """Create a new cluster run record."""
+        pass
+
+    @abstractmethod
+    async def create_clusters_bulk(self, clusters_data: List[dict]):
+        """Bulk create cluster records."""
+        pass
+
+    @abstractmethod
+    async def create_business_clusters_bulk(self, assignments: List[dict]):
+        """Bulk create business cluster assignments."""
+        pass

@@ -56,10 +56,10 @@ class Review(Base):
     # Relationship - many reviews belong to one business
     business: Mapped["Business"] = relationship(back_populates="reviews")
 
-    # Composite indexes for time-series queries
     __table_args__ = (
-        Index('idx_business_date', 'business_id', 'date'),  # For business time-series
-        Index('idx_date_business', 'date', 'business_id'),  # For date-range queries
+        Index('idx_business_date', 'business_id', 'date'),
+        Index('idx_date_business', 'date', 'business_id'),
+        Index('idx_business_date_sentiment', 'business_id', 'date', 'sentiment_label'),
     )
 
     def __repr__(self):

@@ -167,6 +167,10 @@ class BusinessCluster(Base):
     distance_to_centroid: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     cluster_probability: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # For probabilistic methods
     outlier_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # For HDBSCAN
+    
+    # Visualization coordinates
+    umap_x: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    umap_y: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     # Is this a noise/outlier point?
     is_noise: Mapped[bool] = mapped_column(Integer, default=0)  # SQLite uses Integer for boolean

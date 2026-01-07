@@ -10,7 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -128,4 +127,5 @@ backend/scripts/*/
 backend/public/
 backend/public_old/
 
+frontend_old/
 data/

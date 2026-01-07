@@ -13,7 +13,8 @@ from models.metrics import (
     StateTimelineMetrics,
     CityCategoryTimelineMetrics,
     StateCategoryTimelineMetrics,
-    NeighborhoodTimelineMetrics
+    NeighborhoodTimelineMetrics,
+    ClusterTimelineMetrics
 )
 from models.business import Business
 
@@ -447,6 +448,44 @@ class MetricsRepository:
                 'avg_sentiment_score': metric.avg_sentiment_score,
                 'avg_sentiment_expected': metric.avg_sentiment_expected,
                 'review_count': metric.review_count
+            }
+            for metric in metrics
+        ]
+
+    @staticmethod
+    async def get_cluster_timeline(
+        db: AsyncSession,
+        cluster_id: int,
+        period: str = 'month',
+        start_date: Optional[date_type] = None,
+        end_date: Optional[date_type] = None
+    ) -> List[Dict[str, Any]]:
+        """Get pre-computed timeline for a cluster"""
+        query = select(ClusterTimelineMetrics).where(
+            and_(
+                ClusterTimelineMetrics.cluster_id == cluster_id,
+                ClusterTimelineMetrics.period_type == period
+            )
+        )
+
+        if start_date:
+            query = query.where(ClusterTimelineMetrics.period_start >= start_date)
+        if end_date:
+            query = query.where(ClusterTimelineMetrics.period_start <= end_date)
+
+        query = query.order_by(ClusterTimelineMetrics.period_start)
+
+        result = await db.execute(query)
+        metrics = result.scalars().all()
+
+        return [
+            {
+                'period_start': metric.period_start,
+                'avg_rating': metric.avg_rating,
+                'avg_sentiment_score': metric.avg_sentiment_score,
+                'avg_sentiment_expected': metric.avg_sentiment_expected,
+                'review_count': metric.review_count,
+                'business_count': metric.business_count
             }
             for metric in metrics
         ]

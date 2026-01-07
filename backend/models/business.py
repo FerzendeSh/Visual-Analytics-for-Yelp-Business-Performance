@@ -55,6 +55,7 @@ class Business(Base):
         Index('idx_location', 'city', 'state'),
         Index('idx_location_neighborhood', 'city', 'state', 'neighborhood'),
         Index('idx_stars_reviews', 'stars', 'review_count'),
+        Index('idx_lat_lon', 'latitude', 'longitude'),  # Spatial index for viewport queries
     )
 
     def __repr__(self):

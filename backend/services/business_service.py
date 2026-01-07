@@ -133,7 +133,6 @@ class BusinessService(BusinessServiceInterface):
                 detail="West longitude must be less than east longitude"
             )
 
-        # Normalize state to uppercase
         normalized_state = state.upper() if state else None
 
         businesses = await self.business_repository.get_in_viewport(

@@ -1,0 +1,162 @@
+import { lazy, Suspense, memo } from 'react';
+import { useCompetitiveSnapshot } from '../../hooks/useComparisonData';
+import { useAppStore } from '../../stores/useAppStore';
+import { MapErrorBoundary, ChartErrorBoundary } from '../../components/common/ErrorBoundary';
+import { Loader2 } from 'lucide-react';
+import { ScannerMetricsCards } from './ScannerMetricsCards';
+import { useSmartKeywordInsights } from '../../hooks/useKeywordInsights';
+import { useMapBusinesses } from '../../hooks/useMapBusinesses';
+import { useAllClusters, useClusterBusinessIds, useBusinessesWithClusters } from '../../hooks/useClusterData';
+
+// Lazy load heavy map and chart components
+// DeckMap is 748 lines with WebGL deck.gl visualization
+const DeckMap = lazy(() => import('./DeckMap').then(m => ({ default: m.DeckMap })));
+const CompetitivePositioningChart = lazy(() => import('../comparison/CompetitivePositioningChart').then(m => ({ default: m.CompetitivePositioningChart })));
+const KeywordInsightsChart = lazy(() => import('../comparison/KeywordInsightsChart').then(m => ({ default: m.KeywordInsightsChart })));
+const KeywordReviewDrawer = lazy(() => import('../comparison/KeywordReviewDrawer').then(m => ({ default: m.KeywordReviewDrawer })));
+
+const ScannerModeComponent = () => {
+  const filters = useAppStore((state) => state.filters);
+  const primaryBusinessId = useAppStore((state) => state.primaryBusinessId);
+  const clusterFilter = useAppStore((state) => state.clusterFilter);
+
+  // Use the shared viewport from DeckMap (synced via global store)
+  // This ensures map and scatterplot show the EXACT same businesses
+  const viewport = useAppStore((state) => state.viewportBounds);
+
+  // Fetch map businesses for the scatter plot when "All Cities" is selected
+  const { data: mapBusinesses = [] } = useMapBusinesses(viewport);
+
+  // Fetch cluster data (same as DeckMap)
+  const { data: allClusters = [] } = useAllClusters();
+  const { data: clusterBusinessIds } = useClusterBusinessIds(clusterFilter);
+
+  // Apply the SAME enrichment and filtering as DeckMap
+  // This ensures scatterplot shows exactly what's on the map
+  const enrichedBusinesses = useBusinessesWithClusters(
+    mapBusinesses,
+    allClusters,
+    clusterFilter,
+    clusterBusinessIds
+  );
+
+  // Pass ENRICHED businesses to competitive snapshot for "All Cities" mode
+  const competitiveSnapshot = useCompetitiveSnapshot(enrichedBusinesses);
+
+  // Fetch keyword insights for selected business
+  const keywordInsightsResult = useSmartKeywordInsights(primaryBusinessId, null);
+
+  return (
+    <div className="w-full h-full flex flex-col gap-3 px-3 pt-16 pb-3">
+      {/* Main Content Area - Map (45%) + Charts Sidebar (55%) */}
+      <div className="flex-1 flex gap-3 min-h-0">
+        {/* Left Side - Map with metrics on top (45%) */}
+        <div className="w-[45%] h-full flex flex-col gap-2">
+          {/* Compact Metrics Strip - Above the map */}
+          <ScannerMetricsCards />
+
+          {/* Map */}
+          <MapErrorBoundary resetKeys={[filters.cityId ?? '', filters.neighborhoodId ?? '']}>
+            <div className="flex-1 min-h-0 rounded-lg overflow-hidden">
+              <Suspense
+                fallback={
+                  <div className="w-full h-full flex items-center justify-center bg-background rounded-lg">
+                    <div className="flex flex-col items-center space-y-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-muted-foreground text-sm">Loading map...</p>
+                    </div>
+                  </div>
+                }
+              >
+                <DeckMap />
+              </Suspense>
+            </div>
+          </MapErrorBoundary>
+        </div>
+
+        {/* Right Sidebar - Stacked Charts (55%) - More space for charts */}
+        <div className="flex-1 h-full flex flex-col gap-2">
+          {/* Competitive Positioning Chart - Top */}
+          <ChartErrorBoundary chartName="Competitive Positioning" resetKeys={[filters.cityId ?? '', ...(Array.isArray(filters.categories) ? filters.categories : [filters.categories ?? ''])]}>
+            <div className={primaryBusinessId ? "flex-1 min-h-0" : "h-full"}>
+              {competitiveSnapshot.isLoading ? (
+                <div className="glass rounded-lg h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground text-sm">Loading competitive data...</p>
+                  </div>
+                </div>
+              ) : competitiveSnapshot.data ? (
+                <Suspense
+                  fallback={
+                    <div className="glass rounded-lg h-full flex items-center justify-center">
+                      <div className="flex flex-col items-center space-y-3">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        <p className="text-muted-foreground text-xs">Loading chart...</p>
+                      </div>
+                    </div>
+                  }
+                >
+                  <CompetitivePositioningChart snapshotData={competitiveSnapshot.data} />
+                </Suspense>
+              ) : (
+                <div className="glass rounded-lg h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-center space-y-2 text-center p-6">
+                    <p className="text-muted-foreground text-sm">No competitive data available</p>
+                    <p className="text-muted-foreground text-xs opacity-70">Select a city and category to view market positioning</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </ChartErrorBoundary>
+
+          {/* Keyword Insights Chart - Bottom (shows when business is selected) */}
+          {primaryBusinessId && (
+            <ChartErrorBoundary chartName="Keyword Insights" resetKeys={[primaryBusinessId]}>
+              <div className="flex-1 min-h-0">
+                {keywordInsightsResult.isLoading ? (
+                  <div className="glass rounded-lg h-full flex items-center justify-center">
+                    <div className="flex flex-col items-center space-y-3">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <p className="text-muted-foreground text-sm">Loading keywords...</p>
+                    </div>
+                  </div>
+                ) : keywordInsightsResult.data?.data ? (
+                  <Suspense
+                    fallback={
+                      <div className="glass rounded-lg h-full flex items-center justify-center">
+                        <div className="flex flex-col items-center space-y-3">
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                          <p className="text-muted-foreground text-xs">Loading chart...</p>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <KeywordInsightsChart insights={keywordInsightsResult.data.data} />
+                  </Suspense>
+                ) : (
+                  <div className="glass rounded-lg h-full flex items-center justify-center">
+                    <div className="flex flex-col items-center justify-center space-y-2 text-center p-6">
+                      <p className="text-muted-foreground text-sm">No keyword data</p>
+                      <p className="text-muted-foreground text-xs opacity-70">Not enough reviews for analysis</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ChartErrorBoundary>
+          )}
+        </div>
+      </div>
+
+      {/* Keyword Review Drawer - Bottom drawer that appears when keyword is clicked */}
+      {keywordInsightsResult.data?.rawClusters && (
+        <Suspense fallback={null}>
+          <KeywordReviewDrawer rawClusters={keywordInsightsResult.data.rawClusters} />
+        </Suspense>
+      )}
+    </div>
+  );
+};
+
+// Memoized export
+export const ScannerMode = memo(ScannerModeComponent);
