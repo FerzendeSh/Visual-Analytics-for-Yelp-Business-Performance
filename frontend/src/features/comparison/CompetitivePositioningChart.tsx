@@ -34,7 +34,7 @@ const QUADRANT_COLORS: Record<string, string> = {
   'Market Leaders': '#22D3EE', 
   'Hidden Gems':    '#60A5FA', 
   'Struggling':     '#C084FC', 
-  'Volume Drivers': '#FBBF24', 
+  'Volume Drivers': '#ffedacff', 
 };
 
 const QUADRANT_DESCRIPTIONS: Record<string, string> = {

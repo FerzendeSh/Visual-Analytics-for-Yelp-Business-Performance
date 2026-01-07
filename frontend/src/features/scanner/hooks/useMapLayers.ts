@@ -4,6 +4,7 @@
  */
 import { useMemo } from 'react';
 import { GeoJsonLayer, ScatterplotLayer, IconLayer, TextLayer } from '@deck.gl/layers';
+import { scaleLinear } from 'd3-scale';
 import Supercluster from 'supercluster';
 import { Business } from '@/lib/api';
 import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID, MapColorMode } from '@/stores/useAppStore';
@@ -14,7 +15,7 @@ const QUADRANT_COLORS = {
   'Market Leaders': [34, 211, 238],   // #22D3EE
   'Hidden Gems':    [96, 165, 250],   // #60A5FA
   'Struggling':     [192, 132, 252],  // #C084FC
-  'Volume Drivers': [251, 191, 36],   // #FBBF24
+  'Volume Drivers': [255, 237, 172],   // #ffedacff
 };
 
 
@@ -227,7 +228,7 @@ export function useMapLayers({
             pickable: true,
             getCursor: () => 'pointer',
             onHover: ({ object }) => setHoveredId(object?.business_id || null),
-            onClick: () => {
+            onClick: ({ object }) => {
               // Maggiano's is hardcoded as primary - prevent changes
               console.log('Maggiano\'s is your primary business');
             },
@@ -257,7 +258,7 @@ export function useMapLayers({
 
               // Clicked business - bright pink (highest priority)
               if (clickedBusinessId && businessId === clickedBusinessId) {
-                return [255, 105, 150, 255]; // Bright pink full opacity
+                return [180, 60, 120, 255];// Bright pink full opacity
               }
 
               // Highlighted from scatter plot - bright blue
