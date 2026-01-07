@@ -40,13 +40,6 @@ const ScannerModeComponent = () => {
     clusterBusinessIds
   );
 
-  // Log for debugging
-  console.log('🔵 [SCANNER] Business counts:', {
-    raw: mapBusinesses.length,
-    enriched: enrichedBusinesses.length,
-    clusterFilter: clusterFilter,
-  });
-
   // Pass ENRICHED businesses to competitive snapshot for "All Cities" mode
   const competitiveSnapshot = useCompetitiveSnapshot(enrichedBusinesses);
 

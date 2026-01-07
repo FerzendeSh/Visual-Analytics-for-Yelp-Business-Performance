@@ -126,14 +126,12 @@ class ClusterService:
         Returns:
             ClusterListResponse with clusters and metadata
         """
-        # Get run_id if not provided
         if not run_id:
             latest_run = await self.cluster_repo.get_latest_cluster_run()
             if not latest_run:
                 return ClusterListResponse(clusters=[], total=0, skip=skip, limit=limit)
             run_id = latest_run.run_id
 
-        # Get clusters
         clusters = await self.cluster_repo.get_clusters_by_run(
             run_id=run_id,
             city=city,
@@ -143,7 +141,6 @@ class ClusterService:
             limit=limit
         )
 
-        # Get total count
         total = await self.cluster_repo.count_clusters_by_run(
             run_id=run_id,
             city=city,
@@ -181,14 +178,12 @@ class ClusterService:
         Returns:
             List of ClusterSummaryDTO
         """
-        # Get run_id if not provided
         if not run_id:
             latest_run = await self.cluster_repo.get_latest_cluster_run()
             if not latest_run:
                 return []
             run_id = latest_run.run_id
 
-        # Get clusters in viewport
         clusters = await self.cluster_repo.get_clusters_in_viewport(
             run_id=run_id,
             south=south,
@@ -235,12 +230,10 @@ class ClusterService:
         Returns:
             ClusterTimelineDTO or None if cluster not found
         """
-        # Verify cluster exists
         cluster = await self.cluster_repo.get_cluster_by_id(cluster_id)
         if not cluster:
             return None
 
-        # Get timeline data from metrics repository
         timeline_data = await MetricsRepository.get_cluster_timeline(
             db=self.db,
             cluster_id=cluster_id,
@@ -258,7 +251,6 @@ class ClusterService:
                 statistics={}
             )
 
-        # Convert to DTOs
         data_points = [
             ClusterTimelinePointDTO(
                 period_start=point['period_start'].isoformat(),
@@ -271,7 +263,6 @@ class ClusterService:
             for point in timeline_data
         ]
 
-        # Calculate statistics
         total_reviews = sum(p['review_count'] for p in timeline_data)
         avg_rating = sum(p['avg_rating'] * p['review_count'] for p in timeline_data) / total_reviews if total_reviews > 0 else 0
         avg_sentiment = sum(p['avg_sentiment_score'] * p['review_count'] for p in timeline_data) / total_reviews if total_reviews > 0 else 0

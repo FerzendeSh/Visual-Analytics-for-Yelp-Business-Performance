@@ -64,12 +64,10 @@ export function DeckMap() {
   // Note: This updates whenever mapViewState changes, which includes during/after navigation
   const viewport = useMemo(() => {
     if (!mapRef) {
-      console.log('📐 Viewport: no mapRef yet');
       return null;
     }
     const bounds = mapRef.getBounds();
     if (!bounds) {
-      console.log('📐 Viewport: no bounds yet');
       return null;
     }
 
@@ -80,7 +78,6 @@ export function DeckMap() {
       east: bounds.getEast(),
     };
 
-    console.log('📐 Viewport calculated:', viewportBounds, 'zoom:', mapViewState.zoom);
     return viewportBounds;
   }, [mapRef, mapViewState]);
 
@@ -111,7 +108,6 @@ export function DeckMap() {
     clusterBusinessIds
   );
 
-  // Get competitive snapshot for statistics (avg rating, median review count)
   const competitiveSnapshot = useCompetitiveSnapshot(enrichedBusinesses);
   const statistics = competitiveSnapshot.data?.statistics || {
     avg_rating: 3.5,
@@ -119,9 +115,6 @@ export function DeckMap() {
     total_businesses: 0,
   };
 
-  // City boundary removed - using business locations for navigation instead
-
-  // Clustering logic (extracted) - use enriched businesses
   const { clusterData, pointData, showClusters, showBoth, supercluster } = useMapClustering(
     enrichedBusinesses,
     viewport,
@@ -136,7 +129,6 @@ export function DeckMap() {
     const alreadyIncluded = pointData.some(b => b.business_id === selectedSearchBusiness.business_id);
     if (alreadyIncluded) return pointData;
 
-    // Add it if not present
     return [...pointData, selectedSearchBusiness];
   }, [pointData, selectedSearchBusiness]);
 
@@ -200,14 +192,10 @@ export function DeckMap() {
 
   const handleSearchSelect = useCallback(
     (business: Business) => {
-      // Store the selected business for the popup
       setSelectedSearchBusiness(business);
-      // Set the business as clicked (will show popup and change color)
       setClickedId(business.business_id);
       prefetchComparisonData(business.business_id, business);
 
-      // Navigate directly to the business location with zoom level 16
-      // Don't update city filter - just navigate the map view
       isProgrammaticMoveRef.current = true;
       setMapViewState({
         longitude: business.longitude,
@@ -221,7 +209,6 @@ export function DeckMap() {
     [setClickedId, setMapViewState, prefetchComparisonData]
   );
 
-  // Navigate to Maggiano's business location
   const handleGoToMyBusiness = useCallback(() => {
     isProgrammaticMoveRef.current = true;
     setMapViewState({
@@ -234,7 +221,6 @@ export function DeckMap() {
     });
   }, [setMapViewState]);
 
-  // Handle deck.gl errors
   const handleDeckError = useCallback((error: Error) => {
     if (
       error.message?.includes('maxTextureDimension2D') ||
@@ -325,8 +311,6 @@ export function DeckMap() {
 
       // Clean up map ref
       setMapRef(null);
-
-      console.log('🧹 WebGL resources cleaned up on DeckMap unmount');
     };
   }, []);
 

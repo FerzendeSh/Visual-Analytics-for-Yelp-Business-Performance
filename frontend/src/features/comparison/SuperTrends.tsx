@@ -678,10 +678,8 @@ const Chart: React.FC<ChartProps> = ({
                 style={{ cursor: !isBrushMode && period === 'year' ? 'pointer' : 'default' }}
                 onClick={() => {
                   if (onYearClick && !isBrushMode && period === 'year') {
-                    // Extract year from period (e.g., "2010-01-01" -> "2010")
                     const match = d.period.match(/\d{4}/);
                     if (match) {
-                      console.log('Year clicked:', match[0]); // Debug log
                       onYearClick(match[0]);
                     }
                   }
@@ -698,13 +696,8 @@ const Chart: React.FC<ChartProps> = ({
             const strokeWidth = isPrimary ? 3 : 2;
             const glowFilter = isPrimary ? 'url(#primaryGlow)' : undefined;
 
-            // Determine if this line should be highlighted based on hovered business
             const isHighlighted = hoveredBusinessId ? name === hoveredBusinessId : true;
             const lineOpacity = isHighlighted ? 1 : 0.15;
-
-            if (index === 0 && hoveredBusinessId) {
-              console.log('SuperTrends - hoveredBusinessId:', hoveredBusinessId, 'name:', name, 'isHighlighted:', isHighlighted);
-            }
 
             return (
               <React.Fragment key={`line-group-${name}`}>

@@ -52,7 +52,6 @@ class AnalyticsService(AnalyticsServiceInterface):
     ) -> Dict[str, Any]:
         self._validate_period(period)
 
-        # Verify business exists
         business = await self.business_repository.get_by_id(business_id)
         if not business:
             raise HTTPException(
@@ -60,7 +59,6 @@ class AnalyticsService(AnalyticsServiceInterface):
                 detail=f"Business with ID '{business_id}' not found"
             )
 
-        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_business_ratings_timeline(
             db=self.db,
             business_id=business_id,
@@ -93,7 +91,6 @@ class AnalyticsService(AnalyticsServiceInterface):
 
         self._validate_period(period)
 
-        # Verify business exists
         business = await self.business_repository.get_by_id(business_id)
         if not business:
             raise HTTPException(
@@ -101,7 +98,6 @@ class AnalyticsService(AnalyticsServiceInterface):
                 detail=f"Business with ID '{business_id}' not found"
             )
 
-        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_business_sentiment_timeline(
             db=self.db,
             business_id=business_id,
@@ -188,7 +184,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         self._validate_period(period)
         self._validate_metric(metric)
 
-        # Verify business exists and get location
         business = await self.business_repository.get_by_id(business_id)
         if not business:
             raise HTTPException(
@@ -237,11 +232,9 @@ class AnalyticsService(AnalyticsServiceInterface):
 
         self._validate_period(period)
 
-        # Normalize inputs: trim whitespace and uppercase state for consistency
         normalized_city = city.strip()
         normalized_state = state.strip().upper()
 
-        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_city_ratings_timeline(
             db=self.db,
             city=normalized_city,
@@ -272,7 +265,6 @@ class AnalyticsService(AnalyticsServiceInterface):
 
         self._validate_period(period)
 
-        # Get timeline data from repository
         timeline_data = await self.metrics_repo.get_state_ratings_timeline(
             db=self.db,
             state=state,
@@ -301,12 +293,9 @@ class AnalyticsService(AnalyticsServiceInterface):
     ) -> Dict[str, Any]:
         self._validate_period(period)
 
-        # Normalize city and state if provided
         normalized_city = city.strip() if city else None
         normalized_state = state.strip().upper() if state else None
 
-        # Get timeline data from PRE-COMPUTED metrics
-        # If city/state provided, gets city-specific category data
         timeline_data = await self.metrics_repo.get_category_ratings_timeline(
             db=self.db,
             category=category,
@@ -339,12 +328,9 @@ class AnalyticsService(AnalyticsServiceInterface):
     ) -> Dict[str, Any]:
         self._validate_period(period)
 
-        # Normalize city and state if provided
         normalized_city = city.strip() if city else None
         normalized_state = state.strip().upper() if state else None
 
-        # Get timeline data from PRE-COMPUTED metrics
-        # If city/state provided, gets city-specific category data
         timeline_data = await self.metrics_repo.get_category_sentiment_timeline(
             db=self.db,
             category=category,
@@ -377,11 +363,9 @@ class AnalyticsService(AnalyticsServiceInterface):
 
         self._validate_period(period)
 
-        # Normalize inputs: trim whitespace and uppercase state for consistency
         normalized_city = city.strip()
         normalized_state = state.strip().upper()
 
-        # Get timeline data from PRE-COMPUTED metrics
         timeline_data = await self.metrics_repo.get_city_sentiment_timeline(
             db=self.db,
             city=normalized_city,
@@ -412,7 +396,6 @@ class AnalyticsService(AnalyticsServiceInterface):
 
         self._validate_period(period)
 
-        # Get timeline data from repository
         timeline_data = await self.metrics_repo.get_state_sentiment_timeline(
             db=self.db,
             state=state,
@@ -444,7 +427,6 @@ class AnalyticsService(AnalyticsServiceInterface):
         OPTIMIZED: Uses SQL aggregation for statistics instead of Python-side computation.
         40-60% faster for large result sets.
         """
-        # Build base filter conditions
         filters = []
         if state:
             normalized_state = state.strip().upper()
@@ -551,12 +533,10 @@ class AnalyticsService(AnalyticsServiceInterface):
     ) -> Dict[str, Any]:
         self._validate_period(period)
 
-        # Normalize inputs
         normalized_state = state.strip().upper()
         normalized_city = city.strip()
         normalized_neighborhood = neighborhood.strip()
 
-        # Get pre-computed metrics
         data = await self.metrics_repo.get_neighborhood_ratings_timeline(
             db=self.db,
             neighborhood=normalized_neighborhood,
@@ -588,12 +568,10 @@ class AnalyticsService(AnalyticsServiceInterface):
     ) -> Dict[str, Any]:
         self._validate_period(period)
 
-        # Normalize inputs
         normalized_state = state.strip().upper()
         normalized_city = city.strip()
         normalized_neighborhood = neighborhood.strip()
 
-        # Get pre-computed metrics
         data = await self.metrics_repo.get_neighborhood_sentiment_timeline(
             db=self.db,
             neighborhood=normalized_neighborhood,

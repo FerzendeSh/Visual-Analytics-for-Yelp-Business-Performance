@@ -55,7 +55,7 @@ export function ControlTower() {
           return cities.map(city => ({
             city,
             state,
-            id: `${city}_${state}` // Create unique ID
+            id: `${city}_${state}`
           }));
         } catch (error) {
           console.error(`Failed to fetch cities for ${state}:`, error);
@@ -73,7 +73,7 @@ export function ControlTower() {
   const cities = React.useMemo(() => {
     if (!allCitiesData) return [];
     return [
-      { value: '', label: 'All cities' }, // Add "All cities" option
+      { value: '', label: 'All cities' },
       ...allCitiesData.map(item => ({
         value: item.id,
         label: `${item.city}, ${item.state}`

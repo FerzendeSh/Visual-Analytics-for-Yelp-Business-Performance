@@ -153,13 +153,6 @@ async def get_batch_timelines(
         state = first_business_ratings.get('state')
         neighborhood = first_business_ratings.get('neighborhood')
 
-    # Debug logging
-    print(f"🔍 Batch Timelines Debug:")
-    print(f"  City: {city} (override: {request.city})")
-    print(f"  State: {state} (override: {request.state})")
-    print(f"  Neighborhood: {neighborhood} (override: {request.neighborhood})")
-    print(f"  Include neighborhood benchmark: {request.include_neighborhood_benchmark}")
-
     mixed_locations = len(locations) > 1
     location_warning = None
     if mixed_locations and (request.include_city_benchmark or request.include_neighborhood_benchmark):

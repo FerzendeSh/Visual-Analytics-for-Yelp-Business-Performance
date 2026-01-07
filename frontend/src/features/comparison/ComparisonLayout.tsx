@@ -66,7 +66,6 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
   const filters = useAppStore((state) => state.filters);
 
   const handleBusinessHover = useCallback((businessId: string | null) => {
-    console.log('Business hover changed:', businessId);
     setHoveredBusinessId(businessId);
   }, []);
 
@@ -138,13 +137,6 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     filteredClusterIds,
     allClusters
   } = useClusterContext();
-
-  // DEBUG: Log cluster data
-  console.log('[ComparisonLayout] Cluster data:', {
-    hasPrimaryClusterTimeline: !!primaryClusterTimeline,
-    primaryClusterTimeline,
-    primaryBusinessCluster,
-  });
 
   // Shared state for synchronized interactions (legends and tooltips)
   // Persist hidden series across tab switches using localStorage
@@ -254,19 +246,6 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     })),
   } : undefined;
 
-  // DEBUG: Check cluster ratings data
-  if (clusterRatingsTimeline) {
-    console.log('[ComparisonLayout] Cluster Ratings Timeline:', {
-      business_name: clusterRatingsTimeline.business_name,
-      dataPoints: clusterRatingsTimeline.data.length,
-      firstPoint: clusterRatingsTimeline.data[0],
-      lastPoint: clusterRatingsTimeline.data[clusterRatingsTimeline.data.length - 1],
-      allData: clusterRatingsTimeline.data,
-    });
-  }
-
-  console.log('[ComparisonLayout] Transformed cluster ratings timeline:', clusterRatingsTimeline);
-
   const benchmarkTimelines = {
     city: cityTimeline.data?.city_ratings,
     neighborhood: neighborhoodTimeline.data?.neighborhood_ratings,
@@ -274,9 +253,6 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     cluster: clusterRatingsTimeline,
   };
 
-  console.log('[ComparisonLayout] All benchmark timelines:', benchmarkTimelines);
-
-  // Prepare props for SentimentTrends
   const primarySentimentTimeline = businessTimeline.data?.business_sentiment ?? null;
 
   const comparisonSentimentTimelinesList = comparisonTimelines.data
@@ -294,17 +270,6 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
       review_count: point.review_count,
     })),
   } : undefined;
-
-  // DEBUG: Check cluster sentiment data
-  if (clusterSentimentTimeline) {
-    console.log('[ComparisonLayout] Cluster Sentiment Timeline:', {
-      business_name: clusterSentimentTimeline.business_name,
-      dataPoints: clusterSentimentTimeline.data.length,
-      firstPoint: clusterSentimentTimeline.data[0],
-      lastPoint: clusterSentimentTimeline.data[clusterSentimentTimeline.data.length - 1],
-      allData: clusterSentimentTimeline.data,
-    });
-  }
 
   const benchmarkSentimentTimelines = {
     city: cityTimeline.data?.city_sentiment,
