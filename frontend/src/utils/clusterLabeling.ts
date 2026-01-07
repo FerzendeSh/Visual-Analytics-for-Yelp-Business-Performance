@@ -10,18 +10,15 @@ import type { ClusterSummaryDTO } from '@/lib/api';
 /**
  * Determines if a cluster is likely a "unique businesses" cluster
  * These are businesses within a region that don't cluster with others semantically
+ * 
+ * SIMPLIFIED: Any cluster without an AI label that has a specific city is considered "unique"
  */
 function isUniqueBusinessCluster(cluster: ClusterSummaryDTO): boolean {
-  // Heuristics:
-  // 1. No AI label (wasn't labeled by LLM)
-  // 2. Larger than typical competitor groups (usually 20-80 businesses)
-  // 3. More diverse categories (> 5 different top categories)
-
   const hasNoLabel = !cluster.ai_label || cluster.ai_label.trim() === '';
-  const isLargerThanTypical = cluster.size > 15;
-  const hasDiverseCategories = (cluster.top_categories?.length ?? 0) > 4;
+  const hasSpecificCity = cluster.city && cluster.city !== 'GLOBAL' && cluster.city !== '';
 
-  return hasNoLabel && isLargerThanTypical && hasDiverseCategories;
+  // Any unlabeled cluster with a city is "unique businesses"
+  return hasNoLabel && hasSpecificCity;
 }
 
 /**
@@ -29,16 +26,10 @@ function isUniqueBusinessCluster(cluster: ClusterSummaryDTO): boolean {
  * These are businesses not part of any major metro cluster
  */
 function isIsolatedBusinessCluster(cluster: ClusterSummaryDTO): boolean {
-  // Heuristics:
-  // 1. No AI label
-  // 2. No specific city (or city is "GLOBAL")
-  // 3. No centroid (geographically dispersed)
-
   const hasNoLabel = !cluster.ai_label || cluster.ai_label.trim() === '';
   const isGlobalOrNoCity = !cluster.city || cluster.city === 'GLOBAL' || cluster.city === '';
-  const hasNoCentroid = !cluster.centroid_lat || !cluster.centroid_lon;
 
-  return hasNoLabel && (isGlobalOrNoCity || hasNoCentroid);
+  return hasNoLabel && isGlobalOrNoCity;
 }
 
 /**
@@ -51,12 +42,14 @@ export function getClusterType(cluster: ClusterSummaryDTO): ClusterType {
     return 'regular';
   }
 
-  if (isIsolatedBusinessCluster(cluster)) {
-    return 'isolated';
-  }
-
+  // Check unique first (has a city)
   if (isUniqueBusinessCluster(cluster)) {
     return 'unique';
+  }
+
+  // Then check isolated (no city)
+  if (isIsolatedBusinessCluster(cluster)) {
+    return 'isolated';
   }
 
   return 'unknown';
