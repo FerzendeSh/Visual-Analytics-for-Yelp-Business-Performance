@@ -570,7 +570,7 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
   }, [clusterFilter, allClusters]);
 
   // Extract city and state from cityId
-  const cityName = filters.cityId?.split('_')[0] || 'Unknown';
+  const cityName = filters.cityId?.split('_')[0] || 'All Cities';
   const stateName = filters.cityId?.split('_')[1] || '';
 
   // Fetch comparison businesses (may be from different cities)

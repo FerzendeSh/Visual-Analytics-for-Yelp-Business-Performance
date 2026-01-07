@@ -106,7 +106,7 @@ const ScannerMetricsCardsComponent = () => {
         {isLoading ? (
           <div className="h-6 w-32 bg-white/5 rounded animate-pulse" />
         ) : (
-          <h2 className="text-base text-white whitespace-nowrap">
+          <h2 className="text-base text-yellow-400 font-bold whitespace-nowrap">
             {businessData?.name || 'Select a business'}
           </h2>
         )}

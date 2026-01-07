@@ -350,7 +350,8 @@ const BusinessAttributesComparisonComponent = ({ onBusinessHover }: BusinessAttr
                 )}>
                   <div className="flex flex-col gap-0.5">
                     <h3 className={cn(
-                      "font-bold text-foreground leading-tight truncate",
+                      "font-bold leading-tight truncate",
+                      bizIndex === 0 ? "text-yellow-400" : "text-foreground",
                       businesses.length <= 2 ? "text-sm" : "text-xs"
                     )} title={biz.name}>
                       {biz.name}
