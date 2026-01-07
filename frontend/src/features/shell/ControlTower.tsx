@@ -10,7 +10,7 @@ import { api } from '@/lib/api';
 import { useState, useMemo } from 'react';
 import * as React from 'react';
 import { format } from 'date-fns';
-import { useAllClusters } from '@/hooks/useClusterData';
+import { useClusterContext } from '@/hooks/useClusterContext';
 
 export function ControlTower() {
   // ✅ Atomic selectors - only re-render when these specific values change
@@ -27,6 +27,7 @@ export function ControlTower() {
   const mapColorMode = useAppStore((state) => state.mapColorMode);
   const clusterFilter = useAppStore((state) => state.clusterFilter);
   const setClusterFilter = useAppStore((state) => state.setClusterFilter);
+  const setMode = useAppStore((state) => state.setMode);
 
   // Initialize local state from global filters
   const [selectedCity, setSelectedCity] = useState<string | null>(
@@ -92,8 +93,8 @@ export function ControlTower() {
     enabled: !!selectedCity && !!filters.cityId,
   });
 
-  // Fetch all clusters for filter dropdown
-  const { data: allClusters = [] } = useAllClusters();
+  // Fetch clusters for current city (performance optimized!)
+  const { allClusters, isLoadingClusters } = useClusterContext();
 
   const handleCityChange = (cityValue: string) => {
     if (!cityValue) {
@@ -170,26 +171,40 @@ export function ControlTower() {
         />
       </div>
 
-      {/* Cluster Filter (only visible in Competitive Landscape mode) */}
-      {mapColorMode === 'COMPETITIVE_LANDSCAPE' && (
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Competitor Group</label>
+      {/* Cluster Filter - Always show, disabled when no city selected */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">
+          Competitor Group
+          {allClusters.length > 0 && filters.cityId && (
+            <span className="text-muted-foreground ml-1">
+              ({allClusters.length} in {filters.cityId.split('_')[0]})
+            </span>
+          )}
+        </label>
+        {isLoadingClusters && filters.cityId ? (
+          <div className="h-10 rounded bg-muted/20 animate-pulse" />
+        ) : (
           <Combobox
             value={clusterFilter?.toString() || ''}
-            onChange={(value) => setClusterFilter(value ? Number(value) : null)}
+            onChange={(value) => {
+              const clusterId = value ? Number(value) : null;
+              setClusterFilter(clusterId);
+            }}
             options={[
-              { value: '', label: 'All Groups' },
+              { value: '', label: 'All Competitor Groups' },
               ...(allClusters?.map(c => ({
                 value: c.cluster_id.toString(),
-                label: c.ai_label || `Cluster ${c.cluster_label}`
+                label: c.ai_label || `Cluster ${c.cluster_label}`,
+                description: c.ai_description,
               })) || [])
             ]}
-            placeholder="Filter by group"
+            placeholder="Select competitor group"
             searchPlaceholder="Search groups..."
-            emptyText="No groups found"
+            emptyText="No groups in this city"
+            disabled={!selectedCity}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* SCAN MODE: Rating Filter */}
       {viewMode === 'SCAN' && (

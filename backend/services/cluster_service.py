@@ -107,9 +107,10 @@ class ClusterService:
         self,
         run_id: Optional[int] = None,
         city: Optional[str] = None,
+        state: Optional[str] = None,
         min_size: Optional[int] = None,
         skip: int = 0,
-        limit: int = 50
+        limit: int = 100
     ) -> ClusterListResponse:
         """
         Get list of clusters with filters.
@@ -117,6 +118,7 @@ class ClusterService:
         Args:
             run_id: Optional run ID (defaults to latest)
             city: Optional city filter
+            state: Optional state filter
             min_size: Minimum cluster size
             skip: Pagination offset
             limit: Maximum results
@@ -135,13 +137,19 @@ class ClusterService:
         clusters = await self.cluster_repo.get_clusters_by_run(
             run_id=run_id,
             city=city,
+            state=state,
             min_size=min_size,
             skip=skip,
             limit=limit
         )
 
         # Get total count
-        total = await self.cluster_repo.count_clusters_by_run(run_id)
+        total = await self.cluster_repo.count_clusters_by_run(
+            run_id=run_id,
+            city=city,
+            state=state,
+            min_size=min_size
+        )
 
         return ClusterListResponse(
             clusters=[self._cluster_to_summary_dto(c) for c in clusters],

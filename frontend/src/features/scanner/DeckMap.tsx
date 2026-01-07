@@ -20,6 +20,7 @@ import { useNavigateToCity, useNavigateToNeighborhood } from './hooks/useMapNavi
 import { usePrefetchComparison } from './hooks/usePrefetchComparison';
 import { useMapLayers } from './hooks/useMapLayers';
 import { useClustersInViewport, useAllClusters, useClusterBusinessIds, useBusinessesWithClusters } from '@/hooks/useClusterData';
+import { useClusterContext } from '@/hooks/useClusterContext';
 
 export function DeckMap() {
   // Local state
@@ -45,12 +46,17 @@ export function DeckMap() {
   const filters = useAppStore((state) => state.filters);
   const mapColorMode = useAppStore((state) => state.mapColorMode);
   const clusterFilter = useAppStore((state) => state.clusterFilter);
+  const setClusterFilter = useAppStore((state) => state.setClusterFilter);
+  const setMode = useAppStore((state) => state.setMode);
 
   const selectedState = filters.cityId?.split('_')[1];
   const selectedCity = filters.cityId?.split('_')[0];
 
   // Custom hooks
   const { prefetchComparisonData } = usePrefetchComparison();
+
+  // Cluster context for enriching businesses
+  const { getClusterForBusiness } = useClusterContext();
 
   // Calculate viewport bounds
   // Note: This updates whenever mapViewState changes, which includes during/after navigation
@@ -427,12 +433,22 @@ export function DeckMap() {
       <SearchPanel onSelectBusiness={handleSearchSelect} />
 
       {/* Hover Tooltip - Only show if no clicked popup */}
-      {!clickedBusiness && <MapTooltip business={hoveredBusiness} />}
+      {!clickedBusiness && (
+        <MapTooltip
+          business={hoveredBusiness}
+          clusterInfo={hoveredBusiness ? getClusterForBusiness(hoveredBusiness.business_id) : null}
+        />
+      )}
 
       {/* Click Popup */}
       {clickedBusiness && (
         <MapClickPopup
           business={clickedBusiness}
+          clusterInfo={getClusterForBusiness(clickedBusiness.business_id)}
+          onClusterClick={(clusterId) => {
+            setClusterFilter(clusterId);
+            setMode('SCAN');
+          }}
           isInComparison={comparisonIds.includes(clickedId!)}
           canAddMore={comparisonIds.length < 3}
           onAddToComparison={handleAddToComparison}

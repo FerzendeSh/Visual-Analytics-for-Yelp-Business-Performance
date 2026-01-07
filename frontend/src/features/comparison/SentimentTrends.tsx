@@ -77,6 +77,7 @@ export interface SentimentTrendsProps {
     city?: SentimentTimeline | null;
     neighborhood?: SentimentTimeline | null;
     category?: SentimentTimeline | null;
+    cluster?: SentimentTimeline | null;
   };
   forecastData?: ForecastDataPoint[] | null;
   period?: 'month' | 'year';
@@ -985,6 +986,9 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
     if (benchmarkTimelines?.neighborhood) {
       names.push(benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg');
     }
+    if (benchmarkTimelines?.cluster) {
+      names.push(benchmarkTimelines.cluster.business_name || 'Cluster Avg');
+    }
 
     // Comparisons
     comparisonTimelines.forEach((comp) => {
@@ -1009,6 +1013,10 @@ const SentimentTrendsComponent: React.FC<SentimentTrendsProps> = ({
       if (benchmarkTimelines?.neighborhood) {
         const p = benchmarkTimelines.neighborhood.data.find(d => d.period_start === periodStart);
         point[benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg'] = p?.avg_sentiment_score || 0;
+      }
+      if (benchmarkTimelines?.cluster) {
+        const p = benchmarkTimelines.cluster.data.find(d => d.period_start === periodStart);
+        point[benchmarkTimelines.cluster.business_name || 'Cluster Avg'] = p?.avg_sentiment_score || 0;
       }
 
       // Add Comparisons

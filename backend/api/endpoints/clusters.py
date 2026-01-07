@@ -99,9 +99,10 @@ async def get_clusters_in_viewport(
 async def list_clusters(
     run_id: Optional[int] = Query(None, description="Cluster run ID (default: latest)"),
     city: Optional[str] = Query(None, description="Filter by city"),
+    state: Optional[str] = Query(None, description="Filter by state"),
     min_size: Optional[int] = Query(None, ge=1, description="Minimum cluster size"),
     skip: int = Query(0, ge=0, description="Pagination offset"),
-    limit: int = Query(50, ge=1, le=200, description="Maximum results"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum results"),
     cluster_service: ClusterService = Depends(get_cluster_service)
 ):
     """
@@ -110,11 +111,12 @@ async def list_clusters(
     **Filters:**
     - `run_id`: Specific clustering run (defaults to latest)
     - `city`: Filter to clusters in specific city
+    - `state`: Filter to clusters in specific state
     - `min_size`: Minimum number of businesses in cluster
 
     **Pagination:**
     - `skip`: Number of results to skip
-    - `limit`: Maximum results to return (max 200)
+    - `limit`: Maximum results to return (max 1000)
 
     **Returns:**
     - `clusters`: Array of cluster summaries
@@ -125,10 +127,15 @@ async def list_clusters(
     - Browse all available clusters
     - Build cluster filter dropdown
     - Cluster exploration UI
+
+    **Performance Optimization:**
+    - Use `city` and `state` filters to reduce payload size
+    - City-scoped queries return ~50 clusters vs 261+ global
     """
     return await cluster_service.get_clusters(
         run_id=run_id,
         city=city,
+        state=state,
         min_size=min_size,
         skip=skip,
         limit=limit

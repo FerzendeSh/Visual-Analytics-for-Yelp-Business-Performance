@@ -2,12 +2,36 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from './useDebounce';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/stores/useAppStore';
+import { useMemo, useRef } from 'react';
 
 interface ViewportBounds {
   south: number;
   north: number;
   west: number;
   east: number;
+}
+
+/**
+ * Calculate if viewport has moved significantly enough to warrant a refetch
+ * Returns true if any dimension changed by more than the threshold percentage
+ */
+function hasSignificantViewportChange(
+  prev: ViewportBounds | null,
+  current: ViewportBounds | null,
+  thresholdPercent: number = 15
+): boolean {
+  if (!prev || !current) return true;
+
+  const latRange = prev.north - prev.south;
+  const lonRange = prev.east - prev.west;
+
+  const latChange = Math.abs(current.north - prev.north) + Math.abs(current.south - prev.south);
+  const lonChange = Math.abs(current.east - prev.east) + Math.abs(current.west - prev.west);
+
+  const latChangePercent = (latChange / latRange) * 100;
+  const lonChangePercent = (lonChange / lonRange) * 100;
+
+  return latChangePercent > thresholdPercent || lonChangePercent > thresholdPercent;
 }
 
 export function useMapBusinesses(viewport: ViewportBounds | null) {
@@ -17,9 +41,32 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
   const selectedState = filters.cityId?.split('_')[1];
   const isAllCities = filters.cityId === null;
 
+  // Track previous viewport to detect significant changes
+  const prevSignificantViewportRef = useRef<ViewportBounds | null>(null);
+
   // Debounce viewport changes when panning/zooming to reduce API calls
-  // Use minimal debounce (50ms) for fast business loading after navigation
-  const debouncedViewport = useDebounce(viewport, 50);
+  // Use longer debounce (500ms) for "All Cities" mode to wait until user stops moving
+  // Use shorter debounce (50ms) for specific city for fast loading after navigation
+  const debounceTime = isAllCities ? 500 : 50;
+  const debouncedViewport = useDebounce(viewport, debounceTime);
+
+  // For "All Cities" mode, only update viewport if it changed significantly
+  // This prevents tiny movements from triggering refetches
+  const significantViewport = useMemo(() => {
+    if (!isAllCities) {
+      // For specific cities, always use debounced viewport (existing behavior)
+      return debouncedViewport;
+    }
+
+    // For "All Cities", check if viewport changed significantly
+    if (hasSignificantViewportChange(prevSignificantViewportRef.current, debouncedViewport)) {
+      prevSignificantViewportRef.current = debouncedViewport;
+      return debouncedViewport;
+    }
+
+    // Return previous significant viewport if change was too small
+    return prevSignificantViewportRef.current;
+  }, [debouncedViewport, isAllCities]);
 
   return useQuery({
     queryKey: [
@@ -31,18 +78,19 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
       filters.categories[0],
       filters.status,
       filters.ratingRange[0],
-      // Only include viewport in query key when NOT in "All cities" mode
-      // This prevents refetching when panning/zooming with "All cities" selected
-      isAllCities ? 'all-cities' : debouncedViewport
+      // Include significant viewport in query key for both modes
+      // For "All Cities", this only changes when viewport moves significantly
+      // For specific city, this changes with every debounced viewport update
+      significantViewport
     ],
     queryFn: async () => {
       console.log('🔍 [BUSINESSES QUERY] Starting fetch:', {
-        hasViewport: !!debouncedViewport,
+        hasViewport: !!significantViewport,
         city: selectedCity,
         state: selectedState,
         neighborhood: filters.neighborhoodId,
         status: filters.status,
-        viewport: debouncedViewport,
+        viewport: significantViewport,
         isAllCities
       });
 
@@ -52,28 +100,25 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
         is_open: filters.status === 'OPEN' ? 1 : filters.status === 'CLOSED' ? 0 : undefined,
       };
 
-      // Strategy 1: "All cities" mode - fetch all businesses globally, ignore viewport changes
-      if (isAllCities) {
-        console.log('📍 [BUSINESSES QUERY] "All cities" mode - fetching all businesses globally');
+      // Strategy 1: "All cities" mode - use viewport for dynamic loading (NEW BEHAVIOR)
+      if (isAllCities && significantViewport) {
+        console.log('📍 [BUSINESSES QUERY] "All cities" mode - fetching businesses in viewport');
         const result = await api.businesses.viewport({
-          south: -90,
-          north: 90,
-          west: -180,
-          east: 180,
+          ...significantViewport,
           ...baseParams,
         });
-        console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses globally`);
+        console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses from viewport (All Cities)`);
         return result;
       }
 
       // Strategy 2: Specific city/state selected - use viewport for dynamic loading
-      if (debouncedViewport) {
+      if (significantViewport) {
         console.log('📍 [BUSINESSES QUERY] Using viewport bounds:', {
-          viewport: debouncedViewport,
+          viewport: significantViewport,
           hasFilters: !!(selectedCity || selectedState)
         });
         const result = await api.businesses.viewport({
-          ...debouncedViewport,
+          ...significantViewport,
           ...baseParams,
         });
         console.log(`📍 [BUSINESSES QUERY] Received ${result.length} businesses from viewport`);
@@ -100,8 +145,8 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
       console.log('📍 [BUSINESSES QUERY] No viewport available, returning empty array');
       return [];
     },
-    enabled: isAllCities || !!debouncedViewport || !!(selectedCity || selectedState),
-    staleTime: isAllCities ? Infinity : 0, // "All cities" data never becomes stale; otherwise refetch on viewport change
+    enabled: !!significantViewport || !!(selectedCity || selectedState),
+    staleTime: 0, // Always refetch when viewport changes significantly
     gcTime: 30000, // Keep data cached for 30s
   });
 }

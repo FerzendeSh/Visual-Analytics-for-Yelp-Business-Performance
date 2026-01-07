@@ -99,11 +99,17 @@ export function useComparisonTimeline(businessId: string | null) {
 }
 
 
-export function useCompetitiveSnapshot() {
+/**
+ * Fetch competitive snapshot for scatterplot visualization
+ * When "All Cities" is selected, uses the businesses already loaded by the map
+ * When specific city is selected, uses city/state/neighborhood filters
+ */
+export function useCompetitiveSnapshot(mapBusinesses?: any[]) {
   const { primaryBusinessId, filters } = useAppStore();
+  const isAllCities = filters.cityId === null;
 
   return useQuery({
-    queryKey: ['competitive-snapshot', primaryBusinessId, filters.cityId, filters.neighborhoodId, filters.categories],
+    queryKey: ['competitive-snapshot', primaryBusinessId, filters.cityId, filters.neighborhoodId, filters.categories, isAllCities && mapBusinesses ? mapBusinesses.length : null],
     queryFn: async () => {
       if (!primaryBusinessId) throw new Error('No primary business selected');
 
@@ -111,31 +117,54 @@ export function useCompetitiveSnapshot() {
       const city = filters.cityId?.split('_')[0];
       const state = filters.cityId?.split('_')[1];
 
-      // Only fetch competitive data if a specific city is selected
-      // This prevents loading all businesses when "All cities" is selected
-      if (!city || !state) {
-        // Return just the primary business data
-        const primaryBusiness = await api.businesses.getById(primaryBusinessId);
+      // Strategy 1: "All Cities" mode - use businesses from map (already viewport-filtered and debounced)
+      if (isAllCities && mapBusinesses && mapBusinesses.length > 0) {
+        console.log('📊 [COMPETITIVE SNAPSHOT] "All Cities" mode - using map viewport data');
+
+        // Calculate statistics from viewport businesses
+        const ratings = mapBusinesses.map(b => b.stars);
+        const reviewCounts = mapBusinesses.map(b => b.review_count).sort((a, b) => a - b);
+        const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+        const medianReviewCount = reviewCounts.length > 0
+          ? reviewCounts[Math.floor(reviewCounts.length / 2)]
+          : 0;
+
+        console.log(`📊 [COMPETITIVE SNAPSHOT] Calculated from ${mapBusinesses.length} viewport businesses`);
         return {
-          businesses: [primaryBusiness],
+          businesses: mapBusinesses,
           statistics: {
-            avg_rating: primaryBusiness.stars,
-            median_review_count: primaryBusiness.review_count,
-            total_businesses: 1,
+            avg_rating: avgRating,
+            median_review_count: medianReviewCount,
+            total_businesses: mapBusinesses.length,
           },
         };
       }
 
-      return api.analytics.getCompetitiveSnapshot({
-        city,
-        state,
-        neighborhood: filters.neighborhoodId || undefined,
-        category: filters.categories[0],
-        business_id: primaryBusinessId,
-      });
+      // Strategy 2: Specific city selected - use city-based competitive snapshot
+      if (city && state) {
+        return api.analytics.getCompetitiveSnapshot({
+          city,
+          state,
+          neighborhood: filters.neighborhoodId || undefined,
+          category: filters.categories[0],
+          business_id: primaryBusinessId,
+        });
+      }
+
+      // Strategy 3: Fallback - return just primary business if no viewport or city
+      console.log('📊 [COMPETITIVE SNAPSHOT] Fallback - returning primary business only');
+      const primaryBusiness = await api.businesses.getById(primaryBusinessId);
+      return {
+        businesses: [primaryBusiness],
+        statistics: {
+          avg_rating: primaryBusiness.stars,
+          median_review_count: primaryBusiness.review_count,
+          total_businesses: 1,
+        },
+      };
     },
-    enabled: !!primaryBusinessId,
-    staleTime: 5 * 60 * 1000, // 5 minutes - competitive data doesn't change frequently
+    enabled: !!primaryBusinessId && (!!mapBusinesses || !isAllCities),
+    staleTime: isAllCities ? 0 : 5 * 60 * 1000, // Always refetch for "All Cities" viewport changes; 5min cache for specific city
   });
 }
 

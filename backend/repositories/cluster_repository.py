@@ -74,6 +74,7 @@ class ClusterRepository:
         self,
         run_id: int,
         city: Optional[str] = None,
+        state: Optional[str] = None,
         min_size: Optional[int] = None,
         skip: int = 0,
         limit: int = 100
@@ -84,6 +85,7 @@ class ClusterRepository:
         Args:
             run_id: Cluster run identifier
             city: Optional city filter
+            state: Optional state filter (used with city)
             min_size: Minimum cluster size
             skip: Offset for pagination
             limit: Maximum number of results
@@ -213,25 +215,37 @@ class ClusterRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def count_clusters_by_run(self, run_id: int) -> int:
+    async def count_clusters_by_run(
+        self,
+        run_id: int,
+        city: Optional[str] = None,
+        state: Optional[str] = None,
+        min_size: Optional[int] = None
+    ) -> int:
         """
         Count clusters in a run (excluding noise).
 
         Args:
             run_id: Cluster run identifier
+            city: Optional city filter
+            state: Optional state filter (used with city)
+            min_size: Minimum cluster size
 
         Returns:
             Number of clusters
         """
+        conditions = [Cluster.run_id == run_id, Cluster.cluster_label != -1]
+
+        if city:
+            conditions.append(Cluster.city == city)
+
+        if min_size:
+            conditions.append(Cluster.size >= min_size)
+
         stmt = (
             select(func.count())
             .select_from(Cluster)
-            .where(
-                and_(
-                    Cluster.run_id == run_id,
-                    Cluster.cluster_label != -1
-                )
-            )
+            .where(and_(*conditions))
         )
         result = await self.db.execute(stmt)
         return result.scalar() or 0

@@ -12,11 +12,11 @@ export const FORECAST_COLOR = '#06ffa5';
 export const LINE_COLORS = [
   '#FFD700', // Gold/Yellow (Primary Business - Maggiano's)
   '#a855f7', // Purple (City Avg)
-  '#22c55e', // Green (Neighborhood Avg)
+  '#3d9201ff', // Green (Neighborhood Avg)
   '#3b82f6', // Blue
-  '#ef4444', // Red
-  '#f59e0b', // Amber
-  '#ec4899', // Pink
+  '#00ffd5ff', // Red
+  '#ffa200ff', // Amber
+  '#ff0080ff', // Pink
   '#06b6d4', // Cyan
   '#8b5cf6', // Violet
 ];
@@ -24,9 +24,9 @@ export const LINE_COLORS = [
 // Fixed colors for benchmarks
 export const BENCHMARK_COLORS = {
   CITY: '#a855f7',        // Purple - ALWAYS for City
-  NEIGHBORHOOD: '#22c55e', // Green - ALWAYS for Neighborhood
+  NEIGHBORHOOD: '#3d9201ff', // Green - ALWAYS for Neighborhood
   CATEGORY: '#f59e0b',     // Amber for Category
-  CLUSTER: '#14b8a6',      // Teal - ALWAYS for Cluster (Competitor Group)
+  CLUSTER: '#ff7a7aff',      // Red - ALWAYS for Cluster (Competitor Group)
 };
 
 /**

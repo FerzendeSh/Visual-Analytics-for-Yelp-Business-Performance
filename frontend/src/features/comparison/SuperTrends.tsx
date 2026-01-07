@@ -73,6 +73,7 @@ export interface SuperTrendsProps {
     city?: RatingsTimeline | null;
     neighborhood?: RatingsTimeline | null;
     category?: RatingsTimeline | null;
+    cluster?: RatingsTimeline | null;
   };
   forecastData?: ForecastDataPoint[] | null;
   period?: 'month' | 'year';
@@ -971,6 +972,7 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
       city: benchmarkTimelines.city ?? undefined,
       neighborhood: benchmarkTimelines.neighborhood ?? undefined,
       category: benchmarkTimelines.category ?? undefined,
+      cluster: benchmarkTimelines.cluster ?? undefined,
     } : undefined,
     showBenchmarks,
     period,

@@ -2,7 +2,7 @@
  * Map click popup component.
  * Displays business details with action buttons when clicking on markers.
  */
-import { Business } from '@/lib/api';
+import { Business, ClusterSummaryDTO } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { X, Plus, Check } from 'lucide-react';
 import { MAGGIANOS_TAMPA_BUSINESS_ID } from '@/stores/useAppStore';
@@ -10,6 +10,8 @@ import { getTodayHours, getPriceRange } from '@/lib/utils';
 
 interface MapClickPopupProps {
   business: Business | null;
+  clusterInfo?: ClusterSummaryDTO | null;
+  onClusterClick?: (clusterId: number) => void;
   isInComparison: boolean;
   canAddMore: boolean;
   onAddToComparison: () => void;
@@ -19,6 +21,8 @@ interface MapClickPopupProps {
 
 export function MapClickPopup({
   business,
+  clusterInfo,
+  onClusterClick,
   isInComparison,
   canAddMore,
   onAddToComparison,
@@ -142,6 +146,28 @@ export function MapClickPopup({
             })()}
           </div>
         )}
+
+        {/* Cluster Section */}
+        <div className="mt-2">
+          {clusterInfo ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Group:</span>
+              <button
+                onClick={() => onClusterClick?.(clusterInfo.cluster_id)}
+                className="px-2 py-1 rounded-full text-xs font-medium
+                           bg-blue-500/20 text-blue-400 hover:bg-blue-500/30
+                           transition-colors cursor-pointer"
+                title="Click to filter by this competitor group"
+              >
+                {clusterInfo.ai_label || `Cluster ${clusterInfo.cluster_label}`}
+              </button>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">
+              No Competitor Group
+            </div>
+          )}
+        </div>
 
         {/* Divider */}
         <div className="border-t border-slate-700/50" />

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, memo, useCallback } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useBatchTimelinesLegacy } from '../../hooks/useBatchTimelines';
-import { useClusterBenchmark } from '../../hooks/useClusterBenchmark';
+import { useClusterContext } from '../../hooks/useClusterContext';
 import { ChartErrorBoundary } from '../../components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -130,7 +130,17 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
   } = useBatchTimelinesLegacy(primaryBusinessId, comparisonIds);
 
   // Fetch cluster benchmark for primary business
-  const { clusterTimeline, clusterLabel } = useClusterBenchmark(primaryBusinessId);
+  const {
+    primaryClusterTimeline,
+    primaryBusinessCluster
+  } = useClusterContext();
+
+  // DEBUG: Log cluster data
+  console.log('[ComparisonLayout] Cluster data:', {
+    hasPrimaryClusterTimeline: !!primaryClusterTimeline,
+    primaryClusterTimeline,
+    primaryBusinessCluster,
+  });
 
   // Shared state for synchronized interactions (legends and tooltips)
   // Persist hidden series across tab switches using localStorage
@@ -167,6 +177,9 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     if (neighborhoodName) {
       hidden.push(neighborhoodName);
     }
+
+    // NOTE: Cluster average (Competitor Group) is NOT hidden by default
+    // It should be visible like the primary business line
 
     if (hidden.length > 0) {
       setHiddenSeries(new Set(hidden));
@@ -222,14 +235,27 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     .filter((t: any): t is RatingsTimeline => !!t) ?? [];
 
   // Transform cluster timeline to match expected format
-  const clusterRatingsTimeline = clusterTimeline ? {
-    business_name: clusterLabel || 'Cluster Average',
-    time_series: clusterTimeline.data.map(point => ({
+  const clusterRatingsTimeline = primaryClusterTimeline ? {
+    business_name: primaryBusinessCluster?.ai_label || 'Cluster Average',
+    data: primaryClusterTimeline.data.map(point => ({
       period_start: point.period_start,
       avg_rating: point.avg_rating,
       review_count: point.review_count,
     })),
   } : undefined;
+
+  // DEBUG: Check cluster ratings data
+  if (clusterRatingsTimeline) {
+    console.log('[ComparisonLayout] Cluster Ratings Timeline:', {
+      business_name: clusterRatingsTimeline.business_name,
+      dataPoints: clusterRatingsTimeline.data.length,
+      firstPoint: clusterRatingsTimeline.data[0],
+      lastPoint: clusterRatingsTimeline.data[clusterRatingsTimeline.data.length - 1],
+      allData: clusterRatingsTimeline.data,
+    });
+  }
+
+  console.log('[ComparisonLayout] Transformed cluster ratings timeline:', clusterRatingsTimeline);
 
   const benchmarkTimelines = {
     city: cityTimeline.data?.city_ratings,
@@ -237,6 +263,8 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     category: categoryTimeline.data?.category_ratings,
     cluster: clusterRatingsTimeline,
   };
+
+  console.log('[ComparisonLayout] All benchmark timelines:', benchmarkTimelines);
 
   // Prepare props for SentimentTrends
   const primarySentimentTimeline = businessTimeline.data?.business_sentiment ?? null;
@@ -246,15 +274,26 @@ function ComparisonContent({ primaryBusinessId, comparisonIds, benchmarks }: Com
     .filter((t: any): t is SentimentTimeline => !!t) ?? [];
 
   // Transform cluster sentiment timeline
-  const clusterSentimentTimeline = clusterTimeline ? {
-    business_name: clusterLabel || 'Cluster Average',
-    time_series: clusterTimeline.data.map(point => ({
+  const clusterSentimentTimeline = primaryClusterTimeline ? {
+    business_name: primaryBusinessCluster?.ai_label || 'Cluster Average',
+    data: primaryClusterTimeline.data.map(point => ({
       period_start: point.period_start,
       avg_sentiment_score: point.avg_sentiment_score,
       avg_sentiment_expected: point.avg_sentiment_expected,
       review_count: point.review_count,
     })),
   } : undefined;
+
+  // DEBUG: Check cluster sentiment data
+  if (clusterSentimentTimeline) {
+    console.log('[ComparisonLayout] Cluster Sentiment Timeline:', {
+      business_name: clusterSentimentTimeline.business_name,
+      dataPoints: clusterSentimentTimeline.data.length,
+      firstPoint: clusterSentimentTimeline.data[0],
+      lastPoint: clusterSentimentTimeline.data[clusterSentimentTimeline.data.length - 1],
+      allData: clusterSentimentTimeline.data,
+    });
+  }
 
   const benchmarkSentimentTimelines = {
     city: cityTimeline.data?.city_sentiment,

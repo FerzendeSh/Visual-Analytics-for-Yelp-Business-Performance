@@ -14,6 +14,7 @@ import { Bounds } from '@visx/brush/lib/types';
 import { CompetitiveSnapshot } from '../../lib/api';
 import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID } from '../../stores/useAppStore';
 import { useComparisonBusinesses } from '../../hooks/useComparisonData';
+import { useClusterContext } from '../../hooks/useClusterContext';
 
 // --- Constants ---
 const BACKGROUND_COLOR = '#040919ff';
@@ -28,10 +29,10 @@ const CHART_COLORS = {
 };
 
 const QUADRANT_COLORS: Record<string, string> = {
-  'Market Leaders': '#06a2fdff',
-  'Hidden Gems': '#0008ffff',
-  'Struggling': '#7700ffff',
-  'Volume Drivers': '#00ffeeff', // Dark yellow
+  'Market Leaders': '#00ffeeff',
+  'Hidden Gems': '#0008ffd1',
+  'Struggling': '#7b45baff',
+  'Volume Drivers': '#80f5a7a4', // Dark yellow
 };
 
 const QUADRANT_DESCRIPTIONS: Record<string, string> = {
@@ -550,7 +551,17 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
   const setMapViewState = useAppStore((state) => state.setMapViewState);
   const highlightedBusinessId = useAppStore((state) => state.highlightedBusinessId);
   const filters = useAppStore((state) => state.filters);
+  const clusterFilter = useAppStore((state) => state.clusterFilter); // Get cluster filter
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Get cluster context to determine which businesses belong to the filtered cluster
+  const { clusterBusinessMap, allClusters } = useClusterContext();
+
+  // Get the filtered cluster details for display
+  const filteredClusterDetails = useMemo(() => {
+    if (!clusterFilter || !allClusters) return null;
+    return allClusters.find(c => c.cluster_id === clusterFilter);
+  }, [clusterFilter, allClusters]);
 
   // Extract city and state from cityId
   const cityName = filters.cityId?.split('_')[0] || 'Unknown';
@@ -591,9 +602,20 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
 
     const { avg_rating: avgRating, median_review_count: medianReviews, total_businesses: totalBusinesses } = snapshotData.statistics;
 
+    // Helper function to check if a business belongs to the filtered cluster
+    const isInFilteredCluster = (businessId: string): boolean => {
+      if (!clusterFilter || !clusterBusinessMap) return true; // No filter = show all
+      const businessClusterId = clusterBusinessMap.get(businessId);
+      return businessClusterId === clusterFilter;
+    };
+
     // Map snapshot businesses (from current city)
     const cityBusinesses: ChartDataPoint[] = snapshotData.businesses
-      .filter(b => b.stars !== undefined && b.review_count > 0)
+      .filter(b =>
+        b.stars !== undefined &&
+        b.review_count > 0 &&
+        isInFilteredCluster(b.business_id) // Apply cluster filter
+      )
       .map(b => ({
         id: b.business_id,
         name: b.name,
@@ -612,7 +634,12 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
 
     // Add primary business if it's from a different city (not in snapshot)
     const crossCityPrimaryBusiness: ChartDataPoint[] = primaryBusinessData
-      .filter(b => !snapshotBusinessIds.has(b.business_id) && b.stars !== undefined && b.review_count > 0)
+      .filter(b =>
+        !snapshotBusinessIds.has(b.business_id) &&
+        b.stars !== undefined &&
+        b.review_count > 0 &&
+        isInFilteredCluster(b.business_id) // Apply cluster filter
+      )
       .map(b => ({
         id: b.business_id,
         name: b.name,
@@ -628,7 +655,12 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
 
     // Add comparison businesses from other cities (not already in snapshot)
     const crossCityComparisons: ChartDataPoint[] = comparisonBusinesses
-      .filter(b => !snapshotBusinessIds.has(b.business_id) && b.stars !== undefined && b.review_count > 0)
+      .filter(b =>
+        !snapshotBusinessIds.has(b.business_id) &&
+        b.stars !== undefined &&
+        b.review_count > 0 &&
+        isInFilteredCluster(b.business_id) // Apply cluster filter
+      )
       .map(b => ({
         id: b.business_id,
         name: b.name,
@@ -649,7 +681,7 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
       chartData: allBusinesses,
       stats: { avgRating, medianReviews, totalBusinesses }
     };
-  }, [snapshotData, primaryBusinessId, comparisonIds, comparisonBusinesses, primaryBusinessData, cityName, stateName]);
+  }, [snapshotData, primaryBusinessId, comparisonIds, comparisonBusinesses, primaryBusinessData, cityName, stateName, clusterFilter, clusterBusinessMap]);
 
   // Handler for clicking on a business dot - zoom map to that location and open popup
   const handleBusinessClick = useCallback((chartPoint: ChartDataPoint) => {
@@ -708,6 +740,11 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
           <h2 className="text-base font-semibold text-white">Market Positioning</h2>
           <p className="text-[10px] text-slate-400 mt-0.5">
             <span className="font-semibold text-blue-400">{cityName}, {stateName}</span> • {chartData.length} businesses • Avg: {stats.avgRating.toFixed(1)}★, Median: {stats.medianReviews} reviews
+            {filteredClusterDetails && (
+              <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              {filteredClusterDetails.ai_label || `Cluster ${filteredClusterDetails.cluster_label}`}
+              </span>
+            )}
           </p>
         </div>
 

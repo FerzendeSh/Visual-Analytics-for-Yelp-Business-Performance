@@ -1,10 +1,12 @@
-import { lazy, Suspense, memo } from 'react';
+import { lazy, Suspense, memo, useMemo } from 'react';
 import { useCompetitiveSnapshot } from '../../hooks/useComparisonData';
 import { useAppStore } from '../../stores/useAppStore';
 import { MapErrorBoundary, ChartErrorBoundary } from '../../components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { ScannerMetricsCards } from './ScannerMetricsCards';
 import { useSmartKeywordInsights } from '../../hooks/useKeywordInsights';
+import { useMapBusinesses } from '../../hooks/useMapBusinesses';
+import { useAllClusters, useClusterBusinessIds, useBusinessesWithClusters } from '../../hooks/useClusterData';
 
 // Lazy load heavy map and chart components
 // DeckMap is 748 lines with WebGL deck.gl visualization
@@ -14,10 +16,52 @@ const KeywordInsightsChart = lazy(() => import('../comparison/KeywordInsightsCha
 const KeywordReviewDrawer = lazy(() => import('../comparison/KeywordReviewDrawer').then(m => ({ default: m.KeywordReviewDrawer })));
 
 const ScannerModeComponent = () => {
-  // Always call the hook - let it handle the enabled state internally
-  const competitiveSnapshot = useCompetitiveSnapshot();
   const filters = useAppStore((state) => state.filters);
   const primaryBusinessId = useAppStore((state) => state.primaryBusinessId);
+  const mapViewState = useAppStore((state) => state.mapViewState);
+  const clusterFilter = useAppStore((state) => state.clusterFilter);
+
+  // Calculate viewport bounds from map view state for fetching businesses
+  // This is the same calculation as in DeckMap, but we need it here too
+  const viewport = useMemo(() => {
+    // Simple viewport estimation from map view state
+    // This is approximate but works for fetching businesses
+    const latOffset = 0.05 / Math.pow(2, mapViewState.zoom - 10);
+    const lonOffset = 0.05 / Math.pow(2, mapViewState.zoom - 10);
+
+    return {
+      south: mapViewState.latitude - latOffset,
+      north: mapViewState.latitude + latOffset,
+      west: mapViewState.longitude - lonOffset,
+      east: mapViewState.longitude + lonOffset,
+    };
+  }, [mapViewState.latitude, mapViewState.longitude, mapViewState.zoom]);
+
+  // Fetch map businesses for the scatter plot when "All Cities" is selected
+  const { data: mapBusinesses = [] } = useMapBusinesses(viewport);
+
+  // Fetch cluster data (same as DeckMap)
+  const { data: allClusters = [] } = useAllClusters();
+  const { data: clusterBusinessIds } = useClusterBusinessIds(clusterFilter);
+
+  // Apply the SAME enrichment and filtering as DeckMap
+  // This ensures scatterplot shows exactly what's on the map
+  const enrichedBusinesses = useBusinessesWithClusters(
+    mapBusinesses,
+    allClusters,
+    clusterFilter,
+    clusterBusinessIds
+  );
+
+  // Log for debugging
+  console.log('🔵 [SCANNER] Business counts:', {
+    raw: mapBusinesses.length,
+    enriched: enrichedBusinesses.length,
+    clusterFilter: clusterFilter,
+  });
+
+  // Pass ENRICHED businesses to competitive snapshot for "All Cities" mode
+  const competitiveSnapshot = useCompetitiveSnapshot(enrichedBusinesses);
 
   // Fetch keyword insights for selected business
   const keywordInsightsResult = useSmartKeywordInsights(primaryBusinessId, null);

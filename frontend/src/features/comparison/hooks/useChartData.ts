@@ -20,6 +20,7 @@ interface UseChartDataProps {
     city?: RatingsTimeline;
     neighborhood?: RatingsTimeline;
     category?: RatingsTimeline;
+    cluster?: RatingsTimeline;
   };
   showBenchmarks?: {
     showCityAvg: boolean;
@@ -55,6 +56,9 @@ export function useChartData({
     if (benchmarkTimelines?.neighborhood) {
       names.push(benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg');
     }
+    if (benchmarkTimelines?.cluster) {
+      names.push(benchmarkTimelines.cluster.business_name || 'Cluster Avg');
+    }
 
     // Add comparison names
     comparisonTimelines.forEach((comp) => {
@@ -81,6 +85,10 @@ export function useChartData({
         const p = benchmarkTimelines.neighborhood.data.find((d) => d.period_start === periodStart);
         point[benchmarkTimelines.neighborhood.business_name || 'Neighborhood Avg'] =
           p?.avg_rating || 0;
+      }
+      if (benchmarkTimelines?.cluster) {
+        const p = benchmarkTimelines.cluster.data.find((d) => d.period_start === periodStart);
+        point[benchmarkTimelines.cluster.business_name || 'Cluster Avg'] = p?.avg_rating || 0;
       }
 
       // Add comparison data

@@ -18,8 +18,8 @@ interface KeywordPair {
 
 const MARGINS = { top: 20, right: 20, bottom: 40, left: 20 };
 const COLORS = {
-  complaint: '#9f0808ea',
-  praise: '#06ad43ee',
+  complaint: '#ce0606ff',
+  praise: '#05d250ff',
 };
 
 // ✅ Memoized component - only re-renders when insights change

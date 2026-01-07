@@ -12,11 +12,12 @@ import { getClusterColor } from '@/utils/clusterColors';
 
 // Quadrant colors matching scatter plot
 const QUADRANT_COLORS = {
-  'Market Leaders': [6, 162, 253],       // #06a2fdff
-  'Hidden Gems': [0, 8, 255],            // #0008ffff
-  'Struggling': [119, 0, 255],           // #7700ffff
-  'Volume Drivers': [0, 255, 238],       // #00ffeeff
+  'Market Leaders': [0, 255, 238],      // #00ffeeff
+  'Hidden Gems': [0, 8, 255],           // #0008ffd1
+  'Struggling': [123, 69, 186],         // #7b45baff
+  'Volume Drivers': [128, 245, 167],    // #80f5a7a4
 };
+
 
 // Helper to determine quadrant
 const getQuadrant = (rating: number, reviewCount: number) => {

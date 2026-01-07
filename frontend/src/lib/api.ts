@@ -545,6 +545,7 @@ export const api = {
     list: (params?: {
       run_id?: number;
       city?: string;
+      state?: string;
       min_size?: number;
       skip?: number;
       limit?: number;
