@@ -431,7 +431,7 @@ export function DeckMap() {
           business={clickedBusiness}
           clusterInfo={getClusterForBusiness(clickedBusiness.business_id)}
           onClusterClick={(clusterId) => {
-            setClusterFilter(clusterId);
+            setClusterFilter(clusterId.toString());
             setMode('SCAN');
           }}
           isInComparison={comparisonIds.includes(clickedId!)}

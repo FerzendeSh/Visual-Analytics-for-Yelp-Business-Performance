@@ -15,6 +15,7 @@ import { CompetitiveSnapshot } from '../../lib/api';
 import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID } from '../../stores/useAppStore';
 import { useComparisonBusinesses } from '../../hooks/useComparisonData';
 import { useClusterContext } from '../../hooks/useClusterContext';
+import { parseClusterFilter } from '../../hooks/useClusterData';
 import { getSmartClusterLabel } from '../../utils/clusterLabeling';
 
 // --- Constants ---
@@ -561,7 +562,11 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
   // Get the filtered cluster details for display
   const filteredClusterDetails = useMemo(() => {
     if (!clusterFilter || !allClusters) return null;
-    return allClusters.find(c => c.cluster_id === clusterFilter);
+    // Handle both single cluster ID and group format
+    const clusterId = clusterFilter.startsWith('group:') 
+      ? null // Groups don't have a single cluster detail
+      : parseInt(clusterFilter, 10);
+    return clusterId ? allClusters.find(c => c.cluster_id === clusterId) : null;
   }, [clusterFilter, allClusters]);
 
   // Extract city and state from cityId
@@ -603,11 +608,15 @@ const CompetitivePositioningChartComponent: React.FC<CompetitivePositioningChart
 
     const { avg_rating: avgRating, median_review_count: medianReviews, total_businesses: totalBusinesses } = snapshotData.statistics;
 
+    // Parse cluster filter to get the list of cluster IDs to filter by
+    const filterClusterIds = parseClusterFilter(clusterFilter);
+
     // Helper function to check if a business belongs to the filtered cluster
     const isInFilteredCluster = (businessId: string): boolean => {
-      if (!clusterFilter || !clusterBusinessMap) return true; // No filter = show all
+      if (filterClusterIds.length === 0 || !clusterBusinessMap) return true; // No filter = show all
       const businessClusterId = clusterBusinessMap.get(businessId);
-      return businessClusterId === clusterFilter;
+      if (businessClusterId === undefined) return false;
+      return filterClusterIds.includes(businessClusterId);
     };
 
     // Map snapshot businesses (from current city)

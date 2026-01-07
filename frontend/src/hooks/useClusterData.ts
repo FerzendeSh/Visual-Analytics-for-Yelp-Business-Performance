@@ -53,16 +53,46 @@ export function useAllClusters() {
 }
 
 /**
- * Fetch business IDs for a cluster (used for filtering)
+ * Parse a cluster filter string into an array of cluster IDs
+ * Handles both single cluster IDs ("123") and group format ("group:123,456,789")
  */
-export function useClusterBusinessIds(clusterId: number | null) {
+export function parseClusterFilter(clusterFilter: string | null): number[] {
+  if (!clusterFilter) return [];
+  
+  if (clusterFilter.startsWith('group:')) {
+    // Group format: "group:123,456,789"
+    const idsStr = clusterFilter.replace('group:', '');
+    return idsStr.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+  }
+  
+  // Single cluster ID
+  const id = parseInt(clusterFilter, 10);
+  return isNaN(id) ? [] : [id];
+}
+
+/**
+ * Fetch business IDs for one or more clusters (used for filtering)
+ * Supports both single cluster IDs and grouped clusters
+ */
+export function useClusterBusinessIds(clusterFilter: string | null) {
+  const clusterIds = parseClusterFilter(clusterFilter);
+  
   return useQuery({
-    queryKey: ['cluster-businesses', clusterId],
+    queryKey: ['cluster-businesses', clusterFilter],
     queryFn: async () => {
-      if (!clusterId) return [];
-      return api.clusters.getBusinessIds(clusterId);
+      if (clusterIds.length === 0) return [];
+      
+      // Fetch business IDs for all clusters in parallel
+      const results = await Promise.all(
+        clusterIds.map(id => api.clusters.getBusinessIds(id))
+      );
+      
+      // Combine and deduplicate
+      const allIds = new Set<string>();
+      results.forEach(ids => ids.forEach(id => allIds.add(id)));
+      return Array.from(allIds);
     },
-    enabled: !!clusterId,
+    enabled: clusterIds.length > 0,
     staleTime: Infinity, // Cluster membership doesn't change
   });
 }
@@ -89,21 +119,25 @@ export function useClusterDetail(clusterId: number | null) {
 export function useBusinessesWithClusters(
   businesses: any[],
   clusters: ClusterSummaryDTO[],
-  clusterFilter: number | null,
+  clusterFilter: string | null,
   clusterBusinessIds: string[] | undefined
 ) {
-  // If cluster filter is active, filter businesses to only show those in the cluster
+  // If cluster filter is active, filter businesses to only show those in the cluster(s)
   if (clusterFilter && clusterBusinessIds) {
     const businessIdSet = new Set(clusterBusinessIds);
+    const clusterIds = parseClusterFilter(clusterFilter);
+    const isGroup = clusterIds.length > 1;
+    
     return businesses
       .filter((b) => businessIdSet.has(b.business_id))
       .map((business) => {
-        const cluster = clusters.find((c) => c.cluster_id === clusterFilter);
+        // For grouped clusters, find which specific cluster this business belongs to
+        const cluster = clusters.find((c) => clusterIds.includes(c.cluster_id));
         return {
           ...business,
-          cluster_id: clusterFilter,
+          cluster_id: isGroup ? null : clusterIds[0], // Don't assign specific cluster for groups
           cluster_label: cluster?.cluster_label ?? null,
-          cluster_ai_label: cluster?.ai_label ?? null,
+          cluster_ai_label: isGroup ? 'Independent Businesses' : (cluster?.ai_label ?? null),
         };
       });
   }

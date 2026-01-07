@@ -11,7 +11,7 @@ import { useState, useMemo } from 'react';
 import * as React from 'react';
 import { format } from 'date-fns';
 import { useClusterContext } from '@/hooks/useClusterContext';
-import { getSmartClusterLabel, getClusterDescription, getClusterSubtitle } from '@/utils/clusterLabeling';
+import { getSmartClusterLabel, getClusterDescription, getClusterSubtitle, getClusterType } from '@/utils/clusterLabeling';
 
 export function ControlTower() {
   // ✅ Atomic selectors - only re-render when these specific values change
@@ -125,6 +125,76 @@ export function ControlTower() {
     return count;
   }, [filters, viewMode]);
 
+  // Group clusters by their smart label to consolidate "Independent Businesses" entries
+  const groupedClusterOptions = useMemo(() => {
+    if (!allClusters || allClusters.length === 0) return [];
+
+    // Group clusters by their smart label
+    const labelGroups = new Map<string, typeof allClusters>();
+    
+    allClusters.forEach(cluster => {
+      const label = getSmartClusterLabel(cluster);
+      const existing = labelGroups.get(label) || [];
+      existing.push(cluster);
+      labelGroups.set(label, existing);
+    });
+
+    // Create options, consolidating groups with multiple clusters
+    const options: Array<{
+      value: string;
+      label: string;
+      description: string;
+      clusterIds: number[]; // Track all cluster IDs for this option
+    }> = [];
+
+    labelGroups.forEach((clusters, label) => {
+      const clusterType = getClusterType(clusters[0]);
+      
+      if (clusters.length === 1) {
+        // Single cluster - show normally
+        const c = clusters[0];
+        const subtitle = getClusterSubtitle(c);
+        options.push({
+          value: c.cluster_id.toString(),
+          label: subtitle ? `${label} • ${subtitle}` : label,
+          description: getClusterDescription(c),
+          clusterIds: [c.cluster_id],
+        });
+      } else if (clusterType === 'unique' || clusterType === 'isolated') {
+        // Multiple clusters with same "Independent/Isolated" label - consolidate
+        const totalBusinesses = clusters.reduce((sum, c) => sum + (c.size || 0), 0);
+        // Use a special value format: "group:id1,id2,id3"
+        const clusterIds = clusters.map(c => c.cluster_id);
+        options.push({
+          value: `group:${clusterIds.join(',')}`,
+          label: `${label}`,
+          description: `${totalBusinesses} unique businesses that don't fit typical competitor groups`,
+          clusterIds,
+        });
+      } else {
+        // Multiple regular clusters with same AI label - show separately (rare case)
+        clusters.forEach(c => {
+          const subtitle = getClusterSubtitle(c);
+          options.push({
+            value: c.cluster_id.toString(),
+            label: subtitle ? `${label} • ${subtitle}` : `${label} (${c.cluster_id})`,
+            description: getClusterDescription(c),
+            clusterIds: [c.cluster_id],
+          });
+        });
+      }
+    });
+
+    // Sort: regular clusters first, then unique/isolated
+    return options.sort((a, b) => {
+      const aIsGroup = a.value.startsWith('group:');
+      const bIsGroup = b.value.startsWith('group:');
+      if (aIsGroup && !bIsGroup) return 1;
+      if (!aIsGroup && bIsGroup) return -1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [allClusters]);
+
   return (
     <div className="space-y-4 min-w-[320px]">
       <div className="flex items-center justify-between">
@@ -176,9 +246,9 @@ export function ControlTower() {
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground">
           Competitor Group
-          {allClusters.length > 0 && filters.cityId && (
+          {groupedClusterOptions.length > 0 && filters.cityId && (
             <span className="text-muted-foreground ml-1">
-              ({allClusters.length} in {filters.cityId.split('_')[0]})
+              ({groupedClusterOptions.length} in {filters.cityId.split('_')[0]})
             </span>
           )}
         </label>
@@ -186,24 +256,17 @@ export function ControlTower() {
           <div className="h-10 rounded bg-muted/20 animate-pulse" />
         ) : (
           <Combobox
-            value={clusterFilter?.toString() || ''}
+            value={clusterFilter || ''}
             onChange={(value) => {
-              const clusterId = value ? Number(value) : null;
-              setClusterFilter(clusterId);
+              setClusterFilter(value || null);
             }}
             options={[
               { value: '', label: 'All Competitor Groups' },
-              ...(allClusters?.map(c => {
-                const label = getSmartClusterLabel(c);
-                const description = getClusterDescription(c);
-                const subtitle = getClusterSubtitle(c);
-
-                return {
-                  value: c.cluster_id.toString(),
-                  label: subtitle ? `${label} • ${subtitle}` : label,
-                  description: description,
-                };
-              }) || [])
+              ...groupedClusterOptions.map(opt => ({
+                value: opt.value,
+                label: opt.label,
+                description: opt.description,
+              }))
             ]}
             placeholder="Select competitor group"
             searchPlaceholder="Search groups..."

@@ -45,7 +45,7 @@ export interface AppState {
   // Cluster Context
   mapColorMode: MapColorMode; // Map visualization mode
   selectedClusterId: number | null; // Currently selected cluster for details
-  clusterFilter: number | null; // When set, filter map to show only businesses in this cluster
+  clusterFilter: string | null; // When set, filter map to show only businesses in this cluster (can be "123" or "group:123,456")
 
   // Benchmarking
   benchmarks: {
@@ -83,7 +83,7 @@ export interface AppState {
   // Cluster Actions
   setMapColorMode: (mode: MapColorMode) => void;
   setSelectedCluster: (id: number | null) => void;
-  setClusterFilter: (id: number | null) => void;
+  setClusterFilter: (filter: string | null) => void;
 }
 
 const initialFilters: AppState['filters'] = {
@@ -182,7 +182,7 @@ export const useAppStore = create<AppState>()(
 
       setSelectedCluster: (id) => set({ selectedClusterId: id }),
 
-      setClusterFilter: (id) => set({ clusterFilter: id }),
+      setClusterFilter: (filter) => set({ clusterFilter: filter }),
     }),
     {
       name: 'yelp-analytics-storage',

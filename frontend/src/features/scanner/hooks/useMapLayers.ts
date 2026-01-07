@@ -4,7 +4,6 @@
  */
 import { useMemo } from 'react';
 import { GeoJsonLayer, ScatterplotLayer, IconLayer, TextLayer } from '@deck.gl/layers';
-import { scaleLinear } from 'd3-scale';
 import Supercluster from 'supercluster';
 import { Business } from '@/lib/api';
 import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID, MapColorMode } from '@/stores/useAppStore';
@@ -228,7 +227,7 @@ export function useMapLayers({
             pickable: true,
             getCursor: () => 'pointer',
             onHover: ({ object }) => setHoveredId(object?.business_id || null),
-            onClick: ({ object }) => {
+            onClick: () => {
               // Maggiano's is hardcoded as primary - prevent changes
               console.log('Maggiano\'s is your primary business');
             },

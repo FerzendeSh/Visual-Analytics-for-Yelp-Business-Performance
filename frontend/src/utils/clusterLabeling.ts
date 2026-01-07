@@ -15,7 +15,7 @@ import type { ClusterSummaryDTO } from '@/lib/api';
  */
 function isUniqueBusinessCluster(cluster: ClusterSummaryDTO): boolean {
   const hasNoLabel = !cluster.ai_label || cluster.ai_label.trim() === '';
-  const hasSpecificCity = cluster.city && cluster.city !== 'GLOBAL' && cluster.city !== '';
+  const hasSpecificCity = Boolean(cluster.city && cluster.city !== 'GLOBAL' && cluster.city !== '');
 
   // Any unlabeled cluster with a city is "unique businesses"
   return hasNoLabel && hasSpecificCity;
