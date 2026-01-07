@@ -6,26 +6,23 @@ from contextlib import asynccontextmanager
 from api.endpoints.businesses import router as business_router
 from api.endpoints.locations import router as locations_router
 from api.endpoints.analytics import router as analytics_router
+from api.endpoints.clusters import router as clusters_router
 from configs.settings import PROJECT_NAME, VERSION, ALLOWED_ORIGINS
 from database.database import init_db, close_db
+from dependencies import preload_ml_models
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Lifecycle manager for database connections.
-    Runs on startup and shutdown.
-    """
-    # Startup: Initialize database tables (if needed)
     await init_db()
+    preload_ml_models()
     yield
-    # Shutdown: Close database connections
     await close_db()
 
 
 app = FastAPI(
     title=PROJECT_NAME,
-    description="API for analyzing Yelp business performance with visual analytics",
+    description="API for analyzing  business performance with visual analytics",
     version=VERSION,
     lifespan=lifespan
 )
@@ -33,24 +30,26 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
-# Add GZip compression for responses > 1KB (reduces bandwidth by ~70%)
+# Add GZip compression for responses > 1KB (reduces bandwidth)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Register routers
 app.include_router(business_router, prefix="/api")
 app.include_router(locations_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
+app.include_router(clusters_router, prefix="/api")
 
 
 @app.get("/", tags=["health"])
 def root():
     """Root endpoint - API health check"""
-    return {"message": "Yelp Business Analytics API", "status": "healthy"}
+    return {"message": " Business Analytics API", "status": "healthy"}
 
 
 @app.get("/health", tags=["health"])

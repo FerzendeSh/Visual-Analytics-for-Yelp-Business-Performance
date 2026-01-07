@@ -84,6 +84,110 @@ class ReviewRepository(ReviewRepositoryInterface):
         )
         return list(result.scalars().all())
 
+    async def get_by_business_and_date_range(
+        self,
+        business_id: str,
+        start_date: date,
+        end_date: date,
+        sentiment_filter: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get reviews for a business within a date range with optional sentiment filter.
+        Returns review text and sentiment data for period issue analysis.
+
+        Args:
+            business_id: Business identifier
+            start_date: Start date (inclusive)
+            end_date: End date (inclusive)
+            sentiment_filter: Optional filter ('negative', 'neutral', 'positive')
+
+        Returns:
+            List of dicts with keys: review_id, text, date, stars, sentiment_label, sentiment_score_prob_diff
+        """
+        query = (
+            select(
+                Review.review_id,
+                Review.text,
+                Review.date,
+                Review.stars,
+                Review.sentiment_label,
+                Review.sentiment_score_prob_diff
+            )
+            .where(
+                and_(
+                    Review.business_id == business_id,
+                    Review.date >= start_date,
+                    Review.date <= end_date
+                )
+            )
+        )
+
+        if sentiment_filter and sentiment_filter in ('negative', 'neutral', 'positive'):
+            query = query.where(Review.sentiment_label == sentiment_filter)
+
+        query = query.order_by(Review.date.desc())
+
+        result = await self.db.execute(query)
+        rows = result.all()
+
+        return [
+            {
+                'review_id': row.review_id,
+                'text': row.text,
+                'date': row.date.isoformat() if row.date else None,
+                'stars': float(row.stars) if row.stars else 0.0,
+                'sentiment_label': row.sentiment_label,
+                'sentiment_score_prob_diff': float(row.sentiment_score_prob_diff) if row.sentiment_score_prob_diff else 0.0
+            }
+            for row in rows
+        ]
+
+    async def get_most_recent_year_with_reviews(
+        self,
+        business_id: str,
+        max_years_back: int = 5,
+        min_review_count: int = 1
+    ) -> Optional[int]:
+        """
+        Find the most recent year with reviews for a business.
+
+        OPTIMIZED: Single SQL query instead of looping through years.
+
+        Args:
+            business_id: Business identifier
+            max_years_back: Maximum years to search backwards
+            min_review_count: Minimum reviews required for a year to be considered
+
+        Returns:
+            Most recent year with sufficient reviews, or None if no data found
+        """
+        from datetime import datetime
+
+        current_year = datetime.now().year
+        min_year = current_year - max_years_back
+
+        query = (
+            select(
+                func.extract('year', Review.date).label('year'),
+                func.count(Review.review_id).label('review_count')
+            )
+            .where(
+                and_(
+                    Review.business_id == business_id,
+                    Review.date >= date(min_year, 1, 1)
+                )
+            )
+            .group_by(func.extract('year', Review.date))
+            .having(func.count(Review.review_id) >= min_review_count)
+            .order_by(func.extract('year', Review.date).desc())
+            .limit(1)
+        )
+
+        result = await self.db.execute(query)
+        row = result.first()
+
+        return int(row.year) if row else None
+
     async def get_business_ratings_over_time(
         self,
         business_id: str,
@@ -250,11 +354,6 @@ class ReviewRepository(ReviewRepositoryInterface):
 
         result = await self.db.execute(query)
         rows = result.all()
-
-        # DEBUG: Log query parameters
-        print(f"🔍 City Query - City: {normalized_city}, State: {normalized_state}, Period: {period}, Start: {start_date}, End: {end_date}, Rows: {len(rows)}")
-        if rows:
-            print(f"   First row avg_rating: {rows[0].avg_rating}, business_count: {rows[0].business_count}")
 
         return [
             {
