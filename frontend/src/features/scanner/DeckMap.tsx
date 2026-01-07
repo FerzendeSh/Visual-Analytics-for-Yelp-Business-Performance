@@ -9,6 +9,7 @@ import DeckGL from '@deck.gl/react';
 import { useMapBusinesses, useNeighborhoods } from '@/hooks/useMapBusinesses';
 import { useAppStore } from '@/stores/useAppStore';
 import { Business } from '@/lib/api';
+import { useCompetitiveSnapshot } from '@/hooks/useComparisonData';
 import { Button } from '@/components/ui/button';
 import { MapControls } from './MapControls';
 import { SearchPanel } from './SearchPanel';
@@ -110,6 +111,14 @@ export function DeckMap() {
     clusterBusinessIds
   );
 
+  // Get competitive snapshot for statistics (avg rating, median review count)
+  const competitiveSnapshot = useCompetitiveSnapshot(enrichedBusinesses);
+  const statistics = competitiveSnapshot.data?.statistics || {
+    avg_rating: 3.5,
+    median_review_count: 100,
+    total_businesses: 0,
+  };
+
   // City boundary removed - using business locations for navigation instead
 
   // Clustering logic (extracted) - use enriched businesses
@@ -155,7 +164,9 @@ export function DeckMap() {
     setPrimaryBusiness,
     setHighlightedBusiness,
     prefetchComparisonData,
-    mapColorMode, // NEW: Pass map color mode
+    mapColorMode,
+    avgRating: statistics.avg_rating,
+    medianReviewCount: statistics.median_review_count,
   });
 
   // Map control handlers

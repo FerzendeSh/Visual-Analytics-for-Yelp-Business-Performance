@@ -1063,36 +1063,8 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 relative overflow-hidden">
-
-        <ParentSize>
-          {({ width, height }) => (
-            <Chart
-              width={width}
-              height={Math.max(height, 100)}
-              data={chartData}
-              seriesNames={seriesNames}
-              benchmarkMap={benchmarkMap}
-              period={period}
-              hiddenSeries={effectiveHiddenSeries}
-              hideVolume={hideVolume}
-              hideForecast={hideForecast}
-              forecastData={forecastData}
-              sharedHoverDate={sharedHoverDate}
-              onHoverDateChange={onHoverDateChange}
-              hoveredBusinessId={hoveredBusinessId}
-              isBrushMode={isBrushMode}
-              brushSelection={brushSelection}
-              onBrushChange={onBrushChange}
-              onBrushModeChange={onBrushModeChange}
-              onYearClick={onYearClick}
-            />
-          )}
-        </ParentSize>
-      </div>
-
       {/* Interactive Legend */}
-      <div className="mt-2 flex flex-wrap gap-1.5 justify-center border-t border-white/10 pt-2 shrink-0">
+      <div className="mb-1.5 flex flex-wrap gap-1.5 justify-center border-b border-white/10 pb-2 shrink-0">
         <div className="flex items-center gap-2 text-xs opacity-100">
           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: VOLUME_COLOR }} />
           <span className="text-slate-300">Volume</span>
@@ -1121,6 +1093,35 @@ const SuperTrendsComponent: React.FC<SuperTrendsProps> = ({
             <span className="text-slate-300">Forecast</span>
           </button>
         )}
+      </div>
+
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0">
+          <ParentSize>
+            {({ width, height }) => (
+              <Chart
+                width={width}
+                height={Math.max(height, 100)}
+                data={chartData}
+                seriesNames={seriesNames}
+                benchmarkMap={benchmarkMap}
+                period={period}
+                hiddenSeries={effectiveHiddenSeries}
+                hideVolume={hideVolume}
+                hideForecast={hideForecast}
+                forecastData={forecastData}
+                sharedHoverDate={sharedHoverDate}
+                onHoverDateChange={onHoverDateChange}
+                hoveredBusinessId={hoveredBusinessId}
+                isBrushMode={isBrushMode}
+                brushSelection={brushSelection}
+                onBrushChange={onBrushChange}
+                onBrushModeChange={onBrushModeChange}
+                onYearClick={onYearClick}
+              />
+            )}
+          </ParentSize>
+        </div>
       </div>
     </div>
   );

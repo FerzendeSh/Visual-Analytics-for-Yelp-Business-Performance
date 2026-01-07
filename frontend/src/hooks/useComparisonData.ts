@@ -164,7 +164,8 @@ export function useCompetitiveSnapshot(mapBusinesses?: any[]) {
       };
     },
     enabled: !!primaryBusinessId && (!!mapBusinesses || !isAllCities),
-    staleTime: isAllCities ? 0 : 5 * 60 * 1000, // Always refetch for "All Cities" viewport changes; 5min cache for specific city
+    staleTime: isAllCities ? 10000 : 5 * 60 * 1000, // 10s cache for "All Cities" to reduce flickering; 5min for specific city
+    placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 }
 

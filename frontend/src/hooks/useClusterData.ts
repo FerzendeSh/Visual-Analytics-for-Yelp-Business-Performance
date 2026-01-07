@@ -1,6 +1,7 @@
 /**
  * Hooks for fetching cluster data
  */
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, ClusterSummaryDTO } from '@/lib/api';
 import { useDebounce } from './useDebounce';
@@ -115,6 +116,7 @@ export function useClusterDetail(clusterId: number | null) {
 /**
  * Custom hook to enrich businesses with cluster assignments
  * Matches businesses against clusters based on cluster membership
+ * OPTIMIZED: Uses useMemo to prevent unnecessary recomputations
  */
 export function useBusinessesWithClusters(
   businesses: any[],
@@ -122,26 +124,28 @@ export function useBusinessesWithClusters(
   clusterFilter: string | null,
   clusterBusinessIds: string[] | undefined
 ) {
-  // If cluster filter is active, filter businesses to only show those in the cluster(s)
-  if (clusterFilter && clusterBusinessIds) {
-    const businessIdSet = new Set(clusterBusinessIds);
-    const clusterIds = parseClusterFilter(clusterFilter);
-    const isGroup = clusterIds.length > 1;
-    
-    return businesses
-      .filter((b) => businessIdSet.has(b.business_id))
-      .map((business) => {
-        // For grouped clusters, find which specific cluster this business belongs to
-        const cluster = clusters.find((c) => clusterIds.includes(c.cluster_id));
-        return {
-          ...business,
-          cluster_id: isGroup ? null : clusterIds[0], // Don't assign specific cluster for groups
-          cluster_label: cluster?.cluster_label ?? null,
-          cluster_ai_label: isGroup ? 'Independent Businesses' : (cluster?.ai_label ?? null),
-        };
-      });
-  }
+  return useMemo(() => {
+    // If cluster filter is active, filter businesses to only show those in the cluster(s)
+    if (clusterFilter && clusterBusinessIds) {
+      const businessIdSet = new Set(clusterBusinessIds);
+      const clusterIds = parseClusterFilter(clusterFilter);
+      const isGroup = clusterIds.length > 1;
+      
+      return businesses
+        .filter((b) => businessIdSet.has(b.business_id))
+        .map((business) => {
+          // For grouped clusters, find which specific cluster this business belongs to
+          const cluster = clusters.find((c) => clusterIds.includes(c.cluster_id));
+          return {
+            ...business,
+            cluster_id: isGroup ? null : clusterIds[0], // Don't assign specific cluster for groups
+            cluster_label: cluster?.cluster_label ?? null,
+            cluster_ai_label: isGroup ? 'Independent Businesses' : (cluster?.ai_label ?? null),
+          };
+        });
+    }
 
-  // No filter - return all businesses (we'll add cluster assignment logic later if needed)
-  return businesses;
+    // No filter - return all businesses (we'll add cluster assignment logic later if needed)
+    return businesses;
+  }, [businesses, clusters, clusterFilter, clusterBusinessIds]);
 }

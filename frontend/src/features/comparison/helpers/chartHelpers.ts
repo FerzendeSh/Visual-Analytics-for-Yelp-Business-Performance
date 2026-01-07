@@ -9,18 +9,6 @@ export const AXIS_COLOR = '#94a3b8';
 export const GRID_COLOR = '#1e293b';
 export const FORECAST_COLOR = '#06ffa5';
 
-export const LINE_COLORS = [
-  '#FFD700', // Gold/Yellow (Primary Business - Maggiano's)
-  '#a855f7', // Purple (City Avg)
-  '#3d9201ff', // Green (Neighborhood Avg)
-  '#3b82f6', // Blue
-  '#00ffd5ff', // Red
-  '#ffa200ff', // Amber
-  '#ff0080ff', // Pink
-  '#06b6d4', // Cyan
-  '#8b5cf6', // Violet
-];
-
 // Fixed colors for benchmarks
 export const BENCHMARK_COLORS = {
   CITY: '#a855f7',           // Purple - ALWAYS for City
@@ -29,9 +17,28 @@ export const BENCHMARK_COLORS = {
   CLUSTER: '#3b82f6',        // Blue - ALWAYS for Cluster (Competitor Group)
 };
 
+// Color palette for primary business and comparisons
+// Excludes benchmark colors to avoid conflicts
+export const LINE_COLORS = [
+  '#FFD700', // Gold/Yellow (Primary Business)
+  '#ff0080', // Hot Pink (Comparison 1)
+  '#00ffd5', // Bright Cyan (Comparison 2)
+  '#ffa200', // Orange (Comparison 3)
+  '#06b6d4', // Teal (Comparison 4)
+  '#e879f9', // Light Purple (Comparison 5)
+  '#fb923c', // Coral (Comparison 6)
+  '#22d3ee', // Sky Blue (Comparison 7)
+  '#a78bfa', // Lavender (Comparison 8)
+  '#f472b6', // Rose (Comparison 9)
+  '#34d399', // Emerald (Comparison 10)
+  '#fbbf24', // Yellow (Comparison 11)
+  '#c084fc', // Violet (Comparison 12)
+];
+
 /**
  * Get color for a series name.
  * Ensures benchmarks always get their designated colors regardless of order.
+ * Ensures comparison businesses get distinct colors that don't conflict with benchmarks.
  */
 export function getSeriesColor(
   seriesName: string,
@@ -80,6 +87,7 @@ export function getSeriesColor(
   }
 
   // For primary business and comparisons, use LINE_COLORS by index
+  // The LINE_COLORS array is designed to avoid benchmark colors
   return LINE_COLORS[index % LINE_COLORS.length];
 }
 

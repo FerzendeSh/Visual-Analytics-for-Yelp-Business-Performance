@@ -31,10 +31,10 @@ const CHART_COLORS = {
 };
 
 const QUADRANT_COLORS: Record<string, string> = {
-  'Market Leaders': '#22D3EE', 
-  'Hidden Gems':    '#60A5FA', 
-  'Struggling':     '#C084FC', 
-  'Volume Drivers': '#ffedacff', 
+  'Market Leaders': '#2563eb',   // Deep blue - top performers
+  'Hidden Gems':    '#8b5cf6',   // Violet - quality finds
+  'Struggling':     '#fb7185',   // Pink/rose - needs attention
+  'Volume Drivers': '#f59e0b',   // Amber - high traffic
 };
 
 const QUADRANT_DESCRIPTIONS: Record<string, string> = {
@@ -44,7 +44,7 @@ const QUADRANT_DESCRIPTIONS: Record<string, string> = {
   'Volume Drivers': 'Low Rating & High Volume. Visible but average quality.',
 };
 
-const LINE_COLORS = [
+export const LINE_COLORS = [
   '#3b82f6', // Blue
   '#a855f7', // Purple
   '#ef4444', // Red
@@ -419,14 +419,14 @@ const QuadrantChart = ({
 
             // Highlighted from map interaction
             if (isHighlighted && !isMaggianosHardcoded) {
-              radius = d.isMyBusiness ? 24 : 12; // Increased from 12/10
-              stroke = '#ffea00ff'; // Blue highlight
+              radius = d.isMyBusiness ? 24 : 14; // Larger for better visibility
+              stroke = '#ffea00ff'; // Yellow highlight
               strokeWidth = 2;
               opacity = 1; // Full opacity when highlighted
             }
 
             if (isSelected && !isMaggianosHardcoded) {
-              radius = d.isMyBusiness ? 14 : 11; // Increased from 12/9
+              radius = d.isMyBusiness ? 16 : 13; // Increased size for better visibility
               if (!d.isMyBusiness && !d.isComparison) {
                 stroke = '#fff';
                 strokeWidth = 2;

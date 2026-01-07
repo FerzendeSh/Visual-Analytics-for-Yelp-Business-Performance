@@ -154,19 +154,19 @@ const KeywordReviewDrawerComponent = ({ rawClusters }: KeywordReviewDrawerProps)
         </div>
 
         {/* Review Content with Navigation Arrows on Sides */}
-        <div className="flex-1 overflow-hidden px-6 py-4 flex items-center gap-4">
+        <div className="flex-1 overflow-hidden px-6 py-4 flex items-start gap-4">
           {/* Left Arrow */}
           <button
             onClick={handlePrevious}
             disabled={currentReviewIndex === 0}
-            className="flex-shrink-0 p-3 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="flex-shrink-0 p-3 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent sticky top-0"
             aria-label="Previous review"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
 
           {/* Review Text */}
-          <div className="flex-1 overflow-y-auto py-2">
+          <div className="flex-1 overflow-y-auto py-2 max-h-full">
             <div className="text-sm leading-relaxed text-slate-200">
               {highlightedReview}
             </div>
@@ -176,7 +176,7 @@ const KeywordReviewDrawerComponent = ({ rawClusters }: KeywordReviewDrawerProps)
           <button
             onClick={handleNext}
             disabled={currentReviewIndex === totalReviews - 1}
-            className="flex-shrink-0 p-3 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="flex-shrink-0 p-3 hover:bg-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent sticky top-0"
             aria-label="Next review"
           >
             <ChevronRight className="w-6 h-6" />

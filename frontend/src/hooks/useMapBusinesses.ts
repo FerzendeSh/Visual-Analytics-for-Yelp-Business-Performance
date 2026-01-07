@@ -18,7 +18,7 @@ interface ViewportBounds {
 function hasSignificantViewportChange(
   prev: ViewportBounds | null,
   current: ViewportBounds | null,
-  thresholdPercent: number = 15
+  thresholdPercent: number = 25
 ): boolean {
   if (!prev || !current) return true;
 
@@ -54,7 +54,7 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
   const prevSignificantViewportRef = useRef<ViewportBounds | null>(null);
 
   // Debounce viewport changes - only matters for "All Cities" mode
-  const debouncedViewport = useDebounce(viewport, 500);
+  const debouncedViewport = useDebounce(viewport, 800);
 
   // For "All Cities" mode, only update viewport if it changed significantly
   const significantViewport = useMemo(() => {
@@ -133,6 +133,7 @@ export function useMapBusinesses(viewport: ViewportBounds | null) {
     enabled: !!(selectedCity || selectedState) || (isAllCities && !!significantViewport),
     staleTime: 30000, // Cache for 30 seconds - city data doesn't change often
     gcTime: 60000, // Keep in cache for 1 minute
+    placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 }
 

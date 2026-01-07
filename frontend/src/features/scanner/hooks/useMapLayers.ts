@@ -9,28 +9,32 @@ import Supercluster from 'supercluster';
 import { Business } from '@/lib/api';
 import { useAppStore, MAGGIANOS_TAMPA_BUSINESS_ID, MapColorMode } from '@/stores/useAppStore';
 import { getClusterColor } from '@/utils/clusterColors';
+import { LINE_COLORS } from '@/features/comparison/CompetitivePositioningChart';
 
 // Quadrant colors matching scatter plot
 const QUADRANT_COLORS = {
-  'Market Leaders': [34, 211, 238],   // #22D3EE
-  'Hidden Gems':    [96, 165, 250],   // #60A5FA
-  'Struggling':     [192, 132, 252],  // #C084FC
-  'Volume Drivers': [255, 237, 172],   // #ffedacff
+  'Market Leaders': [37, 99, 235],    // Deep blue #2563eb
+  'Hidden Gems':    [139, 92, 246],   // Violet #8b5cf6
+  'Struggling':     [251, 113, 133],  // Pink/rose #fb7185
+  'Volume Drivers': [245, 158, 11],   // Amber #f59e0b
 };
 
 
 
 
-// Helper to determine quadrant
-const getQuadrant = (rating: number, reviewCount: number) => {
-  // Using rough averages for Tampa market
-  const avgRating = 3.5;
-  const medianReviewCount = 100;
+// Helper to determine quadrant (moved inside useMemo to access dynamic stats)
+// Note: This is now defined inside the useMemo callback
 
-  if (rating >= avgRating && reviewCount >= medianReviewCount) return 'Market Leaders';
-  if (rating >= avgRating && reviewCount < medianReviewCount) return 'Hidden Gems';
-  if (rating < avgRating && reviewCount >= medianReviewCount) return 'Volume Drivers';
-  return 'Struggling';
+// Helper to convert hex to RGB
+const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : { r: 0, g: 0, b: 0 };
 };
 
 interface ClusterPoint {
@@ -68,6 +72,8 @@ interface UseMapLayersProps {
   setHighlightedBusiness: (id: string | null) => void;
   prefetchComparisonData: (id: string, business: Business) => void;
   mapColorMode: MapColorMode; // NEW: Map coloring mode
+  avgRating: number;
+  medianReviewCount: number;
 }
 
 export function useMapLayers({
@@ -90,11 +96,21 @@ export function useMapLayers({
   setHighlightedBusiness,
   prefetchComparisonData,
   mapColorMode,
+  avgRating,
+  medianReviewCount,
 }: UseMapLayersProps) {
   const filters = useAppStore((state) => state.filters);
   const selectedNeighborhood = filters.neighborhoodId;
 
   return useMemo(() => {
+    // Helper to determine quadrant using dynamic statistics
+    const getQuadrant = (rating: number, reviewCount: number) => {
+      if (rating >= avgRating && reviewCount >= medianReviewCount) return 'Market Leaders';
+      if (rating >= avgRating && reviewCount < medianReviewCount) return 'Hidden Gems';
+      if (rating < avgRating && reviewCount >= medianReviewCount) return 'Volume Drivers';
+      return 'Struggling';
+    };
+
     const result: any[] = [];
 
     // 1. Neighborhood boundaries layer
@@ -229,8 +245,11 @@ export function useMapLayers({
             getCursor: () => 'pointer',
             onHover: ({ object }) => setHoveredId(object?.business_id || null),
             onClick: ({ object }) => {
-              // Maggiano's is hardcoded as primary - prevent changes
-              console.log('Maggiano\'s is your primary business');
+              if (!object) return;
+              // Open click popup for Maggiano's to show cluster info and highlight on scatter plot
+              console.log('🗺️ MAP CLICK - Maggiano\'s (hardcoded primary):', object.business_id);
+              setClickedId(object.business_id);
+              setHighlightedBusiness(object.business_id);
             },
           })
         );
@@ -253,62 +272,72 @@ export function useMapLayers({
               getRadius: 200,
             },
             getFillColor: (d: Business): [number, number, number, number] => {
-              // CRITICAL: Use strict equality and check business_id exists
-              const businessId = d.business_id;
-
-              // Clicked business - bright pink (highest priority)
-              if (clickedBusinessId && businessId === clickedBusinessId) {
-                return [180, 60, 120, 255];// Bright pink full opacity
-              }
-
-              // Highlighted from scatter plot - bright blue
-              if (highlightedBusinessId && businessId === highlightedBusinessId) {
-                return [59, 130, 246, 255]; // Blue-500 full opacity
-              }
-
-              // Comparison businesses - purple
-              if (comparisonIds.includes(businessId)) {
-                return [255, 265, 0, 255]; // Purple for comparisons
-              }
-
+              // Keep original color for all businesses (quadrant or cluster)
+              // Clicked and highlighted businesses will be distinguished by outline only
+              
               // Competitive Landscape mode - color by cluster
               if (mapColorMode === 'COMPETITIVE_LANDSCAPE') {
                 const clusterLabel = (d as any).cluster_label;
                 if (clusterLabel !== null && clusterLabel !== undefined) {
                   const clusterRgb = getClusterColor(clusterLabel);
-                  return [clusterRgb[0], clusterRgb[1], clusterRgb[2], 240];
+                  return [clusterRgb[0], clusterRgb[1], clusterRgb[2], 255];
                 }
                 // No cluster assignment - use gray
-                return [150, 150, 150, 180];
+                return [150, 150, 150, 255];
               }
 
               // Market Positioning mode - color by quadrant (default)
               const quadrant = getQuadrant(d.stars, d.review_count);
               const rgb = QUADRANT_COLORS[quadrant];
-              return [rgb[0], rgb[1], rgb[2], 240];
+              return [rgb[0], rgb[1], rgb[2], 255];
             },
             getLineColor: (d: Business): [number, number, number] => {
-              // Highlighted gets bright blue border
-              if (highlightedBusinessId === d.business_id) {
-                return [59, 130, 246]; // Blue-500
+              // Clicked business gets bright pink outline (highest priority)
+              if (clickedBusinessId === d.business_id) {
+                return [236, 72, 153]; // Bright pink #ec4899
               }
-              return [255, 255, 255]; // White for others
+              
+              // Highlighted gets yellow border (matching scatter plot)
+              if (highlightedBusinessId === d.business_id) {
+                return [255, 234, 0]; // Yellow #ffea00ff
+              }
+              
+              // Comparison businesses get matching outline color
+              const comparisonIndex = comparisonIds.indexOf(d.business_id);
+              if (comparisonIndex !== -1) {
+                const color = LINE_COLORS[(comparisonIndex + 1) % LINE_COLORS.length];
+                const rgb = hexToRgb(color);
+                return [rgb.r, rgb.g, rgb.b];
+              }
+              
+              // Base stroke - dark for separation (matching scatter plot)
+              return [13, 13, 13]; // #0d0d0dff
             },
             getLineWidth: (d: Business) => {
-              // Thicker border for highlighted
-              if (highlightedBusinessId === d.business_id) return 4;
-              return 2;
+              // Clicked business gets prominent outline (highest priority)
+              if (clickedBusinessId === d.business_id) return 3;
+              
+              // Highlighted border (matching scatter plot)
+              if (highlightedBusinessId === d.business_id) return 2;
+              
+              // Comparison businesses border (matching scatter plot)
+              const comparisonIndex = comparisonIds.indexOf(d.business_id);
+              if (comparisonIndex !== -1) return 2.5;
+              
+              // Base stroke for separation (matching scatter plot)
+              return 0.3;
             },
-            lineWidthMinPixels: 2,
+            lineWidthMinPixels: 0.3,
             stroked: true,
             pickable: true,
             getCursor: () => 'pointer',
             onHover: ({ object }) => setHoveredId(object?.business_id || null),
             onClick: ({ object }) => {
               if (!object) return;
-              // Open click popup - don't set highlighted (that's for scatter plot only)
-              console.log('🗺️ MAP CLICK - Setting clickedId to:', object.business_id);
+              // Open click popup and highlight on scatter plot
+              console.log('🗺️ MAP CLICK - Setting clickedId and highlighted:', object.business_id);
               setClickedId(object.business_id);
+              setHighlightedBusiness(object.business_id);
             },
             updateTriggers: {
               getFillColor: [comparisonIds, highlightedBusinessId, clickedBusinessId],
@@ -342,5 +371,7 @@ export function useMapLayers({
     setClickedId,
     selectedNeighborhood,
     mapColorMode,
+    avgRating,
+    medianReviewCount,
   ]);
 }
