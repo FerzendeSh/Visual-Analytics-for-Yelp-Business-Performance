@@ -47,9 +47,11 @@ export function DeckMap() {
   const clusterFilter = useAppStore((state) => state.clusterFilter);
   const setClusterFilter = useAppStore((state) => state.setClusterFilter);
   const setMode = useAppStore((state) => state.setMode);
+  const setViewportBounds = useAppStore((state) => state.setViewportBounds);
 
   const selectedState = filters.cityId?.split('_')[1];
   const selectedCity = filters.cityId?.split('_')[0];
+  const isAllCities = filters.cityId === null;
 
   // Custom hooks
   const { prefetchComparisonData } = usePrefetchComparison();
@@ -80,6 +82,17 @@ export function DeckMap() {
     console.log('📐 Viewport calculated:', viewportBounds, 'zoom:', mapViewState.zoom);
     return viewportBounds;
   }, [mapRef, mapViewState]);
+
+  // Sync viewport to global store for scatterplot (only in "All Cities" mode)
+  useEffect(() => {
+    if (isAllCities && viewport) {
+      setViewportBounds(viewport);
+    } else if (!isAllCities) {
+      // Clear viewport bounds when a specific city is selected
+      // Scatterplot will use the full city data instead
+      setViewportBounds(null);
+    }
+  }, [viewport, isAllCities, setViewportBounds]);
 
   // Fetch data
   const { data: businesses = [], isLoading } = useMapBusinesses(viewport);
