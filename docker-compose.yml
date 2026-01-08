@@ -14,12 +14,49 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./backend/database_dump.sql:/docker-entrypoint-initdb.d/01-restore.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-yelp_user} -d ${POSTGRES_DB:-yelp_analytics}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - yelp-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yelp-analytics-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-yelp_user}:${POSTGRES_PASSWORD:-yelp_password}@postgres:5432/${POSTGRES_DB:-yelp_analytics}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-yelp_analytics}
+      POSTGRES_USER: ${POSTGRES_USER:-yelp_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-yelp_password}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - ./backend/public:/app/public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - yelp-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: yelp-analytics-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
     networks:
       - yelp-network
 
