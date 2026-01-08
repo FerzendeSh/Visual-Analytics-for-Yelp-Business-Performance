@@ -24,7 +24,6 @@ MANIFEST
 
 # Virtual environments
 venv/
-env/
 ENV/
 env.bak/
 venv.bak/
@@ -43,10 +42,11 @@ venv.bak/
 
 
 # Environment variables
-.env
 .env.local
 .env.*.local
-*.env
+
+# IMPORTANT: Allow backend/.env for dev setup
+!backend/.env
 
 # Database
 *.db
@@ -54,6 +54,9 @@ venv.bak/
 *.sqlite3
 postgres_data/
 pgadmin_data/
+
+# IMPORTANT: Do NOT ignore database_dump.sql - we need this for Docker!
+!backend/database_dump.sql
 
 # Logs
 *.log
